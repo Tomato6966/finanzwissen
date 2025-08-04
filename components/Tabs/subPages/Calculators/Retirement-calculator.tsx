@@ -1,0 +1,923 @@
+import {
+	Calculator, Calendar, Clock, Coins, Euro, HelpCircle, TrendingUp, Wallet
+} from "lucide-react";
+import React, { useMemo, useState } from "react";
+import {
+	Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis
+} from "recharts";
+
+import {
+	Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+	Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import {
+	Tooltip as ShadcnTooltip, TooltipContent, TooltipProvider, TooltipTrigger
+} from "@/components/ui/tooltip";
+
+import { formatCurrency, formatCurrencyPrecise } from "./tools";
+
+// Types for the component state
+type CalculationType =
+    | "calculate_monthly_payout"
+    | "calculate_retirement_age"
+    | "calculate_savings_rate";
+
+type AnnuityType = "capital_consumption" | "endless";
+
+interface FormData {
+    currentAge: number;
+    currentCapital: number;
+    yield: number;
+    inflation: number;
+    savingsRate: number;
+    savingsInterval:
+    | "daily"
+    | "weekly"
+    | "bi_weekly"
+    | "monthly"
+    | "quarterly"
+    | "yearly";
+    desiredRetirementAge: number;
+    desiredNetPayout: number;
+    taxRate: number;
+    annuityType: AnnuityType;
+    lifeExpectancy: number;
+}
+
+// Main component
+export function RetirementCalculator() {
+    const [calculationType, setCalculationType] =
+        useState<CalculationType>("calculate_monthly_payout");
+    const [formData, setFormData] = useState<FormData>({
+        currentAge: 30,
+        currentCapital: 25000,
+        yield: 7,
+        inflation: 2.5,
+        savingsRate: 500,
+        savingsInterval: "monthly",
+        desiredRetirementAge: 67,
+        desiredNetPayout: 1500,
+        taxRate: 25,
+        annuityType: "capital_consumption",
+        lifeExpectancy: 90,
+    });
+
+    // Calculate annual savings based on interval
+    const getAnnualSavings = (
+        rate: number,
+        interval: FormData["savingsInterval"]
+    ) => {
+        switch (interval) {
+            case "daily":
+                return rate * 365;
+            case "weekly":
+                return rate * 52;
+            case "bi_weekly":
+                return rate * 26;
+            case "monthly":
+                return rate * 12;
+            case "quarterly":
+                return rate * 4;
+            case "yearly":
+                return rate;
+            default:
+                return 0;
+        }
+    };
+
+    // Main calculation logic
+    const calculationResult = useMemo(() => {
+        const {
+            currentAge,
+            currentCapital,
+            yield: rawYield,
+            inflation: rawInflation,
+            savingsRate,
+            savingsInterval,
+            desiredRetirementAge,
+            desiredNetPayout,
+            taxRate,
+            annuityType,
+            lifeExpectancy,
+        } = formData;
+
+        const rateOfReturn = rawYield / 100;
+        const inflationRate = rawInflation / 100;
+        const taxFactor = 1 - taxRate / 100;
+        const annualSavings = getAnnualSavings(savingsRate, savingsInterval);
+
+        let accumulatedCapital = currentCapital;
+        const savingsPhaseData = [];
+        const payoutPhaseData = [];
+
+        // Calculate total contributions for the savings phase
+        let cumulativeInflationFactor = 1;
+
+        // Savings phase
+        for (let year = currentAge; year <= desiredRetirementAge; year++) {
+            const yearIndex = year - currentAge;
+            if (yearIndex > 0) {
+                accumulatedCapital =
+                    accumulatedCapital * (1 + rateOfReturn) + annualSavings;
+                cumulativeInflationFactor = cumulativeInflationFactor * (1 + inflationRate);
+            }
+            savingsPhaseData.push({
+                age: year,
+                "Kapital nominal": accumulatedCapital,
+                "Kapital real": accumulatedCapital / cumulativeInflationFactor,
+            });
+        }
+
+        const retirementCapital = accumulatedCapital;
+
+        // Calculation for the "max monthly payout" mode
+        if (calculationType === "calculate_monthly_payout") {
+            // Payout phase
+            if (annuityType === "endless") {
+                // Corrected calculation: use nominal rate of return to preserve nominal capital
+                const monthlyPayoutBrutto = (retirementCapital * rateOfReturn) / 12;
+                const monthlyPayoutNetto = monthlyPayoutBrutto * taxFactor;
+
+                // Simulate capital for chart
+                let currentPayoutCapital = retirementCapital;
+                let currentInflationFactor = cumulativeInflationFactor;
+                for (let year = desiredRetirementAge; year <= lifeExpectancy; year++) {
+                    const yearIndex = year - desiredRetirementAge;
+                    if (yearIndex > 0) {
+                        currentPayoutCapital = currentPayoutCapital * (1 + rateOfReturn) - monthlyPayoutBrutto * 12;
+                        currentInflationFactor = currentInflationFactor * (1 + inflationRate);
+                    }
+                    payoutPhaseData.push({
+                        age: year,
+                        "Kapital nominal": currentPayoutCapital,
+                        "Kapital real": currentPayoutCapital / currentInflationFactor,
+                    });
+                }
+
+                return {
+                    retirementCapital,
+                    monthlyPayoutBrutto,
+                    monthlyPayoutNetto,
+                    savingsPhaseData,
+                    payoutPhaseData,
+                    type: "payout",
+                };
+            } else {
+                const yearsInRetirement = lifeExpectancy - desiredRetirementAge;
+                const totalMonths = yearsInRetirement * 12;
+                const monthlyRate = Math.pow(1 + rateOfReturn, 1 / 12) - 1;
+
+                // Calculate the maximum monthly payout using the annuity formula
+                const monthlyPayoutBrutto =
+                    (retirementCapital * monthlyRate) /
+                    (1 - Math.pow(1 + monthlyRate, -totalMonths));
+                const monthlyPayoutNetto = monthlyPayoutBrutto * taxFactor;
+
+                // Simulate capital consumption
+                let currentPayoutCapital = retirementCapital;
+                let currentInflationFactor = cumulativeInflationFactor;
+                for (
+                    let year = desiredRetirementAge;
+                    year <= lifeExpectancy;
+                    year++
+                ) {
+                    const yearIndex = year - desiredRetirementAge;
+                    if (yearIndex > 0) {
+                        currentPayoutCapital =
+                            currentPayoutCapital * Math.pow(1 + rateOfReturn, 1) -
+                            monthlyPayoutBrutto * 12;
+                        currentInflationFactor = currentInflationFactor * (1 + inflationRate);
+                    }
+                    payoutPhaseData.push({
+                        age: year,
+                        "Kapital nominal": currentPayoutCapital,
+                        "Kapital real": currentPayoutCapital / currentInflationFactor,
+                    });
+                }
+
+                return {
+                    retirementCapital,
+                    monthlyPayoutBrutto,
+                    monthlyPayoutNetto,
+                    savingsPhaseData,
+                    payoutPhaseData,
+                    type: "payout",
+                };
+            }
+        }
+
+        // Calculation for the "calculate retirement age" mode
+        if (calculationType === "calculate_retirement_age") {
+            const annualNetPayout = desiredNetPayout * 12;
+            const annualGrossPayout = annualNetPayout / taxFactor;
+            let requiredCapital = 0;
+
+            if (annuityType === "endless") {
+                requiredCapital = annualGrossPayout / rateOfReturn;
+            } else {
+                const yearsToConsume = lifeExpectancy - desiredRetirementAge;
+                const monthlyRate = Math.pow(1 + rateOfReturn, 1 / 12) - 1;
+                const totalMonths = yearsToConsume * 12;
+                requiredCapital =
+                    (annualGrossPayout / 12) *
+                    ((1 - Math.pow(1 + monthlyRate, -totalMonths)) / monthlyRate);
+            }
+
+            let retirementAge = currentAge;
+            let currentCapitalSim = currentCapital;
+            const savingsPhaseDataSim = [];
+
+            while (currentCapitalSim < requiredCapital) {
+                if (retirementAge >= 100) {
+                    retirementAge = 100;
+                    break;
+                }
+                const yearIndex = retirementAge - currentAge;
+                const inflationFactor = Math.pow(1 + inflationRate, yearIndex);
+                currentCapitalSim =
+                    currentCapitalSim * (1 + rateOfReturn) + annualSavings;
+                savingsPhaseDataSim.push({
+                    age: retirementAge + 1,
+                    "Kapital nominal": currentCapitalSim,
+                    "Kapital real": currentCapitalSim / inflationFactor,
+                });
+                retirementAge++;
+            }
+
+            return {
+                requiredCapital,
+                retirementAge: retirementAge - 1,
+                savingsPhaseData: savingsPhaseDataSim,
+                type: "age",
+            };
+        }
+
+        // Calculation for the "calculate savings rate" mode
+        if (calculationType === "calculate_savings_rate") {
+            const yearsToRetirement = desiredRetirementAge - currentAge;
+            const totalMonths = yearsToRetirement * 12;
+            const monthlyRate = Math.pow(1 + rateOfReturn, 1 / 12) - 1;
+
+            const annualNetPayout = desiredNetPayout * 12;
+            const annualGrossPayout = annualNetPayout / taxFactor;
+            let requiredCapital = 0;
+
+            if (annuityType === "endless") {
+                requiredCapital = annualGrossPayout / rateOfReturn;
+            } else {
+                const yearsInRetirement = lifeExpectancy - desiredRetirementAge;
+                const retirementTotalMonths = yearsInRetirement * 12;
+                requiredCapital =
+                    (annualGrossPayout / 12) *
+                    ((1 - Math.pow(1 + monthlyRate, -retirementTotalMonths)) / monthlyRate);
+            }
+
+            const futureValueFactor = (Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate;
+
+            const futureValueFromCurrentCapital = currentCapital * Math.pow(1 + monthlyRate, totalMonths);
+
+            const requiredFutureSavings = requiredCapital - futureValueFromCurrentCapital;
+            const requiredMonthlySavingsRate = requiredFutureSavings / futureValueFactor;
+
+            return {
+                futureCapital: requiredFutureSavings,
+                requiredMonthlySavingsRate: requiredMonthlySavingsRate > 0 ? requiredMonthlySavingsRate : 0,
+                type: "savings",
+            };
+        }
+
+        return null;
+    }, [formData, calculationType]);
+
+    // Handle form field changes
+    const handleInputChange = (field: keyof FormData, value: string | number) => {
+        setFormData((prev) => ({
+            ...prev,
+            [field]: typeof value === "string" ? parseFloat(value) : value,
+        }));
+    };
+
+    const isPayoutMode = calculationType === "calculate_monthly_payout";
+    const isAgeMode = calculationType === "calculate_retirement_age";
+    const isSavingsMode = calculationType === "calculate_savings_rate";
+
+    return (
+        <TooltipProvider>
+            <Card className="w-full max-w-6xl shadow-xl rounded-lg overflow-hidden py-0">
+                <CardHeader className="bg-primary text-primary-foreground p-6 rounded-t-lg">
+                    <CardTitle className="text-3xl font-bold flex items-center">
+                        <Calculator className="mr-3 h-8 w-8" /> Vorsorgerechner
+                    </CardTitle>
+                    <CardDescription className="text-primary-foreground opacity-90 text-sm">
+                        Planen Sie Ihre Anspar- und Entnahmephase. Finden Sie Ihr optimales
+                        Rentenalter oder die nötige Sparrate.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Input Panel */}
+                    <div className="lg:col-span-1 space-y-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="calculationType">
+                                <div className="flex items-center">
+                                    <Calendar className="mr-2 h-4 w-4" /> Berechnungsmodus
+                                </div>
+                            </Label>
+                            <Select
+                                value={calculationType}
+                                onValueChange={(value: CalculationType) =>
+                                    setCalculationType(value)
+                                }
+                            >
+                                <SelectTrigger id="calculationType">
+                                    <SelectValue placeholder="Wähle einen Modus" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="calculate_monthly_payout">
+                                        Berechne max. monatliche Netto-Rente
+                                    </SelectItem>
+                                    <SelectItem value="calculate_retirement_age">
+                                        Berechne frühestes Rentenalter
+                                    </SelectItem>
+                                    <SelectItem value="calculate_savings_rate">
+                                        Berechne notwendige Sparrate
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-semibold flex items-center">
+                                <Wallet className="mr-2 h-5 w-5" /> Ihre Daten
+                            </h3>
+                            <div className="space-y-4">
+                                {/* Current Age */}
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="currentAge">Aktuelles Alter</Label>
+                                        <ShadcnTooltip>
+                                            <TooltipTrigger>
+                                                <HelpCircle className="h-4 w-4 text-gray-500" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Ihr derzeitiges Alter in Jahren.</p>
+                                            </TooltipContent>
+                                        </ShadcnTooltip>
+                                    </div>
+                                    <Input
+                                        id="currentAge"
+                                        type="number"
+                                        value={formData.currentAge}
+                                        onChange={(e) =>
+                                            handleInputChange("currentAge", e.target.value)
+                                        }
+                                    />
+                                </div>
+
+                                {/* Current Capital */}
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="currentCapital">Aktuelles Kapital (€)</Label>
+                                        <ShadcnTooltip>
+                                            <TooltipTrigger>
+                                                <HelpCircle className="h-4 w-4 text-gray-500" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Ihr derzeit angespartes Kapital.</p>
+                                            </TooltipContent>
+                                        </ShadcnTooltip>
+                                    </div>
+                                    <Input
+                                        id="currentCapital"
+                                        type="number"
+                                        value={formData.currentCapital}
+                                        onChange={(e) =>
+                                            handleInputChange("currentCapital", e.target.value)
+                                        }
+                                    />
+                                </div>
+
+                                {/* Yield */}
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="yield">
+                                            Rendite in der Ansparphase p.a. (%)
+                                        </Label>
+                                        <ShadcnTooltip>
+                                            <TooltipTrigger>
+                                                <HelpCircle className="h-4 w-4 text-gray-500" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>
+                                                    Die jährliche Rendite, die Sie während der
+                                                    Ansparphase erwarten.
+                                                </p>
+                                            </TooltipContent>
+                                        </ShadcnTooltip>
+                                    </div>
+                                    <Input
+                                        id="yield"
+                                        type="number"
+                                        value={formData.yield}
+                                        onChange={(e) =>
+                                            handleInputChange("yield", e.target.value)
+                                        }
+                                    />
+                                </div>
+
+                                {/* Inflation */}
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="inflation">Jährliche Inflation (%)</Label>
+                                        <ShadcnTooltip>
+                                            <TooltipTrigger>
+                                                <HelpCircle className="h-4 w-4 text-gray-500" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>
+                                                    Die jährliche Inflationsrate, die die Kaufkraft
+                                                    reduziert.
+                                                </p>
+                                            </TooltipContent>
+                                        </ShadcnTooltip>
+                                    </div>
+                                    <Input
+                                        id="inflation"
+                                        type="number"
+                                        value={formData.inflation}
+                                        onChange={(e) =>
+                                            handleInputChange("inflation", e.target.value)
+                                        }
+                                    />
+                                </div>
+
+                                {/* Monthly Savings Rate - visible only for Payout and Age modes */}
+                                {!isSavingsMode && (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label htmlFor="savingsRate">
+                                                Monatliche Sparrate (€)
+                                            </Label>
+                                            <ShadcnTooltip>
+                                                <TooltipTrigger>
+                                                    <HelpCircle className="h-4 w-4 text-gray-500" />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Der Betrag, den Sie regelmäßig sparen.</p>
+                                                </TooltipContent>
+                                            </ShadcnTooltip>
+                                        </div>
+                                        <Input
+                                            id="savingsRate"
+                                            type="number"
+                                            value={formData.savingsRate}
+                                            onChange={(e) =>
+                                                handleInputChange("savingsRate", e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Savings Interval - visible only for Payout and Age modes */}
+                                {!isSavingsMode && (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label htmlFor="savingsInterval">
+                                                Intervall der Einzahlung
+                                            </Label>
+                                            <ShadcnTooltip>
+                                                <TooltipTrigger>
+                                                    <HelpCircle className="h-4 w-4 text-gray-500" />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>
+                                                        Die Häufigkeit, mit der die Sparrate eingezahlt
+                                                        wird.
+                                                    </p>
+                                                </TooltipContent>
+                                            </ShadcnTooltip>
+                                        </div>
+                                        <Select
+                                            value={formData.savingsInterval}
+                                            onValueChange={(value: FormData["savingsInterval"]) =>
+                                                setFormData((prev) => ({
+                                                    ...prev,
+                                                    savingsInterval: value,
+                                                }))
+                                            }
+                                        >
+                                            <SelectTrigger id="savingsInterval">
+                                                <SelectValue placeholder="Intervall wählen" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="monthly">monatlich</SelectItem>
+                                                <SelectItem value="quarterly">quartalsweise</SelectItem>
+                                                <SelectItem value="yearly">jährlich</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+
+                                {/* Desired Retirement Age - visible only for Payout and Savings modes */}
+                                {!isAgeMode && (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label htmlFor="desiredRetirementAge">
+                                                Gewünschtes Rentenalter
+                                            </Label>
+                                            <ShadcnTooltip>
+                                                <TooltipTrigger>
+                                                    <HelpCircle className="h-4 w-4 text-gray-500" />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>
+                                                        Das Alter, in dem Sie in Rente gehen möchten.
+                                                    </p>
+                                                </TooltipContent>
+                                            </ShadcnTooltip>
+                                        </div>
+                                        <Input
+                                            id="desiredRetirementAge"
+                                            type="number"
+                                            value={formData.desiredRetirementAge}
+                                            onChange={(e) =>
+                                                handleInputChange(
+                                                    "desiredRetirementAge",
+                                                    e.target.value
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Desired Net Payout - visible only for Age and Savings modes */}
+                                {(isAgeMode || isSavingsMode) && (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label htmlFor="desiredNetPayout">
+                                                Gewünschte monatliche Netto-Rente (€)
+                                            </Label>
+                                            <ShadcnTooltip>
+                                                <TooltipTrigger>
+                                                    <HelpCircle className="h-4 w-4 text-gray-500" />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Ihre gewünschte monatliche Auszahlung nach Steuern.</p>
+                                                </TooltipContent>
+                                            </ShadcnTooltip>
+                                        </div>
+                                        <Input
+                                            id="desiredNetPayout"
+                                            type="number"
+                                            value={formData.desiredNetPayout}
+                                            onChange={(e) =>
+                                                handleInputChange("desiredNetPayout", e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="taxRate">Steuersatz / Auszahlung (%)</Label>
+                                        <ShadcnTooltip>
+                                            <TooltipTrigger>
+                                                <HelpCircle className="h-4 w-4 text-gray-500" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>
+                                                    Der Steuersatz, der auf die Auszahlung angewendet wird.
+                                                </p>
+                                            </TooltipContent>
+                                        </ShadcnTooltip>
+                                    </div>
+                                    <Input
+                                        id="taxRate"
+                                        type="number"
+                                        value={formData.taxRate}
+                                        onChange={(e) =>
+                                            handleInputChange("taxRate", e.target.value)
+                                        }
+                                    />
+                                </div>
+
+                                {/* Annuity Type */}
+                                {(isPayoutMode || isAgeMode) && (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label>Entnahme</Label>
+                                            <ShadcnTooltip>
+                                                <TooltipTrigger>
+                                                    <HelpCircle className="h-4 w-4 text-gray-500" />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>
+                                                        Kapitalverzehr: Das Kapital wird bis zur
+                                                        Lebenserwartung verbraucht.<br />Endlos: Das Kapital
+                                                        bleibt erhalten.
+                                                    </p>
+                                                </TooltipContent>
+                                            </ShadcnTooltip>
+                                        </div>
+                                        <RadioGroup
+                                            value={formData.annuityType}
+                                            onValueChange={(value: AnnuityType) =>
+                                                setFormData((prev) => ({
+                                                    ...prev,
+                                                    annuityType: value,
+                                                }))
+                                            }
+                                            className="flex space-x-4"
+                                        >
+                                            <div className="flex items-center space-x-2">
+                                                <RadioGroupItem
+                                                    value="capital_consumption"
+                                                    id="capital_consumption"
+                                                />
+                                                <Label htmlFor="capital_consumption">
+                                                    Kapitalverzehr
+                                                </Label>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <RadioGroupItem value="endless" id="endless" />
+                                                <Label htmlFor="endless">Endlos</Label>
+                                            </div>
+                                        </RadioGroup>
+                                    </div>
+                                )}
+
+                                {/* Life Expectancy - visible for Capital Consumption mode */}
+                                {formData.annuityType === "capital_consumption" &&
+                                    (isPayoutMode || isAgeMode) && (
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <Label htmlFor="lifeExpectancy">
+                                                    Lebenserwartung (Alter)
+                                                </Label>
+                                                <ShadcnTooltip>
+                                                    <TooltipTrigger>
+                                                        <HelpCircle className="h-4 w-4 text-gray-500" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>
+                                                            Das Alter, bis zu dem das Kapital aufgebraucht
+                                                            sein soll.
+                                                        </p>
+                                                    </TooltipContent>
+                                                </ShadcnTooltip>
+                                            </div>
+                                            <Input
+                                                id="lifeExpectancy"
+                                                type="number"
+                                                value={formData.lifeExpectancy}
+                                                onChange={(e) =>
+                                                    handleInputChange(
+                                                        "lifeExpectancy",
+                                                        e.target.value
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Results Panel */}
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* Display Result Cards */}
+                        {calculationResult && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {isPayoutMode && (
+                                    <>
+                                        <Card className="bg-purple-100 dark:bg-purple-900 border-purple-300 dark:border-purple-700">
+                                            <CardHeader>
+                                                <div className="flex items-center text-purple-700 dark:text-purple-300">
+                                                    <Coins className="mr-2 h-5 w-5" />
+                                                    <CardTitle className="text-xl">
+                                                        Kapital bei Renteneintritt
+                                                    </CardTitle>
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="text-4xl font-bold text-purple-800 dark:text-purple-200">
+                                                    {formatCurrency(calculationResult.retirementCapital!)}
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                        <Card className="bg-orange-100 dark:bg-orange-900 border-orange-300 dark:border-orange-700">
+                                            <CardHeader>
+                                                <div className="flex items-center text-orange-700 dark:text-orange-300">
+                                                    <TrendingUp className="mr-2 h-5 w-5" />
+                                                    <CardTitle className="text-xl">
+                                                        Mögliche mtl. Netto-Rente
+                                                    </CardTitle>
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="text-4xl font-bold text-orange-800 dark:text-orange-200">
+                                                    {formatCurrency(calculationResult.monthlyPayoutNetto!)}
+                                                </div>
+                                                <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">
+                                                    ({formatCurrency(calculationResult.monthlyPayoutBrutto!)} brutto)
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                    </>
+                                )}
+                                {isAgeMode && (
+                                    <Card className="bg-blue-100 dark:bg-blue-900 col-span-2 border-blue-300 dark:border-blue-700">
+                                        <CardHeader>
+                                            <div className="flex flex-wrap items-center text-blue-700 dark:text-blue-300">
+                                                <Clock className="mr-2 h-5 w-5" />
+                                                <CardTitle className="text-xl flex-9/12">
+                                                    Frühestes Rentenalter
+                                                </CardTitle>
+                                                <CardDescription>
+                                                    Dann reicht das Kapital um monatlich {formatCurrency(formData.desiredNetPayout)} ({formatCurrency(formData.desiredNetPayout * (1 + formData.taxRate / 100))} brutto) zu entnehmen
+                                                </CardDescription>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="text-4xl font-bold text-blue-800 dark:text-blue-200">
+                                                {calculationResult.retirementAge} Jahre
+                                            </div>
+                                            <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+                                                Erforderliches Kapital: {formatCurrency(calculationResult.requiredCapital!)}
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                )}
+                                {isSavingsMode && (
+                                    <Card className="bg-green-100 dark:bg-green-900 col-span-2 border-green-300 dark:border-green-700">
+                                        <CardHeader>
+                                            <div className="flex flex-wrap items-center text-green-700 dark:text-green-300">
+                                                <Euro className="mr-2 h-5 w-5" />
+                                                <CardTitle className="text-xl flex-9/12">
+                                                    Notwendige monatliche Sparrate
+                                                </CardTitle>
+                                                <CardDescription>
+                                                    Dann reicht das Kapital ({formatCurrencyPrecise(calculationResult.futureCapital!)}) um monatlich {formatCurrency(formData.desiredNetPayout)} ({formatCurrency(formData.desiredNetPayout * (1 + formData.taxRate / 100))} brutto) zu entnehmen
+                                                </CardDescription>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="text-4xl font-bold text-green-800 dark:text-green-200">
+                                                {formatCurrency(calculationResult.requiredMonthlySavingsRate!)}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Chart for Payout and Age modes */}
+                        {(isPayoutMode || isAgeMode) && calculationResult && (
+                            <div className="bg-white p-4 rounded-lg shadow-md">
+                                <ResponsiveContainer width="100%" height={400}>
+                                    <AreaChart
+                                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis
+                                            dataKey="age"
+                                            type="number"
+                                            domain={["dataMin", "dataMax"]}
+                                            allowDecimals={false}
+                                            ticks={[
+                                                ...(calculationResult.savingsPhaseData?.map(d => d.age) || []),
+                                                ...(isPayoutMode ? (calculationResult.payoutPhaseData?.map(d => d.age) || []) : []),
+                                            ].flat().filter(v => v !== undefined)}
+                                        />
+                                        <YAxis
+                                            width="auto"
+                                            tickFormatter={formatCurrency}
+                                        />
+                                        <Tooltip
+                                            formatter={(value: number, name: string) => [
+                                                formatCurrency(value),
+                                                name,
+                                            ]}
+                                        />
+                                        <Legend content={({ payload }) => (
+                                            <ul
+                                                style={{
+                                                    display: "flex",
+                                                    flexWrap: "wrap",
+                                                    justifyContent: "center",
+                                                    columnGap: "32px",
+                                                    rowGap: "12px",
+                                                    listStyle: "none",
+                                                    margin: 0,
+                                                    padding: 0,
+                                                }}
+                                            >
+                                                {payload?.map((entry, index) => {
+                                                    const isNominal = entry.value?.toLowerCase().includes("nominal");
+                                                    const color = entry.color;
+
+                                                    return (
+                                                        <li
+                                                            key={`legend-${index}`}
+                                                            style={{
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                opacity: isNominal ? 0.4 : 1,
+                                                            }}
+                                                        >
+                                                            <div
+                                                                style={{
+                                                                    position: "relative",
+                                                                    width: 32,
+                                                                    height: 2,
+                                                                    marginRight: 8,
+                                                                    backgroundColor: "transparent",
+                                                                    borderBottom: isNominal
+                                                                        ? `2px dashed ${color}`
+                                                                        : `2px solid ${color}`,
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    style={{
+                                                                        position: "absolute",
+                                                                        top: -2,
+                                                                        left: "50%",
+                                                                        transform: "translateX(-50%)",
+                                                                        width: 6,
+                                                                        height: 6,
+                                                                        backgroundColor: color,
+                                                                        borderRadius: "50%",
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                            <span style={{ fontSize: 12, color }}>{entry.value}</span>
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        )} />
+                                        {/* Savings Phase Lines */}
+                                        <Area
+                                            type="step"
+                                            dataKey="Kapital nominal"
+                                            data={calculationResult.savingsPhaseData}
+                                            stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.4} strokeWidth={2} strokeOpacity={0.3}
+                                            name="Anspar-Kapital (nominal)"
+                                        />
+                                        {formData.inflation > 0 && <Area
+                                            type="step"
+                                            dataKey="Kapital real"
+                                            data={calculationResult.savingsPhaseData}
+                                            stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.4} strokeWidth={2} strokeOpacity={0.3}
+                                            name="Anspar-Kapital (real - mit inflation)"
+                                        />}
+                                        {/* Payout Phase Lines */}
+                                        {isPayoutMode && calculationResult.payoutPhaseData && calculationResult.payoutPhaseData.length > 0 && (
+                                            <>
+                                                <Area
+                                                    type="step"
+                                                    dataKey="Kapital nominal"
+                                                    data={calculationResult.payoutPhaseData}
+                                                    stroke="#9333ea" fill="#9333ea" fillOpacity={0.2} strokeOpacity={0.3}
+                                                    name="Entnahme-Kapital (nominal)"
+                                                />
+                                                {formData.inflation > 0 && <Area
+                                                    type="step"
+                                                    dataKey="Kapital real"
+                                                    data={calculationResult.payoutPhaseData}
+                                                    stroke="#9333ea" fill="#9333ea" fillOpacity={0.2} strokeOpacity={0.3}
+                                                    name="Entnahme-Kapital (real - mit inflation)"
+                                                />}
+                                            </>
+                                        )}
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                                <Separator className="my-4" />
+                                <div className="text-sm text-gray-500 space-y-2">
+                                    <p>
+                                        <span className="text-purple-600 font-bold">Die violette Linie</span> zeigt das <b>nominale Kapital</b> in der Ansparphase. Die hellere Linie darunter zeigt den <b>realen (inflationsbereinigten) Wert</b>.
+                                    </p>
+                                    {isPayoutMode && (
+                                        <p>
+                                            <span className="text-orange-600 font-bold">Die orange Linie</span> zeigt das <b>nominale Kapital</b> in der Entnahmephase. Die hellere Linie zeigt den <b>realen (inflationsbereinigten) Wert</b>, der bei Entnahmen immer sinkt.
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </CardContent>
+                <CardFooter className="p-6 text-sm text-gray-500">
+                    <p>
+                        Hinweis: Dies ist ein Modell, keine Garantie. Die tatsächliche Rendite kann von der hier angegebenen Schätzung abweichen.
+                    </p>
+                </CardFooter>
+            </Card>
+        </TooltipProvider>
+    );
+}
