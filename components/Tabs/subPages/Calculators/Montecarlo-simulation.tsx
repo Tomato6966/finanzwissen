@@ -1,5 +1,5 @@
 import { ArrowRightCircle, BarChart2, X } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
 	CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis
 } from "recharts";
@@ -43,7 +43,7 @@ interface MonteCarloResultMetrics {
 }
 
 interface MonteCarloResults {
-    paths: MonteCarloPathPoint[][];
+    paths: MonteCarloPathPoint[][]; // Now contains only the selected representative paths
     percentileMetrics: {
         p10: MonteCarloResultMetrics;
         p25: MonteCarloResultMetrics;
@@ -52,9 +52,188 @@ interface MonteCarloResults {
         p90: MonteCarloResultMetrics;
     } | null;
     overallStats: MonteCarloStats | null; // Keep overall stats for end values
+    totalContributions: number; // New field for total contributions
 }
 
 const RISK_FREE_RATE = 2; // Example: 2% risk-free rate for Sharpe Ratio calculation
+const MAX_DISPLAY_PATHS = 15; // Maximum number of paths to display in the chart
+
+// --- Web Worker Code (as a separate blob) ---
+// This code is a string that will be used to create a Web Worker.
+// It contains the core Monte Carlo simulation logic.
+const workerCode = `
+self.onmessage = (e) => {
+    const { principal, time, monthlyContribution, simulations, portfolioDrift, portfolioVolatility, RISK_FREE_RATE, MAX_DISPLAY_PATHS } = e.data;
+
+    const dt = 1 / 252; // Daily time step
+    const mu = portfolioDrift / 100; // Annual drift
+    const sigma = portfolioVolatility / 100; // Annual volatility
+    const monthlyContributionDaily = monthlyContribution / 21; // Distribute monthly contribution over ~21 trading days
+
+    const allPaths = [];
+    const allEndValues = [];
+    const allMaxDrawdowns = [];
+    const allAnnualReturns = [];
+    const allSharpeRatios = [];
+
+    // Calculate how often to send a progress message (e.g., every 1% of simulations)
+    const progressUpdateInterval = Math.max(1, Math.floor(simulations / 100)); // Update at least once per 1%
+
+    for (let i = 0; i < simulations; i++) {
+        const path = [{ x: 0, y: principal }];
+        let currentValue = principal;
+        let peakValue = principal;
+        let currentMaxDrawdown = 0;
+        const dailyValues = [principal];
+
+        for (let t = 1; t <= time * 252; t++) {
+            const Z = Math.sqrt(-2 * Math.log(Math.random())) * Math.cos(2 * Math.PI * Math.random());
+            currentValue *= Math.exp((mu - Math.pow(sigma, 2) / 2) * dt + sigma * Math.sqrt(dt) * Z);
+
+            currentValue += monthlyContributionDaily;
+
+            dailyValues.push(currentValue);
+
+            peakValue = Math.max(peakValue, currentValue);
+            currentMaxDrawdown = Math.max(currentMaxDrawdown, (peakValue - currentValue) / peakValue);
+
+            if (t % 21 === 0) {
+                path.push({ x: t / 252, y: currentValue });
+            }
+        }
+        allPaths.push(path);
+        allEndValues.push(currentValue);
+        allMaxDrawdowns.push(currentMaxDrawdown * 100);
+
+        const avgAnnualReturn = (Math.pow(currentValue / principal, 1 / time) - 1) * 100;
+        allAnnualReturns.push(avgAnnualReturn);
+
+        const pathDailyReturns = dailyValues.slice(1).map((val, idx) => (val - dailyValues[idx]) / dailyValues[idx]);
+        const pathMeanDailyReturn = pathDailyReturns.reduce((sum, r) => sum + r, 0) / pathDailyReturns.length;
+        const pathStdDevDailyReturn = Math.sqrt(pathDailyReturns.map(r => Math.pow(r - pathMeanDailyReturn, 2)).reduce((sum, sd) => sum + sd, 0) / (pathDailyReturns.length - 1));
+        const annualizedPathStdDev = pathStdDevDailyReturn * Math.sqrt(252);
+        const annualizedExcessReturn = (avgAnnualReturn / 100) - (RISK_FREE_RATE / 100);
+        const sharpe = annualizedPathStdDev > 0 ? annualizedExcessReturn / annualizedPathStdDev : 0;
+        allSharpeRatios.push(sharpe);
+
+        // Send progress updates back to the main thread less frequently
+        if ((i + 1) % progressUpdateInterval === 0 || i === simulations - 1) {
+            self.postMessage({ type: 'progress', progress: Math.round(((i + 1) / simulations) * 100) });
+        }
+    }
+
+    // Calculate overall stats for end values
+    allEndValues.sort((a, b) => a - b);
+    const overallStats = {
+        median: allEndValues[Math.floor(simulations / 2)],
+        p10: allEndValues[Math.floor(simulations * 0.1)],
+        p90: allEndValues[Math.floor(simulations * 0.9)],
+        worst: allEndValues[0],
+        best: allEndValues[simulations - 1],
+    };
+
+    const getPercentile = (arr, percentile) => {
+        arr.sort((a, b) => a - b);
+        const index = (percentile / 100) * (arr.length - 1);
+        return arr[Math.floor(index)];
+    };
+
+    const percentileMetrics = {
+        p10: {
+            maxDrawdown: getPercentile(allMaxDrawdowns, 10),
+            avgAnnualReturn: getPercentile(allAnnualReturns, 10),
+            sharpeRatio: getPercentile(allSharpeRatios, 10),
+        },
+        p25: {
+            maxDrawdown: getPercentile(allMaxDrawdowns, 25),
+            avgAnnualReturn: getPercentile(allAnnualReturns, 25),
+            sharpeRatio: getPercentile(allSharpeRatios, 25),
+        },
+        p50: {
+            maxDrawdown: getPercentile(allMaxDrawdowns, 50),
+            avgAnnualReturn: getPercentile(allAnnualReturns, 50),
+            sharpeRatio: getPercentile(allSharpeRatios, 50),
+        },
+        p75: {
+            maxDrawdown: getPercentile(allMaxDrawdowns, 75),
+            avgAnnualReturn: getPercentile(allAnnualReturns, 75),
+            sharpeRatio: getPercentile(allSharpeRatios, 75),
+        },
+        p90: {
+            maxDrawdown: getPercentile(allMaxDrawdowns, 90),
+            avgAnnualReturn: getPercentile(allAnnualReturns, 90),
+            sharpeRatio: getPercentile(allSharpeRatios, 90),
+        },
+    };
+
+    const totalContributions = principal + (monthlyContribution * time * 12);
+
+    // --- Path Selection for Visualization ---
+    const selectedPathIndices = new Set();
+    const finalSelectedPaths = [];
+
+    // Helper to add a path by its original index, avoiding duplicates
+    const addPathByIndex = (originalIndex) => {
+        if (!selectedPathIndices.has(originalIndex)) {
+            selectedPathIndices.add(originalIndex);
+            finalSelectedPaths.push(allPaths[originalIndex]);
+        }
+    };
+
+    // 1. Get the indices of all end values, sorted, to find specific paths
+    const indexedEndValues = allEndValues.map((value, index) => ({ value, index }));
+    indexedEndValues.sort((a, b) => a.value - b.value);
+
+    // Ensure we have enough simulations for selection, otherwise just take all
+    if (simulations > 0) {
+        // Add Worst Case
+        addPathByIndex(indexedEndValues[0].index);
+
+        // Add Best Case
+        addPathByIndex(indexedEndValues[indexedEndValues.length - 1].index);
+
+        // Add Percentile Paths (10th, 25th, 50th, 75th, 90th)
+        const percentilesToInclude = [10, 25, 50, 75, 90];
+        percentilesToInclude.forEach(p => {
+            if (indexedEndValues.length > 1) { // Ensure there's more than one simulation
+                const index = Math.floor((p / 100) * (indexedEndValues.length - 1));
+                addPathByIndex(indexedEndValues[index].index);
+            }
+        });
+
+        // Fill remaining slots with a random mix from the unselected paths
+        const numPathsToFill = MAX_DISPLAY_PATHS - finalSelectedPaths.length;
+        if (numPathsToFill > 0) {
+            const availableIndices = Array.from({ length: allPaths.length }, (_, i) => i)
+                                        .filter(idx => !selectedPathIndices.has(idx));
+
+            // Shuffle available indices to get a random mix
+            for (let i = availableIndices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [availableIndices[i], availableIndices[j]] = [availableIndices[j], availableIndices[i]];
+            }
+
+            for (let i = 0; i < numPathsToFill && i < availableIndices.length; i++) {
+                addPathByIndex(availableIndices[i]);
+            }
+        }
+    } else {
+        // If no simulations, ensure paths are empty
+        finalSelectedPaths.length = 0;
+    }
+
+    // Post the final results back to the main thread
+    self.postMessage({
+        type: 'result',
+        paths: finalSelectedPaths, // Send only the selected paths
+        percentileMetrics,
+        overallStats,
+        totalContributions
+    });
+};
+`;
+
+const workerUrl = URL.createObjectURL(new Blob([workerCode], { type: 'application/javascript' }));
 
 // --- Main App Component ---
 export function MontecarloSimulation() {
@@ -65,13 +244,41 @@ export function MontecarloSimulation() {
         simulations: 100,
         assets: [{ ticker: 'SPY', name: 'SPDR S&P 500 ETF Trust', weight: 100, drift: 0, volatility: 0 }],
     });
-    const [monteCarloResults, setMonteCarloResults] = useState<MonteCarloResults>({ paths: [], percentileMetrics: null, overallStats: null });
+    const [monteCarloResults, setMonteCarloResults] = useState<MonteCarloResults>({ paths: [], percentileMetrics: null, overallStats: null, totalContributions: 0 });
     const [isSimulating, setIsSimulating] = useState<boolean>(false);
     const [isFetching, setIsFetching] = useState<boolean>(false);
     const [simulationProgress, setSimulationProgress] = useState<number>(0);
     const [searchResults, setSearchResults] = useState<YahooAsset[]>([]);
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [activeSearchIndex, setActiveSearchIndex] = useState<number | null>(null); // To track which asset input is being searched for
+
+    const workerRef = useRef<Worker>();
+
+    // Initialize and clean up the Web Worker
+    useEffect(() => {
+        workerRef.current = new Worker(workerUrl);
+
+        workerRef.current.onmessage = (e) => {
+            if (e.data.type === 'progress') {
+                setSimulationProgress(e.data.progress);
+            } else if (e.data.type === 'result') {
+                setMonteCarloResults(e.data);
+                setIsSimulating(false);
+                setSimulationProgress(0); // Reset progress
+            }
+        };
+
+        workerRef.current.onerror = (error) => {
+            console.error("Web Worker error:", error);
+            setIsSimulating(false);
+            setSimulationProgress(0);
+        };
+
+        return () => {
+            workerRef.current?.terminate(); // Terminate worker on component unmount
+        };
+    }, []);
+
 
     // Handles changes to the main form inputs
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,7 +338,7 @@ export function MontecarloSimulation() {
             return;
         }
         try {
-            const results = await searchAssets(query, EQUITY_TYPES["Etf or Stock"]); // Search for stocks
+            const results = await searchAssets(query, EQUITY_TYPES["Etf or Stock"]); // Search for stocks and ETFs
             setSearchResults(results);
         } catch (error) {
             console.error("Error during asset search:", error);
@@ -206,123 +413,31 @@ export function MontecarloSimulation() {
         return { portfolioDrift: weightedDrift, portfolioVolatility: weightedVolatility };
     };
 
-    // Runs the Monte Carlo simulation
+    // Runs the Monte Carlo simulation using the Web Worker
     const runMonteCarlo = () => {
+        if (!workerRef.current) {
+            console.error("Web Worker not initialized.");
+            return;
+        }
+
         setIsSimulating(true);
         setSimulationProgress(0);
+        setMonteCarloResults({ paths: [], percentileMetrics: null, overallStats: null, totalContributions: 0 }); // Clear previous results
 
         const { principal, time, monthlyContribution, simulations } = monteCarloForm;
         const { portfolioDrift, portfolioVolatility } = calculatePortfolioMetrics();
 
-        const dt = 1 / 252; // Daily time step
-        const mu = portfolioDrift / 100; // Annual drift
-        const sigma = portfolioVolatility / 100; // Annual volatility
-        const monthlyContributionDaily = monthlyContribution / 21; // Distribute monthly contribution over ~21 trading days
-
-        const paths: MonteCarloPathPoint[][] = [];
-        const endValues: number[] = [];
-        const maxDrawdowns: number[] = [];
-        const annualReturns: number[] = [];
-        const sharpeRatios: number[] = [];
-
-        for (let i = 0; i < simulations; i++) {
-            const path: MonteCarloPathPoint[] = [{ x: 0, y: principal }];
-            let currentValue = principal;
-            let peakValue = principal;
-            let currentMaxDrawdown = 0;
-            const dailyValues = [principal];
-
-            for (let t = 1; t <= time * 252; t++) {
-                const Z = Math.sqrt(-2 * Math.log(Math.random())) * Math.cos(2 * Math.PI * Math.random());
-                currentValue *= Math.exp((mu - Math.pow(sigma, 2) / 2) * dt + sigma * Math.sqrt(dt) * Z);
-
-                // Add monthly contribution distributed daily
-                currentValue += monthlyContributionDaily;
-
-                dailyValues.push(currentValue);
-
-                // Calculate max drawdown
-                peakValue = Math.max(peakValue, currentValue);
-                currentMaxDrawdown = Math.max(currentMaxDrawdown, (peakValue - currentValue) / peakValue);
-
-                if (t % 21 === 0) { // Store monthly point for plotting
-                    path.push({ x: t / 252, y: currentValue });
-                }
-            }
-            paths.push(path);
-            endValues.push(currentValue);
-            maxDrawdowns.push(currentMaxDrawdown * 100); // Store as percentage
-
-            // Calculate average annual return for this path
-            // const totalInvested = principal + (monthlyContribution * time * 12);
-            const avgAnnualReturn = (Math.pow(currentValue / principal, 1 / time) - 1) * 100; // Simplified for initial principal
-            // For monthly contributions, a more complex XIRR calculation would be needed for true annual return.
-            // For simplicity, we'll use the simple growth from initial principal.
-            annualReturns.push(avgAnnualReturn);
-
-            // Calculate Sharpe Ratio for this path
-            const pathDailyReturns = dailyValues.slice(1).map((val, idx) => (val - dailyValues[idx]) / dailyValues[idx]);
-            const pathMeanDailyReturn = pathDailyReturns.reduce((sum, r) => sum + r, 0) / pathDailyReturns.length;
-            const pathStdDevDailyReturn = Math.sqrt(pathDailyReturns.map(r => Math.pow(r - pathMeanDailyReturn, 2)).reduce((sum, sd) => sum + sd, 0) / (pathDailyReturns.length - 1));
-            const annualizedPathStdDev = pathStdDevDailyReturn * Math.sqrt(252);
-            const annualizedExcessReturn = (avgAnnualReturn / 100) - (RISK_FREE_RATE / 100);
-            const sharpe = annualizedPathStdDev > 0 ? annualizedExcessReturn / annualizedPathStdDev : 0;
-            sharpeRatios.push(sharpe);
-
-            // Update progress
-            if ((i + 1) % (simulations / 10) === 0 || i === simulations - 1) {
-                setSimulationProgress(Math.round(((i + 1) / simulations) * 100));
-            }
-        }
-
-        // Calculate overall stats for end values
-        endValues.sort((a, b) => a - b);
-        const overallStats: MonteCarloStats = {
-            median: endValues[Math.floor(simulations / 2)],
-            p10: endValues[Math.floor(simulations * 0.1)],
-            p90: endValues[Math.floor(simulations * 0.9)],
-            worst: endValues[0],
-            best: endValues[simulations - 1],
-        };
-
-        // Calculate percentile metrics
-        const getPercentile = (arr: number[], percentile: number) => {
-            arr.sort((a, b) => a - b);
-            const index = (percentile / 100) * (arr.length - 1);
-            return arr[Math.floor(index)];
-        };
-
-        const percentileMetrics = {
-            p10: {
-                maxDrawdown: getPercentile(maxDrawdowns, 10),
-                avgAnnualReturn: getPercentile(annualReturns, 10),
-                sharpeRatio: getPercentile(sharpeRatios, 10),
-            },
-            p25: {
-                maxDrawdown: getPercentile(maxDrawdowns, 25),
-                avgAnnualReturn: getPercentile(annualReturns, 25),
-                sharpeRatio: getPercentile(sharpeRatios, 25),
-            },
-            p50: {
-                maxDrawdown: getPercentile(maxDrawdowns, 50),
-                avgAnnualReturn: getPercentile(annualReturns, 50),
-                sharpeRatio: getPercentile(sharpeRatios, 50),
-            },
-            p75: {
-                maxDrawdown: getPercentile(maxDrawdowns, 75),
-                avgAnnualReturn: getPercentile(annualReturns, 75),
-                sharpeRatio: getPercentile(sharpeRatios, 75),
-            },
-            p90: {
-                maxDrawdown: getPercentile(maxDrawdowns, 90),
-                avgAnnualReturn: getPercentile(annualReturns, 90),
-                sharpeRatio: getPercentile(sharpeRatios, 90),
-            },
-        };
-
-        setMonteCarloResults({ paths, percentileMetrics, overallStats });
-        setIsSimulating(false);
-        setSimulationProgress(0); // Reset progress
+        // Post the simulation parameters to the worker
+        workerRef.current.postMessage({
+            principal: Number(principal),
+            time: Number(time),
+            monthlyContribution: Number(monthlyContribution),
+            simulations: Number(simulations),
+            portfolioDrift: portfolioDrift,
+            portfolioVolatility: portfolioVolatility,
+            RISK_FREE_RATE: RISK_FREE_RATE,
+            MAX_DISPLAY_PATHS: MAX_DISPLAY_PATHS // Pass the new constant to the worker
+        });
     };
 
     const totalWeight = monteCarloForm.assets.reduce((sum, asset) => sum + asset.weight, 0);
@@ -401,7 +516,7 @@ export function MontecarloSimulation() {
                             )}
 
                             <Button onClick={fetchHistoricalData} disabled={isFetching} className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">
-                                {isFetching ? 'Lade Daten...' : <><ArrowRightCircle className="w-4 h-4 mr-2"/>Historische Daten holen</>}
+                                {isFetching ? 'Lade Daten...' : <><ArrowRightCircle className="w-4 h-4 mr-2" />Historische Daten holen</>}
                             </Button>
 
                             <Button
@@ -416,18 +531,20 @@ export function MontecarloSimulation() {
                         {/* Results & Chart */}
                         <div className="md:col-span-2">
                             <h3 className="text-lg font-semibold mb-2">Simulationsergebnisse</h3>
+                            <span className="text-xs text-gray-300 dark:text-gray-700 italic">(Es werden nur {MAX_DISPLAY_PATHS} Varianten angezeigt, aus performance gründen)</span>
                             <ResponsiveContainer width="100%" height={300}>
                                 <LineChart>
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis dataKey="x" type="number" domain={[0, monteCarloForm.time]} unit=" J" />
                                     <YAxis tickFormatter={(val: number) => formatCurrency(val)} width={80} domain={['dataMin', 'dataMax']} />
                                     <Tooltip formatter={(value: number) => formatCurrencyPrecise(value)} />
+                                    {/* Render only the selected paths */}
                                     {monteCarloResults.paths.map((path, i) => (
                                         <Line
                                             key={i}
                                             data={path}
                                             dataKey="y"
-                                            stroke="#d1d5db"
+                                            stroke="#cad5e2"
                                             dot={false}
                                             strokeWidth={0.5}
                                             isAnimationActive={false}
@@ -437,12 +554,38 @@ export function MontecarloSimulation() {
                             </ResponsiveContainer>
                             {monteCarloResults.overallStats && (
                                 <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
-                                    <div className="p-3 bg-red-50 rounded-lg shadow-sm"><div className="text-sm text-red-700">Schlechtester Fall</div><div className="font-bold text-lg text-red-900">{formatCurrency(monteCarloResults.overallStats.worst)}</div></div>
-                                    <div className="p-3 bg-gray-100 rounded-lg shadow-sm"><div className="text-sm text-gray-700">Median (50%)</div><div className="font-bold text-lg text-gray-900">{formatCurrency(monteCarloResults.overallStats.median)}</div></div>
-                                    <div className="p-3 bg-green-50 rounded-lg shadow-sm"><div className="text-sm text-green-700">Bester Fall</div><div className="font-bold text-lg text-green-900">{formatCurrency(monteCarloResults.overallStats.best)}</div></div>
+                                    <div className="p-3 bg-red-50 rounded-lg shadow-sm"><div className="text-sm text-red-700">Schlechtester Fall</div>
+                                        <div className="flex flex-wrap font-bold text-lg text-red-900 justify-center">
+                                            {formatCurrency(monteCarloResults.overallStats.worst)}
+                                            <span className="text-xs opacity-50 w-full">
+                                                ({monteCarloResults.overallStats.worst < monteCarloResults.totalContributions ? "-" : "+"} {formatPercentage(monteCarloResults.overallStats.worst/monteCarloResults.totalContributions*100)})
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-gray-100 rounded-lg shadow-sm"><div className="text-sm text-gray-700">Median (50%)</div>
+                                        <div className="flex flex-wrap font-bold text-lg text-gray-900 justify-center">
+                                            {formatCurrency(monteCarloResults.overallStats.median)}
+                                            <span className="text-xs opacity-50 w-full">
+                                                ({monteCarloResults.overallStats.median < monteCarloResults.totalContributions ? "-" : "+"} {formatPercentage(monteCarloResults.overallStats.median/monteCarloResults.totalContributions*100)})
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-green-50 rounded-lg shadow-sm"><div className="text-sm text-green-700">Bester Fall</div>
+                                        <div className="flex flex-wrap font-bold text-lg text-green-900 justify-center">
+                                            {formatCurrency(monteCarloResults.overallStats.best)}
+                                            <span className="text-xs opacity-50 w-full">
+                                                ({monteCarloResults.overallStats.best < monteCarloResults.totalContributions ? "-" : "+"} {formatPercentage(monteCarloResults.overallStats.best/monteCarloResults.totalContributions*100)})
+                                            </span>
+                                        </div>
+                                    </div>
                                     <div className="p-3 bg-orange-50 rounded-lg shadow-sm col-span-2 md:col-span-3">
                                         <div className="text-sm text-orange-700">Wahrscheinlicher Bereich (10% - 90% Perzentil)</div>
                                         <div className="font-bold text-lg text-orange-900">{formatCurrency(monteCarloResults.overallStats.p10)} – {formatCurrency(monteCarloResults.overallStats.p90)}</div>
+                                    </div>
+                                    {/* New: Total Contributions */}
+                                    <div className="p-3 bg-blue-50 rounded-lg shadow-sm col-span-2 md:col-span-3">
+                                        <div className="text-sm text-blue-700">Gesamte Einzahlungen</div>
+                                        <div className="font-bold text-lg text-blue-900">{formatCurrency(monteCarloResults.totalContributions)}</div>
                                     </div>
                                 </div>
                             )}
@@ -474,7 +617,7 @@ export function MontecarloSimulation() {
                                     </div>
                                     <p className="text-sm text-gray-500 mt-4">
                                         *Hinweis: Die Volatilität des Portfolios wird hier vereinfacht als gewichteter Durchschnitt der Einzelvolatilitäten berechnet. Eine präzisere Berechnung würde die Korrelationen zwischen den Assets berücksichtigen.
-                                        <br/>
+                                        <br />
                                         **Sharpe Ratio basiert auf einer risikofreien Rate von {RISK_FREE_RATE}%.
                                     </p>
                                 </div>
