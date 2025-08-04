@@ -55,6 +55,10 @@ export const CompoundInterestCalculator: FC = () => {
         { id: Date.now(), startYear: 0, endYear: 20, amount: 500 }
     ]);
 
+    // New states for dynamic savings adjustment
+    const [dynamicSavingsAdjustment, setDynamicSavingsAdjustment] = useState<boolean>(false);
+    const [savingsIncreaseRate, setSavingsIncreaseRate] = useState<number>(2);
+
 
     const [showContributions, setShowContributions] = useState(true);
     const [showNominal, setShowNominal] = useState(true);
@@ -76,25 +80,37 @@ export const CompoundInterestCalculator: FC = () => {
         let balanceAvg = principal;
         let balanceMin = principal;
         let balanceMax = principal;
-        let currentContributions = principal;
+        let cumulativeContributions = principal; // Start with the initial principal as part of contributions
 
         for (let year = 0; year <= time; year++) {
-            let currentContribution = 0;
+            let annualContributionForThisYear = 0;
+
             if (useContribution) {
                 if (useAdvancedContribution) {
+                    // If advanced contributions are used, dynamic adjustment is ignored for simplicity
                     const period = advancedContributionPeriods.find(p => year >= p.startYear && year <= p.endYear);
                     if (period) {
-                        currentContribution = period.amount;
+                        annualContributionForThisYear = period.amount * compoundForm.interval;
                     }
                 } else {
-                    currentContribution = compoundForm.contribution;
+                    // Apply dynamic adjustment only if not using advanced contributions
+                    if (dynamicSavingsAdjustment && savingsIncreaseRate > 0 && year > 0) {
+                        // Calculate the effective monthly contribution for this specific year
+                        // based on the initial monthly contribution and the annual increase rate.
+                        const initialMonthlyContribution = compoundForm.contribution;
+                        const adjustedMonthlyContribution = initialMonthlyContribution * Math.pow(1 + savingsIncreaseRate / 100, year);
+                        annualContributionForThisYear = adjustedMonthlyContribution * compoundForm.interval;
+                    } else {
+                        annualContributionForThisYear = compoundForm.contribution * compoundForm.interval;
+                    }
                 }
             }
 
             if (year > 0) {
-                balanceAvg += currentContribution * 12;
-                balanceMin += currentContribution * 12;
-                balanceMax += currentContribution * 12;
+                balanceAvg += annualContributionForThisYear;
+                balanceMin += annualContributionForThisYear;
+                balanceMax += annualContributionForThisYear;
+                cumulativeContributions += annualContributionForThisYear;
 
                 balanceAvg *= (1 + rates.avg);
                 balanceMin *= (1 + rates.min);
@@ -113,13 +129,25 @@ export const CompoundInterestCalculator: FC = () => {
                 maxNominal: balanceMax,
                 minReal: realBalanceMin,
                 maxReal: realBalanceMax,
-                contributions: (finalData[finalData.length - 1]?.contributions || 0) + currentContribution
+                contributions: cumulativeContributions // This is the cumulative sum
             });
         }
         setCompoundData(finalData);
     };
 
-    useEffect(() => { calculateCompoundInterest(); }, [compoundForm, useContribution, inflationRate, bestCasePercentage, worstCasePercentage, useAdvancedContribution, advancedContributionPeriods]);
+    useEffect(() => {
+        calculateCompoundInterest();
+    }, [
+        compoundForm,
+        useContribution,
+        inflationRate,
+        bestCasePercentage,
+        worstCasePercentage,
+        useAdvancedContribution,
+        advancedContributionPeriods,
+        dynamicSavingsAdjustment, // Add new dependencies
+        savingsIncreaseRate,      // Add new dependencies
+    ]);
 
 
     // Handler für erweiterte Sparraten
@@ -147,7 +175,7 @@ export const CompoundInterestCalculator: FC = () => {
                     <TrendingUp /> Zinseszinsrechner
                 </CardTitle>
                 <CardDescription className="text-primary-foreground opacity-90 text-sm">
-                Visualisieren Sie das Wachstum Ihres Vermögens nominal und real (inflationsbereinigt).
+                    Visualisieren Sie das Wachstum Ihres Vermögens nominal und real (inflationsbereinigt).
                 </CardDescription>
             </CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-8 pb-6">
@@ -164,6 +192,9 @@ export const CompoundInterestCalculator: FC = () => {
                         <>
                             <div className="flex items-center justify-between">
                                 <Label htmlFor="useAdvancedContribution">Erweiterte Sparrate?</Label>
+                                <TooltipWrapper content="Aktivieren Sie dies, um unterschiedliche Sparraten für verschiedene Zeiträume festzulegen.">
+                                    <HelpCircle className="w-4 h-4 text-gray-400" />
+                                </TooltipWrapper>
                                 <Switch id="useAdvancedContribution" checked={useAdvancedContribution} onCheckedChange={setUseAdvancedContribution} />
                             </div>
 
@@ -187,6 +218,35 @@ export const CompoundInterestCalculator: FC = () => {
                                             </SelectContent>
                                         </Select>
                                     </div>
+                                    {/* Dynamic Savings Adjustment Switch */}
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="dynamicSavingsAdjustment">
+                                            Dynamische Sparraten-Anpassung?
+                                        </Label>
+                                        <TooltipWrapper content="Erhöhen Sie Ihre Sparrate jährlich um einen festen Prozentsatz. Dies gilt nur für die Standard-Sparrate, nicht für die erweiterte Konfiguration.">
+                                            <HelpCircle className="h-4 w-4 text-gray-400" />
+                                        </TooltipWrapper>
+                                        <Switch
+                                            id="dynamicSavingsAdjustment"
+                                            checked={dynamicSavingsAdjustment}
+                                            onCheckedChange={setDynamicSavingsAdjustment}
+                                        />
+                                    </div>
+
+                                    {/* Savings Increase Rate - visible if dynamic adjustment is on */}
+                                    {dynamicSavingsAdjustment && (
+                                        <div>
+                                            <Label htmlFor="savingsIncreaseRate">
+                                                Jährliche Steigerung der Sparrate (%)
+                                            </Label>
+                                            <Input
+                                                id="savingsIncreaseRate"
+                                                type="number"
+                                                value={savingsIncreaseRate}
+                                                onChange={(e) => setSavingsIncreaseRate(parseFloat(e.target.value) || 0)}
+                                            />
+                                        </div>
+                                    )}
                                 </>
                             ) : (
                                 <div className="space-y-4 pt-4">
@@ -239,7 +299,7 @@ export const CompoundInterestCalculator: FC = () => {
                     </div>
                 </div>
                 <div className="md:col-span-2">
-                <div className="flex justify-between items-center mb-4">
+                    <div className="flex justify-between items-center mb-4">
                         <h4 className="font-semibold">Prognose (Real): {formatCurrency(compoundData[compoundData.length - 1]?.real || 0)}</h4>
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2">

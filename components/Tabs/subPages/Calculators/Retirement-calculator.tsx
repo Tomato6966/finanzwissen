@@ -16,6 +16,7 @@ import {
 	Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import {
 	Tooltip as ShadcnTooltip, TooltipContent, TooltipProvider, TooltipTrigger
 } from "@/components/ui/tooltip";
@@ -48,6 +49,12 @@ interface FormData {
     taxRate: number;
     annuityType: AnnuityType;
     lifeExpectancy: number;
+    // New fields for dynamic savings adjustment
+    dynamicSavingsAdjustment: boolean;
+    savingsIncreaseRate: number;
+    // New fields for chart visibility toggles
+    showNominalCapital: boolean;
+    showContributions: boolean;
 }
 
 // Main component
@@ -66,6 +73,10 @@ export function RetirementCalculator() {
         taxRate: 25,
         annuityType: "capital_consumption",
         lifeExpectancy: 90,
+        dynamicSavingsAdjustment: false, // Default to false
+        savingsIncreaseRate: 2, // Default to 2% annual increase
+        showNominalCapital: true, // Default to true
+        showContributions: true, // Default to true
     });
 
     // Calculate annual savings based on interval
@@ -105,32 +116,45 @@ export function RetirementCalculator() {
             taxRate,
             annuityType,
             lifeExpectancy,
+            dynamicSavingsAdjustment,
+            savingsIncreaseRate,
         } = formData;
 
         const rateOfReturn = rawYield / 100;
         const inflationRate = rawInflation / 100;
         const taxFactor = 1 - taxRate / 100;
-        const annualSavings = getAnnualSavings(savingsRate, savingsInterval);
+        let currentAnnualSavings = getAnnualSavings(savingsRate, savingsInterval);
 
         let accumulatedCapital = currentCapital;
+        let cumulativeContributions = currentCapital; // Start with currentCapital for contributions
         const savingsPhaseData = [];
         const payoutPhaseData = [];
 
-        // Calculate total contributions for the savings phase
         let cumulativeInflationFactor = 1;
 
         // Savings phase
         for (let year = currentAge; year <= desiredRetirementAge; year++) {
             const yearIndex = year - currentAge;
             if (yearIndex > 0) {
+                // Apply dynamic savings rate increase if enabled and in relevant modes
+                if (
+                    dynamicSavingsAdjustment &&
+                    savingsIncreaseRate > 0 &&
+                    (calculationType === "calculate_monthly_payout" ||
+                        calculationType === "calculate_retirement_age")
+                ) {
+                    currentAnnualSavings = currentAnnualSavings * (1 + savingsIncreaseRate / 100);
+                }
                 accumulatedCapital =
-                    accumulatedCapital * (1 + rateOfReturn) + annualSavings;
+                    accumulatedCapital * (1 + rateOfReturn) + currentAnnualSavings;
+                cumulativeContributions += currentAnnualSavings; // Add current year's savings to total contributions
                 cumulativeInflationFactor = cumulativeInflationFactor * (1 + inflationRate);
             }
             savingsPhaseData.push({
                 age: year,
                 "Kapital nominal": accumulatedCapital,
                 "Kapital real": accumulatedCapital / cumulativeInflationFactor,
+                "Einzahlungen": cumulativeContributions, // Add contributions to data
             });
         }
 
@@ -140,11 +164,9 @@ export function RetirementCalculator() {
         if (calculationType === "calculate_monthly_payout") {
             // Payout phase
             if (annuityType === "endless") {
-                // Corrected calculation: use nominal rate of return to preserve nominal capital
                 const monthlyPayoutBrutto = (retirementCapital * rateOfReturn) / 12;
                 const monthlyPayoutNetto = monthlyPayoutBrutto * taxFactor;
 
-                // Simulate capital for chart
                 let currentPayoutCapital = retirementCapital;
                 let currentInflationFactor = cumulativeInflationFactor;
                 for (let year = desiredRetirementAge; year <= lifeExpectancy; year++) {
@@ -157,6 +179,7 @@ export function RetirementCalculator() {
                         age: year,
                         "Kapital nominal": currentPayoutCapital,
                         "Kapital real": currentPayoutCapital / currentInflationFactor,
+                        "Einzahlungen": cumulativeContributions, // Contributions remain constant in payout phase
                     });
                 }
 
@@ -173,13 +196,11 @@ export function RetirementCalculator() {
                 const totalMonths = yearsInRetirement * 12;
                 const monthlyRate = Math.pow(1 + rateOfReturn, 1 / 12) - 1;
 
-                // Calculate the maximum monthly payout using the annuity formula
                 const monthlyPayoutBrutto =
                     (retirementCapital * monthlyRate) /
                     (1 - Math.pow(1 + monthlyRate, -totalMonths));
                 const monthlyPayoutNetto = monthlyPayoutBrutto * taxFactor;
 
-                // Simulate capital consumption
                 let currentPayoutCapital = retirementCapital;
                 let currentInflationFactor = cumulativeInflationFactor;
                 for (
@@ -198,6 +219,7 @@ export function RetirementCalculator() {
                         age: year,
                         "Kapital nominal": currentPayoutCapital,
                         "Kapital real": currentPayoutCapital / currentInflationFactor,
+                        "Einzahlungen": cumulativeContributions, // Contributions remain constant in payout phase
                     });
                 }
 
@@ -231,6 +253,8 @@ export function RetirementCalculator() {
 
             let retirementAge = currentAge;
             let currentCapitalSim = currentCapital;
+            let currentAnnualSavingsSim = getAnnualSavings(savingsRate, savingsInterval);
+            let cumulativeContributionsSim = currentCapital; // Initialize for simulation
             const savingsPhaseDataSim = [];
 
             while (currentCapitalSim < requiredCapital) {
@@ -240,12 +264,20 @@ export function RetirementCalculator() {
                 }
                 const yearIndex = retirementAge - currentAge;
                 const inflationFactor = Math.pow(1 + inflationRate, yearIndex);
+
+                if (dynamicSavingsAdjustment && savingsIncreaseRate > 0) {
+                    currentAnnualSavingsSim = currentAnnualSavingsSim * (1 + savingsIncreaseRate / 100);
+                }
+
                 currentCapitalSim =
-                    currentCapitalSim * (1 + rateOfReturn) + annualSavings;
+                    currentCapitalSim * (1 + rateOfReturn) + currentAnnualSavingsSim;
+                cumulativeContributionsSim += currentAnnualSavingsSim; // Add to contributions for simulation
+
                 savingsPhaseDataSim.push({
                     age: retirementAge + 1,
                     "Kapital nominal": currentCapitalSim,
                     "Kapital real": currentCapitalSim / inflationFactor,
+                    "Einzahlungen": cumulativeContributionsSim, // Add contributions to data
                 });
                 retirementAge++;
             }
@@ -296,16 +328,20 @@ export function RetirementCalculator() {
     }, [formData, calculationType]);
 
     // Handle form field changes
-    const handleInputChange = (field: keyof FormData, value: string | number) => {
+    const handleInputChange = (field: keyof FormData, value: string | number | boolean) => {
         setFormData((prev) => ({
             ...prev,
-            [field]: typeof value === "string" ? parseFloat(value) : value,
+            // Ensure numeric inputs are parsed to float, except for savingsInterval which is a string
+            [field]: typeof value === "string" && field !== "savingsInterval" ? parseFloat(value) : value,
         }));
     };
 
     const isPayoutMode = calculationType === "calculate_monthly_payout";
     const isAgeMode = calculationType === "calculate_retirement_age";
     const isSavingsMode = calculationType === "calculate_savings_rate";
+
+    // Determine if dynamic savings adjustment section should be visible
+    const showDynamicSavingsSection = isPayoutMode || isAgeMode;
 
     return (
         <TooltipProvider>
@@ -372,7 +408,7 @@ export function RetirementCalculator() {
                                     <Input
                                         id="currentAge"
                                         type="number"
-                                        value={formData.currentAge}
+                                        value={String(formData.currentAge)}
                                         onChange={(e) =>
                                             handleInputChange("currentAge", e.target.value)
                                         }
@@ -395,7 +431,7 @@ export function RetirementCalculator() {
                                     <Input
                                         id="currentCapital"
                                         type="number"
-                                        value={formData.currentCapital}
+                                        value={String(formData.currentCapital)}
                                         onChange={(e) =>
                                             handleInputChange("currentCapital", e.target.value)
                                         }
@@ -423,7 +459,7 @@ export function RetirementCalculator() {
                                     <Input
                                         id="yield"
                                         type="number"
-                                        value={formData.yield}
+                                        value={String(formData.yield)}
                                         onChange={(e) =>
                                             handleInputChange("yield", e.target.value)
                                         }
@@ -449,7 +485,7 @@ export function RetirementCalculator() {
                                     <Input
                                         id="inflation"
                                         type="number"
-                                        value={formData.inflation}
+                                        value={String(formData.inflation)}
                                         onChange={(e) =>
                                             handleInputChange("inflation", e.target.value)
                                         }
@@ -475,7 +511,7 @@ export function RetirementCalculator() {
                                         <Input
                                             id="savingsRate"
                                             type="number"
-                                            value={formData.savingsRate}
+                                            value={String(formData.savingsRate)}
                                             onChange={(e) =>
                                                 handleInputChange("savingsRate", e.target.value)
                                             }
@@ -493,33 +529,92 @@ export function RetirementCalculator() {
                                             <ShadcnTooltip>
                                                 <TooltipTrigger>
                                                     <HelpCircle className="h-4 w-4 text-gray-500" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>
+                                                    Die Häufigkeit, mit der die Sparrate eingezahlt
+                                                    wird.
+                                                </p>
+                                            </TooltipContent>
+                                        </ShadcnTooltip>
+                                    </div>
+                                    <Select
+                                        value={formData.savingsInterval}
+                                        onValueChange={(value: FormData["savingsInterval"]) =>
+                                            setFormData((prev) => ({
+                                                ...prev,
+                                                savingsInterval: value,
+                                            }))
+                                        }
+                                    >
+                                        <SelectTrigger id="savingsInterval">
+                                            <SelectValue placeholder="Intervall wählen" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="monthly">monatlich</SelectItem>
+                                            <SelectItem value="quarterly">quartalsweise</SelectItem>
+                                            <SelectItem value="yearly">jährlich</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                )}
+
+                                {/* Dynamic Savings Adjustment Switch */}
+                                {showDynamicSavingsSection && (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label htmlFor="dynamicSavingsAdjustment">
+                                                Dynamische Sparraten-Anpassung?
+                                            </Label>
+                                            <ShadcnTooltip>
+                                                <TooltipTrigger>
+                                                    <HelpCircle className="h-4 w-4 text-gray-500" />
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     <p>
-                                                        Die Häufigkeit, mit der die Sparrate eingezahlt
-                                                        wird.
+                                                        Erhöhen Sie Ihre Sparrate jährlich um einen
+                                                        festen Prozentsatz.
                                                     </p>
                                                 </TooltipContent>
                                             </ShadcnTooltip>
                                         </div>
-                                        <Select
-                                            value={formData.savingsInterval}
-                                            onValueChange={(value: FormData["savingsInterval"]) =>
-                                                setFormData((prev) => ({
-                                                    ...prev,
-                                                    savingsInterval: value,
-                                                }))
+                                        <Switch
+                                            id="dynamicSavingsAdjustment"
+                                            checked={formData.dynamicSavingsAdjustment}
+                                            onCheckedChange={(checked) =>
+                                                handleInputChange("dynamicSavingsAdjustment", checked)
                                             }
-                                        >
-                                            <SelectTrigger id="savingsInterval">
-                                                <SelectValue placeholder="Intervall wählen" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="monthly">monatlich</SelectItem>
-                                                <SelectItem value="quarterly">quartalsweise</SelectItem>
-                                                <SelectItem value="yearly">jährlich</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Savings Increase Rate - visible if dynamic adjustment is on */}
+                                {showDynamicSavingsSection && formData.dynamicSavingsAdjustment && (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label htmlFor="savingsIncreaseRate">
+                                                Jährliche Steigerung der Sparrate (%)
+                                            </Label>
+                                            <ShadcnTooltip>
+                                                <TooltipTrigger>
+                                                    <HelpCircle className="h-4 w-4 text-gray-500" />
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>
+                                                        Der Prozentsatz, um den Ihre Sparrate jedes
+                                                        Jahr erhöht wird.
+                                                    </p>
+                                                </TooltipContent>
+                                            </ShadcnTooltip>
+                                        </div>
+                                        <Input
+                                            id="savingsIncreaseRate"
+                                            type="number"
+                                            value={String(formData.savingsIncreaseRate)}
+                                            onChange={(e) =>
+                                                handleInputChange("savingsIncreaseRate", e.target.value)
+                                            }
+                                        />
                                     </div>
                                 )}
 
@@ -544,7 +639,7 @@ export function RetirementCalculator() {
                                         <Input
                                             id="desiredRetirementAge"
                                             type="number"
-                                            value={formData.desiredRetirementAge}
+                                            value={String(formData.desiredRetirementAge)}
                                             onChange={(e) =>
                                                 handleInputChange(
                                                     "desiredRetirementAge",
@@ -574,7 +669,7 @@ export function RetirementCalculator() {
                                         <Input
                                             id="desiredNetPayout"
                                             type="number"
-                                            value={formData.desiredNetPayout}
+                                            value={String(formData.desiredNetPayout)}
                                             onChange={(e) =>
                                                 handleInputChange("desiredNetPayout", e.target.value)
                                             }
@@ -599,7 +694,7 @@ export function RetirementCalculator() {
                                     <Input
                                         id="taxRate"
                                         type="number"
-                                        value={formData.taxRate}
+                                        value={String(formData.taxRate)}
                                         onChange={(e) =>
                                             handleInputChange("taxRate", e.target.value)
                                         }
@@ -674,7 +769,7 @@ export function RetirementCalculator() {
                                             <Input
                                                 id="lifeExpectancy"
                                                 type="number"
-                                                value={formData.lifeExpectancy}
+                                                value={String(formData.lifeExpectancy)}
                                                 onChange={(e) =>
                                                     handleInputChange(
                                                         "lifeExpectancy",
@@ -776,6 +871,57 @@ export function RetirementCalculator() {
                             </div>
                         )}
 
+                        {/* Chart Toggles */}
+                        {(isPayoutMode || isAgeMode) && (
+                            <div className="bg-white p-4 rounded-lg shadow-md space-y-4">
+                                <h3 className="text-lg font-semibold flex items-center">
+                                    <TrendingUp className="mr-2 h-5 w-5" /> Diagramm-Optionen
+                                </h3>
+                                <div className="flex flex-wrap justify-between items-center w-full gap-5">
+                                    <div className="flex gap-2 items-center">
+                                        <Label htmlFor="showNominalCapital">
+                                            Nominales Kapital anzeigen?
+                                        </Label>
+                                        <ShadcnTooltip>
+                                            <TooltipTrigger>
+                                                <HelpCircle className="h-4 w-4 text-gray-500" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Zeigt das Kapital ohne Inflationsbereinigung an.</p>
+                                            </TooltipContent>
+                                        </ShadcnTooltip>
+                                        <Switch
+                                            id="showNominalCapital"
+                                            checked={formData.showNominalCapital}
+                                            onCheckedChange={(checked) =>
+                                                handleInputChange("showNominalCapital", checked)
+                                            }
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Label htmlFor="showContributions">
+                                            Kumulierte Einzahlungen anzeigen?
+                                        </Label>
+                                        <ShadcnTooltip>
+                                            <TooltipTrigger>
+                                                <HelpCircle className="h-4 w-4 text-gray-500" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Zeigt die Summe Ihrer eigenen Einzahlungen an.</p>
+                                            </TooltipContent>
+                                        </ShadcnTooltip>
+                                        <Switch
+                                            id="showContributions"
+                                            checked={formData.showContributions}
+                                            onCheckedChange={(checked) =>
+                                                handleInputChange("showContributions", checked)
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Chart for Payout and Age modes */}
                         {(isPayoutMode || isAgeMode) && calculationResult && (
                             <div className="bg-white p-4 rounded-lg shadow-md">
@@ -819,7 +965,18 @@ export function RetirementCalculator() {
                                             >
                                                 {payload?.map((entry, index) => {
                                                     const isNominal = entry.value?.toLowerCase().includes("nominal");
+                                                    const isContributions = entry.value?.toLowerCase().includes("einzahlungen");
                                                     const color = entry.color;
+
+                                                    // Only render legend items for visible lines
+                                                    if (
+                                                        (isNominal && !formData.showNominalCapital) ||
+                                                        (isContributions && !formData.showContributions) ||
+                                                        (entry.value?.toLowerCase().includes("real") && formData.inflation === 0) ||
+                                                        (entry.value?.toLowerCase().includes("entnahme-kapital") && !isPayoutMode)
+                                                    ) {
+                                                        return null;
+                                                    }
 
                                                     return (
                                                         <li
@@ -827,7 +984,7 @@ export function RetirementCalculator() {
                                                             style={{
                                                                 display: "flex",
                                                                 alignItems: "center",
-                                                                opacity: isNominal ? 0.4 : 1,
+                                                                opacity: isNominal ? 0.4 : 1, // Nominal still slightly faded
                                                             }}
                                                         >
                                                             <div
@@ -837,7 +994,7 @@ export function RetirementCalculator() {
                                                                     height: 2,
                                                                     marginRight: 8,
                                                                     backgroundColor: "transparent",
-                                                                    borderBottom: isNominal
+                                                                    borderBottom: isNominal || isContributions
                                                                         ? `2px dashed ${color}`
                                                                         : `2px solid ${color}`,
                                                                 }}
@@ -862,49 +1019,84 @@ export function RetirementCalculator() {
                                             </ul>
                                         )} />
                                         {/* Savings Phase Lines */}
-                                        <Area
-                                            type="step"
-                                            dataKey="Kapital nominal"
-                                            data={calculationResult.savingsPhaseData}
-                                            stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.4} strokeWidth={2} strokeOpacity={0.3}
-                                            name="Anspar-Kapital (nominal)"
-                                        />
-                                        {formData.inflation > 0 && <Area
-                                            type="step"
-                                            dataKey="Kapital real"
-                                            data={calculationResult.savingsPhaseData}
-                                            stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.4} strokeWidth={2} strokeOpacity={0.3}
-                                            name="Anspar-Kapital (real - mit inflation)"
-                                        />}
+                                        {formData.showNominalCapital && (
+                                            <Area
+                                                type="step"
+                                                dataKey="Kapital nominal"
+                                                data={calculationResult.savingsPhaseData}
+                                                stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.4} strokeWidth={2} strokeOpacity={0.3}
+                                                name="Anspar-Kapital (nominal)"
+                                            />
+                                        )}
+                                        {formData.inflation > 0 && (
+                                            <Area
+                                                type="step"
+                                                dataKey="Kapital real"
+                                                data={calculationResult.savingsPhaseData}
+                                                stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.4} strokeWidth={2} strokeOpacity={0.3}
+                                                name="Anspar-Kapital (real - mit inflation)"
+                                            />
+                                        )}
+                                        {/* Area for Contributions */}
+                                        {formData.showContributions && (
+                                            <Area
+                                                type="step"
+                                                dataKey="Einzahlungen"
+                                                data={calculationResult.savingsPhaseData}
+                                                stroke="#10b981" fill="#10b981" fillOpacity={0.1} strokeWidth={2} strokeDasharray="5 5"
+                                                name="Kumulierte Einzahlungen"
+                                            />
+                                        )}
                                         {/* Payout Phase Lines */}
                                         {isPayoutMode && calculationResult.payoutPhaseData && calculationResult.payoutPhaseData.length > 0 && (
                                             <>
-                                                <Area
-                                                    type="step"
-                                                    dataKey="Kapital nominal"
-                                                    data={calculationResult.payoutPhaseData}
-                                                    stroke="#9333ea" fill="#9333ea" fillOpacity={0.2} strokeOpacity={0.3}
-                                                    name="Entnahme-Kapital (nominal)"
-                                                />
-                                                {formData.inflation > 0 && <Area
-                                                    type="step"
-                                                    dataKey="Kapital real"
-                                                    data={calculationResult.payoutPhaseData}
-                                                    stroke="#9333ea" fill="#9333ea" fillOpacity={0.2} strokeOpacity={0.3}
-                                                    name="Entnahme-Kapital (real - mit inflation)"
-                                                />}
+                                                {formData.showNominalCapital && (
+                                                    <Area
+                                                        type="step"
+                                                        dataKey="Kapital nominal"
+                                                        data={calculationResult.payoutPhaseData}
+                                                        stroke="#9333ea" fill="#9333ea" fillOpacity={0.2} strokeOpacity={0.3}
+                                                        name="Entnahme-Kapital (nominal)"
+                                                    />
+                                                )}
+                                                {formData.inflation > 0 && (
+                                                    <Area
+                                                        type="step"
+                                                        dataKey="Kapital real"
+                                                        data={calculationResult.payoutPhaseData}
+                                                        stroke="#9333ea" fill="#9333ea" fillOpacity={0.2} strokeOpacity={0.3}
+                                                        name="Entnahme-Kapital (real - mit inflation)"
+                                                    />
+                                                )}
                                             </>
                                         )}
                                     </AreaChart>
                                 </ResponsiveContainer>
                                 <Separator className="my-4" />
                                 <div className="text-sm text-gray-500 space-y-2">
-                                    <p>
-                                        <span className="text-purple-600 font-bold">Die violette Linie</span> zeigt das <b>nominale Kapital</b> in der Ansparphase. Die hellere Linie darunter zeigt den <b>realen (inflationsbereinigten) Wert</b>.
-                                    </p>
-                                    {isPayoutMode && (
+                                    {formData.showNominalCapital && (
                                         <p>
-                                            <span className="text-orange-600 font-bold">Die orange Linie</span> zeigt das <b>nominale Kapital</b> in der Entnahmephase. Die hellere Linie zeigt den <b>realen (inflationsbereinigten) Wert</b>, der bei Entnahmen immer sinkt.
+                                            <span className="text-blue-600 font-bold">Die blaue Linie</span> zeigt das <b>nominale Kapital</b> in der Ansparphase.
+                                        </p>
+                                    )}
+                                    {formData.inflation > 0 && (
+                                        <p>
+                                            Die hellere blaue Linie zeigt den <b>realen (inflationsbereinigten) Wert</b> des Ansparkapitals.
+                                        </p>
+                                    )}
+                                    {formData.showContributions && (
+                                        <p>
+                                            <span className="text-green-600 font-bold">Die grüne gestrichelte Linie</span> zeigt die <b>kumulierten Einzahlungen</b>, also den Betrag, den Sie über die Jahre selbst angespart haben.
+                                        </p>
+                                    )}
+                                    {isPayoutMode && formData.showNominalCapital && (
+                                        <p>
+                                            <span className="text-purple-600 font-bold">Die violette Linie</span> zeigt das <b>nominale Kapital</b> in der Entnahmephase.
+                                        </p>
+                                    )}
+                                    {isPayoutMode && formData.inflation > 0 && (
+                                        <p>
+                                            Die hellere violette Linie zeigt den <b>realen (inflationsbereinigten) Wert</b> des Entnahmekapitals, der bei Entnahmen immer sinkt.
                                         </p>
                                     )}
                                 </div>
