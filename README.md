@@ -1,36 +1,32 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Finanzielle Bildung App
 
-## Getting Started
+Willkommen bei der Finanzielle Bildung App! Diese Anwendung ist ein interaktives Tool, das Ihnen hilft, die Grundlagen der Finanzen auf einfache und verständliche Weise zu erlernen. Egal, ob Sie Ihre ersten Schritte im Bereich der persönlichen Finanzen machen oder Ihr Wissen auffrischen möchten, diese App ist der ideale Begleiter.
 
-First, run the development server:
+## Hauptfunktionen
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+* **Interaktive Inhalte:** Lernen Sie wichtige Finanzkonzepte durch kurze, verständliche Lektionen.
+* **Wissenstests:** Überprüfen Sie Ihr neu erworbenes Wissen mit einfachen Tests am Ende jeder Lektion.
+* **Fortschrittsanzeige:** Behalten Sie den Überblick über Ihre Lernreise und sehen Sie, wie viel Sie bereits gelernt haben.
+* **Intuitive Benutzeroberfläche:** Eine klare und einfache Bedienung, die den Fokus auf das Lernen legt.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Technologie
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Diese App wurde mit **HTML**, **CSS** und **JavaScript** entwickelt. Sie läuft direkt in Ihrem Webbrowser und benötigt keine Installation.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Wie man die App nutzt
 
-## Learn More
+Besuchen Sie einfach die Website, um sofort mit dem Lernen zu beginnen. Es ist keine Registrierung oder Anmeldung erforderlich.
 
-To learn more about Next.js, take a look at the following resources:
+1.  Öffnen Sie die App in Ihrem Browser: `https://tomato6966.github.io/finanzielle_bildung/`
+2.  Wählen Sie eine Lektion aus dem Menü.
+3.  Durchlaufen Sie die Inhalte und machen Sie am Ende den Test.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Feedback und Kontakt
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Ihre Rückmeldungen sind uns wichtig! Wenn Sie Vorschläge zur Verbesserung haben oder Fehler entdecken, können Sie uns gerne über die GitHub-Issues-Seite kontaktieren.
 
-## Deploy on Vercel
+Viel Spaß beim Lernen und beim Ausbau Ihrer finanziellen Kompetenzen!
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Disclaimer:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+*Von der Finanzfluss Community, für die Community. Das Projekt steht in keiner Verbindung mit Finanzfluss.*
