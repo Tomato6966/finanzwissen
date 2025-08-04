@@ -126,13 +126,13 @@ export function GoalsPage() {
                     <div className="grid md:grid-cols-2 gap-6">
                         <div>
                             <h4 className="font-semibold text-red-600 mb-3">❌ Schlecht formuliert:</h4>
-                            <p className="text-gray-700 italic">"Ich möchte mehr Geld sparen."</p>
+                            <p className="text-gray-700 italic">&quot;Ich möchte mehr Geld sparen.&quot;</p>
                         </div>
                         <div>
                             <h4 className="font-semibold text-green-600 mb-3">✅ SMART formuliert:</h4>
                             <p className="text-gray-700">
-                                "Ich spare bis zum 31.12.2024 <strong>10.000€</strong> für meinen Notgroschen, indem ich jeden
-                                Monat <strong>500€</strong> automatisch auf ein separates Tagesgeldkonto überweise."
+                            &quot;Ich spare bis zum 31.12.2024 <strong>10.000€</strong> für meinen Notgroschen, indem ich jeden
+                                Monat <strong>500€</strong> automatisch auf ein separates Tagesgeldkonto überweise.&quot;
                             </p>
                         </div>
                     </div>

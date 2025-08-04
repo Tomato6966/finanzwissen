@@ -4,6 +4,7 @@ import {
 	BarChart3, Calculator, Download, ExternalLink, FileText, Lightbulb, PieChart, Shield, Target,
 	TrendingUp
 } from "lucide-react";
+import Image from "next/image";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -158,12 +159,15 @@ export function ToolsPage() {
             {templates.map((template, index) => (
               <Card key={index} className="hover:shadow-xl transition-all duration-300 group overflow-hidden hover:bg-gradient-to-br hover:from-blue-500/30 hover:to-purple-500/30">
                 <div className="relative overflow-hidden">
-                  <img
+                <Image
                     src={template.image || "/placeholder.svg"}
                     alt={template.title}
+                    width={800}
+                    height={192}
                     className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <Badge className="absolute top-3 left-3 bg-white/90 text-gray-900">{template.category}</Badge>
+                    unoptimized
+                />
+                <Badge className="absolute top-3 left-3 bg-white/90 text-gray-900">{template.category}</Badge>
                   <Badge className="absolute top-3 right-3 bg-blue-600 text-white">{template.format}</Badge>
                 </div>
 
