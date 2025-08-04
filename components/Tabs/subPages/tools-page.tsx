@@ -160,7 +160,7 @@ export function ToolsPage() {
               <Card key={index} className="hover:shadow-xl transition-all duration-300 group overflow-hidden hover:bg-gradient-to-br hover:from-blue-500/30 hover:to-purple-500/30">
                 <div className="relative overflow-hidden">
                 <Image
-                    src={template.image || "/placeholder.svg"}
+                    src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}${template.image || "/placeholder.svg"}`}
                     alt={template.title}
                     width={800}
                     height={192}

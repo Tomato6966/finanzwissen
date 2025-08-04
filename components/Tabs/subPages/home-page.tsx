@@ -83,7 +83,7 @@ export function HomePage() {
                             <div>
                                 <div className="relative overflow-hidden">
                                     <Image
-                                        src={resource.image || "/placeholder.svg"}
+                                        src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}${resource.image || "/placeholder.svg"}`}
                                         alt={resource.title}
                                         width={800}
                                         height={192}
