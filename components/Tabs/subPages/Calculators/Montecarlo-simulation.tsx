@@ -535,8 +535,8 @@ export function MontecarloSimulation() {
                             <ResponsiveContainer width="100%" height={300}>
                                 <LineChart>
                                     <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="x" type="number" domain={[0, monteCarloForm.time]} unit=" J" />
-                                    <YAxis tickFormatter={(val: number) => formatCurrency(val)} width={80} domain={['dataMin', 'dataMax']} />
+                                    <XAxis width="auto" dataKey="x" type="number" domain={[0, monteCarloForm.time]} unit=" J" />
+                                    <YAxis width="auto" tickFormatter={(val: number) => formatCurrency(val)} domain={['dataMin', 'dataMax']} />
                                     <Tooltip formatter={(value: number) => formatCurrencyPrecise(value)} />
                                     {/* Render only the selected paths */}
                                     {monteCarloResults.paths.map((path, i) => (
