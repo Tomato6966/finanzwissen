@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { PageContext } from "../Context/PageContext";
+import { ActiveTabKeys, PageContext } from "../Context/PageContext";
 
 export default function PageRouter({
     children,
@@ -10,7 +10,7 @@ export default function PageRouter({
     children: React.ReactNode;
   }>) {
     const [isDarkMode, setIsDarkMode] = useState(false);
-    const [activeTab, setActiveTab] = useState("home");
+    const [activeTab, setActiveTab] = useState<ActiveTabKeys>("home");
     return <PageContext.Provider value={{ isDarkMode, setIsDarkMode, activeTab, setActiveTab }}>
         {children}
     </PageContext.Provider>;
