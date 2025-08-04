@@ -1,3 +1,5 @@
+'use client';
+
 import { formatDate } from "date-fns";
 
 export interface Asset {
@@ -111,7 +113,7 @@ export interface YahooChartResult {
 const formatDateToISO = (date: Date, lessThenADay: boolean = false) => lessThenADay ? formatDate(date, 'yyyy-MM-dd_HH:mm') : formatDate(date, 'yyyy-MM-dd');
 
 
-const isProd = process.env.NEXT_PUBLIC_USE_PROXYURL;
+const isProd = process.env.NEXT_PUBLIC_USE_PROXYURL === "true";
 
 const CORS_PROXY = 'https://corsproxy.io/?url=';
 const YAHOO_API = 'https://query1.finance.yahoo.com';

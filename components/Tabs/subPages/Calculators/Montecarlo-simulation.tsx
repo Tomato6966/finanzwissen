@@ -1,4 +1,4 @@
-import { ArrowRightCircle, BarChart2 } from "lucide-react";
+import { ArrowRightCircle, BarChart2, X } from "lucide-react";
 import React, { useState } from "react";
 import {
 	CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis
@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+// Import functions and types from the new yahoofinanceService file
+import {
+	Asset as YahooAsset, EQUITY_TYPES, getHistoricalData, searchAssets
+} from "@/lib/yahoofinanceService";
 
 import { formatCurrency, formatCurrencyPrecise, formatPercentage } from "./tools";
 
@@ -29,7 +33,7 @@ interface MonteCarloForm {
     time: number; // Anlagedauer
     monthlyContribution: number; // Monatlicher Sparplan
     simulations: number;
-    assets: { ticker: string; weight: number; drift: number; volatility: number; }[]; // Multiple assets with weights, drift, and volatility
+    assets: { ticker: string; name: string; weight: number; drift: number; volatility: number; }[]; // Multiple assets with weights, drift, and volatility
 }
 
 interface MonteCarloResultMetrics {
@@ -50,13 +54,6 @@ interface MonteCarloResults {
     overallStats: MonteCarloStats | null; // Keep overall stats for end values
 }
 
-// Mock historical data for different tickers
-const mockHistoricalPrices: { [key: string]: number[] } = {
-    'SPY': [150, 151, 153, 150, 155, 154, 158, 160, 159, 162, 165, 163, 168, 170, 172, 175, 173, 178, 180, 182, 185, 183, 188, 190, 192, 195, 193, 198, 200, 202, 205, 203, 208, 210, 212, 215, 213, 218, 220, 222, 225, 223, 228, 230, 232, 235, 233, 238, 240, 242, 245, 243, 248, 250, 252, 255, 253, 258, 260, 262, 265, 263, 268, 270, 272, 275, 273, 278, 280, 282, 285, 283, 288, 290, 292, 295, 293, 298, 300, 302, 305, 303, 308, 310, 312, 315, 313, 318, 320, 322, 325, 323, 328, 330, 332, 335, 333, 338, 340, 342, 345, 343, 348, 350],
-    'AAPL': [100, 101, 103, 100, 105, 104, 108, 110, 109, 112, 115, 113, 118, 120, 122, 125, 123, 128, 130, 132, 135, 133, 138, 140, 142, 145, 143, 148, 150, 152, 155, 153, 158, 160, 162, 165, 163, 168, 170, 172, 175, 173, 178, 180, 182, 185, 183, 188, 190, 192, 195, 193, 198, 200, 202, 205, 203, 208, 210, 212, 215, 213, 218, 220, 222, 225, 223, 228, 230, 232, 235, 233, 238, 240, 242, 245, 243, 248, 250, 252, 255, 253, 258, 260, 262, 265, 263, 268, 270, 272, 275, 273, 278, 280, 282, 285, 283, 288, 290, 292, 295, 293, 298, 300],
-    'MSFT': [200, 202, 205, 203, 208, 207, 210, 212, 211, 215, 218, 216, 220, 223, 221, 225, 228, 226, 230, 233, 231, 235, 238, 236, 240, 243, 241, 245, 248, 246, 250, 253, 251, 255, 258, 256, 260, 263, 261, 265, 268, 266, 270, 273, 271, 275, 278, 276, 280, 283, 281, 285, 288, 286, 290, 293, 291, 295, 298, 296, 300, 303, 301, 305, 308, 306, 310, 313, 311, 315, 318, 316, 320, 323, 321, 325, 328, 326, 330, 333, 331, 335, 338, 336, 340, 343, 341, 345, 348, 346, 350, 353, 351, 355, 358, 356, 360, 363, 361, 365, 368, 366, 370],
-};
-
 const RISK_FREE_RATE = 2; // Example: 2% risk-free rate for Sharpe Ratio calculation
 
 // --- Main App Component ---
@@ -66,12 +63,15 @@ export function MontecarloSimulation() {
         time: 20,
         monthlyContribution: 0,
         simulations: 100,
-        assets: [{ ticker: 'SPY', weight: 100, drift: 0, volatility: 0 }],
+        assets: [{ ticker: 'SPY', name: 'SPDR S&P 500 ETF Trust', weight: 100, drift: 0, volatility: 0 }],
     });
     const [monteCarloResults, setMonteCarloResults] = useState<MonteCarloResults>({ paths: [], percentileMetrics: null, overallStats: null });
     const [isSimulating, setIsSimulating] = useState<boolean>(false);
     const [isFetching, setIsFetching] = useState<boolean>(false);
     const [simulationProgress, setSimulationProgress] = useState<number>(0);
+    const [searchResults, setSearchResults] = useState<YahooAsset[]>([]);
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [activeSearchIndex, setActiveSearchIndex] = useState<number | null>(null); // To track which asset input is being searched for
 
     // Handles changes to the main form inputs
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,17 +80,36 @@ export function MontecarloSimulation() {
     };
 
     // Handles changes to asset ticker or weight
-    const handleAssetChange = (index: number, field: 'ticker' | 'weight', value: string) => {
+    const handleAssetChange = (index: number, field: 'ticker' | 'weight' | 'name', value: string | number) => {
         const newAssets = [...monteCarloForm.assets];
-        newAssets[index] = { ...newAssets[index], [field]: field === 'weight' ? parseFloat(value) : value };
+        if (field === 'ticker') {
+            newAssets[index] = { ...newAssets[index], ticker: value as string, name: '' }; // Clear name when ticker changes
+            setSearchQuery(value as string); // Update search query
+            setActiveSearchIndex(index); // Set active search index
+            handleSearch(value as string); // Trigger search
+        } else if (field === 'weight') {
+            newAssets[index] = { ...newAssets[index], weight: value as number };
+        } else if (field === 'name') {
+            newAssets[index] = { ...newAssets[index], name: value as string };
+        }
         setMonteCarloForm(prevForm => ({ ...prevForm, assets: newAssets }));
+    };
+
+    // Selects an asset from search results
+    const selectAssetFromSearch = (index: number, asset: YahooAsset) => {
+        const newAssets = [...monteCarloForm.assets];
+        newAssets[index] = { ...newAssets[index], ticker: asset.symbol, name: asset.name };
+        setMonteCarloForm(prevForm => ({ ...prevForm, assets: newAssets }));
+        setSearchResults([]); // Clear search results
+        setSearchQuery(''); // Clear search query
+        setActiveSearchIndex(null); // Clear active search index
     };
 
     // Adds a new asset row
     const addAsset = () => {
         setMonteCarloForm(prevForm => ({
             ...prevForm,
-            assets: [...prevForm.assets, { ticker: '', weight: 0, drift: 0, volatility: 0 }]
+            assets: [...prevForm.assets, { ticker: '', name: '', weight: 0, drift: 0, volatility: 0 }]
         }));
     };
 
@@ -98,37 +117,73 @@ export function MontecarloSimulation() {
     const removeAsset = (index: number) => {
         const newAssets = monteCarloForm.assets.filter((_, i) => i !== index);
         setMonteCarloForm(prevForm => ({ ...prevForm, assets: newAssets }));
+        if (activeSearchIndex === index) { // If the removed asset was the one being searched for
+            setSearchResults([]);
+            setSearchQuery('');
+            setActiveSearchIndex(null);
+        }
     };
 
-    // Simulates an API call to get historical stock data for all assets
+    // Handles ticker search
+    const handleSearch = async (query: string) => {
+        if (query.length < 2) { // Only search if query is at least 2 characters
+            setSearchResults([]);
+            return;
+        }
+        try {
+            const results = await searchAssets(query, EQUITY_TYPES["Etf or Stock"]); // Search for stocks
+            setSearchResults(results);
+        } catch (error) {
+            console.error("Error during asset search:", error);
+            setSearchResults([]);
+        }
+    };
+
+    // Fetches historical data for all assets using Yahoo Finance API
     const fetchHistoricalData = async () => {
         setIsFetching(true);
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setFullYear(endDate.getFullYear() - 5); // Get last 5 years of data for calculation
+
         const updatedAssets = await Promise.all(monteCarloForm.assets.map(async (asset) => {
-            await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-
-            const prices = mockHistoricalPrices[asset.ticker.toUpperCase()] || mockHistoricalPrices['SPY']; // Fallback to SPY
-
-            if (prices.length < 2) {
-                console.warn(`Not enough historical data for ${asset.ticker} to calculate drift/volatility.`);
+            if (!asset.ticker) {
+                console.warn(`Skipping historical data fetch for asset with no ticker.`);
                 return { ...asset, drift: 0, volatility: 0 };
             }
+            try {
+                const data = await getHistoricalData(asset.ticker, startDate, endDate, "1d");
+                const prices = Array.from(data.historicalData.values());
 
-            const dailyReturns = prices.slice(1).map((price, i) => (price - prices[i]) / prices[i]);
+                if (prices.length < 2) {
+                    console.warn(`Not enough historical data for ${asset.ticker} to calculate drift/volatility.`);
+                    return { ...asset, drift: 0, volatility: 0 };
+                }
 
-            const sumReturns = dailyReturns.reduce((sum, r) => sum + r, 0);
-            const meanDailyReturn = sumReturns / dailyReturns.length;
-            const annualizedDrift = meanDailyReturn * 252 * 100; // Annualize and convert to percentage
+                // Calculate daily returns
+                const dailyReturns = prices.slice(1).map((price, i) => (price - prices[i]) / prices[i]);
 
-            const squaredDeviations = dailyReturns.map(r => Math.pow(r - meanDailyReturn, 2));
-            const variance = squaredDeviations.reduce((sum, sd) => sum + sd, 0) / (dailyReturns.length - 1);
-            const stdDevDailyReturn = Math.sqrt(variance);
-            const annualizedVolatility = stdDevDailyReturn * Math.sqrt(252) * 100; // Annualize and convert to percentage
+                // Calculate mean daily return (drift)
+                const sumReturns = dailyReturns.reduce((sum, r) => sum + r, 0);
+                const meanDailyReturn = sumReturns / dailyReturns.length;
+                const annualizedDrift = meanDailyReturn * 252 * 100; // Annualize and convert to percentage
 
-            return {
-                ...asset,
-                drift: parseFloat(annualizedDrift.toFixed(2)),
-                volatility: parseFloat(annualizedVolatility.toFixed(2)),
-            };
+                // Calculate standard deviation of daily returns (volatility)
+                const squaredDeviations = dailyReturns.map(r => Math.pow(r - meanDailyReturn, 2));
+                const variance = squaredDeviations.reduce((sum, sd) => sum + sd, 0) / (dailyReturns.length - 1);
+                const stdDevDailyReturn = Math.sqrt(variance);
+                const annualizedVolatility = stdDevDailyReturn * Math.sqrt(252) * 100; // Annualize and convert to percentage
+
+                return {
+                    ...asset,
+                    drift: parseFloat(annualizedDrift.toFixed(2)),
+                    volatility: parseFloat(annualizedVolatility.toFixed(2)),
+                    name: data.longName || asset.name // Update name if available from API
+                };
+            } catch (error) {
+                console.error(`Error fetching data for ${asset.ticker}:`, error);
+                return { ...asset, drift: 0, volatility: 0 }; // Reset if error
+            }
         }));
         setMonteCarloForm(prevForm => ({ ...prevForm, assets: updatedAssets }));
         setIsFetching(false);
@@ -199,12 +254,13 @@ export function MontecarloSimulation() {
             maxDrawdowns.push(currentMaxDrawdown * 100); // Store as percentage
 
             // Calculate average annual return for this path
-            const totalReturn = (currentValue - principal - (monthlyContribution * time * 12)) / (principal + (monthlyContribution * time * 12));
-            const avgAnnualReturn = (Math.pow(1 + totalReturn, 1 / time) - 1) * 100;
+            // const totalInvested = principal + (monthlyContribution * time * 12);
+            const avgAnnualReturn = (Math.pow(currentValue / principal, 1 / time) - 1) * 100; // Simplified for initial principal
+            // For monthly contributions, a more complex XIRR calculation would be needed for true annual return.
+            // For simplicity, we'll use the simple growth from initial principal.
             annualReturns.push(avgAnnualReturn);
 
             // Calculate Sharpe Ratio for this path
-            // Need daily returns for standard deviation of returns
             const pathDailyReturns = dailyValues.slice(1).map((val, idx) => (val - dailyValues[idx]) / dailyValues[idx]);
             const pathMeanDailyReturn = pathDailyReturns.reduce((sum, r) => sum + r, 0) / pathDailyReturns.length;
             const pathStdDevDailyReturn = Math.sqrt(pathDailyReturns.map(r => Math.pow(r - pathMeanDailyReturn, 2)).reduce((sum, sd) => sum + sd, 0) / (pathDailyReturns.length - 1));
@@ -295,27 +351,48 @@ export function MontecarloSimulation() {
 
                             <h3 className="text-lg font-semibold mt-6">Portfolio-Zusammensetzung</h3>
                             {monteCarloForm.assets.map((asset, index) => (
-                                <div key={index} className="flex items-end gap-2">
-                                    <div className="flex-grow">
-                                        <Label>Aktiensymbol</Label>
+                                <div key={index} className="relative flex flex-wrap items-end gap-2 mb-4 p-2 border rounded-md bg-gray-50">
+                                    <div className="flex-1">
+                                        <Label>Aktiensymbol / Name</Label>
                                         <Input
                                             type="text"
-                                            value={asset.ticker}
+                                            value={activeSearchIndex === index ? searchQuery : asset.ticker || asset.name}
                                             onChange={(e) => handleAssetChange(index, 'ticker', e.target.value)}
-                                            placeholder="z.B. SPY"
+                                            placeholder="z.B. SPY oder Apple"
+                                            onFocus={() => setActiveSearchIndex(index)}
+                                            onBlur={() => setTimeout(() => setActiveSearchIndex(null), 100)} // Delay to allow click on search results
                                         />
+                                        {activeSearchIndex === index && searchResults.length > 0 && (
+                                            <ul className="absolute z-10 bg-white border border-gray-300 w-full rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto">
+                                                {searchResults.map((result) => (
+                                                    <li
+                                                        key={result.symbol}
+                                                        className="p-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center"
+                                                        onMouseDown={() => selectAssetFromSearch(index, result)} // Use onMouseDown to prevent blur before click
+                                                    >
+                                                        <span>{result.symbol} - {result.name}</span>
+                                                        <span className="text-xs text-gray-500">{result.quoteType}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
                                     </div>
                                     <div className="w-24">
                                         <Label>Gewicht (%)</Label>
                                         <Input
                                             type="number"
                                             value={asset.weight}
-                                            onChange={(e) => handleAssetChange(index, 'weight', e.target.value)}
+                                            onChange={(e) => handleAssetChange(index, 'weight', Number(e.target.value))}
                                         />
                                     </div>
-                                    <Button variant="destructive" onClick={() => removeAsset(index)} className="mb-0.5">
-                                        X
+                                    <Button variant="destructive" onClick={() => removeAsset(index)} className="mb-0.5 p-2 h-auto">
+                                        <X className="w-4 h-4" />
                                     </Button>
+                                    {asset.ticker && (asset.drift !== 0 || asset.volatility !== 0) && (
+                                        <div className="top-1 right-12 text-xs text-gray-500">
+                                            Rendite: {asset.drift.toFixed(2)}% | Vol: {asset.volatility.toFixed(2)}%
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                             <Button onClick={addAsset} className="w-full mt-2">Asset hinzufügen</Button>

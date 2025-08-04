@@ -11,7 +11,7 @@ const nextConfig = {
     basePath,
     assetPrefix: basePath,
     env: {
-        NEXT_PUBLIC_USE_PROXYURL: isGithubPages,
+        NEXT_PUBLIC_USE_PROXYURL: "true",
         NEXT_PUBLIC_BASE_PATH: basePath,
     },
 };
