@@ -1,4 +1,5 @@
 import { Menu, Moon, Sun, TrendingUp } from "lucide-react";
+import Image from "next/image";
 import { useContext } from "react";
 
 import { Button } from "@/components/ui//button";
@@ -14,7 +15,13 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
                 <Button className="flex justify-center items-center space-x-1 text-2xl" variant={activeTab === "home" ? "secondary" : "ghost"} onClick={() => setActiveTab("home")}>
-                    <TrendingUp className="w-8 h-8 text-blue-600 mt-1" />
+                    <Image
+                        className="w-8 h-8 mt-1"
+                        src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/finanzwissen.png`}
+                        width={120}
+                        height={120}
+                        alt="logo"
+                    />
                     FinanzWissen
                 </Button>
 
