@@ -4,7 +4,7 @@ import { createContext, useEffect } from "react";
 
 import { useLocalStorage } from "../components/useCustomLocalStorage";
 
-export type ActiveTabKeys = "home" | "goals" | "household" | "mindset" | "calculators" | "tools" | "budget-analysis";
+export type ActiveTabKeys = "home" | "goals" | "moneymanagement" | "mindset" | "calculators" | "tools" | "budget-analysis";
 
 export interface PageContextType {
     isDarkMode: boolean;

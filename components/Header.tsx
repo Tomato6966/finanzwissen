@@ -17,7 +17,7 @@ export default function Header() {
 
     return <header className="bg-white dark:bg-slate-700 shadow-sm border-b dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
+            <div className="flex flex-wrapjustify-between items-center h-16">
                 <LinkButton href="/" className="flex justify-center items-center space-x-1 text-2xl" variant={!activeTab ? "secondary" : "ghost"}>
                     <Image
                         className="w-8 h-8 mt-1"
@@ -29,7 +29,7 @@ export default function Header() {
                     FinanzWissen
                 </LinkButton>
 
-                <div className="flex items-center space-x-4">
+                <div className="flex flex-wrap items-center space-x-4 w-full">
                     {/* Desktop Navigation */}
                     <NavigationMenu />
 

@@ -125,3 +125,17 @@ export interface FormData {
 export interface RetirementCalculatorProps {
     initialData: RetirementData | null;
 }
+
+export interface BudgetItem {
+    id: string;
+    name: string;
+    value: string;
+    type: 'income' | 'expense';
+    isRemovable: boolean;
+    color?: string;
+}
+
+export interface BudgetAnalysisData {
+    budgetItems: BudgetItem[];
+    visualizationType: 'bar' | 'sankey';
+}

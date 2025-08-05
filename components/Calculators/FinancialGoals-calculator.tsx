@@ -209,15 +209,15 @@ export const FinancialGoalsCalculator: FC<FinancialGoalsCalculatorProps> = ({
                         <h4 className="font-bold text-lg">Finanzielle Eckdaten</h4>
                         <div>
                             <Label htmlFor="principal">Startkapital (€)</Label>
-                            <Input id="principal" name="principal" type="number" value={goalForm.principal} onChange={memoizedHandleFormChange} />
+                            <Input min={0} id="principal" name="principal" type="number" value={goalForm.principal} onChange={memoizedHandleFormChange} />
                         </div>
                         <div>
                             <Label htmlFor="contribution">Monatliche Sparrate (€)</Label>
-                            <Input id="contribution" name="contribution" type="number" value={goalForm.contribution} onChange={memoizedHandleFormChange} />
+                            <Input min={0} id="contribution" name="contribution" type="number" value={goalForm.contribution} onChange={memoizedHandleFormChange} />
                         </div>
                         <div>
                             <Label htmlFor="rate">Erwartete Rendite p.a. (%)</Label>
-                            <Input id="rate" name="rate" type="number" value={goalForm.rate} onChange={memoizedHandleFormChange} />
+                            <Input min={0} id="rate" name="rate" type="number" value={goalForm.rate} onChange={memoizedHandleFormChange} />
                         </div>
                     </div>
 

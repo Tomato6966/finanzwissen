@@ -475,6 +475,10 @@ export function MontecarloSimulation({ initialData }: MonteCarloSimulationProps)
                     </CardTitle>
                     <CardDescription className="text-primary-foreground opacity-90 text-sm mt-2">
                         Simulieren Sie Tausende möglicher Zukünfte für Ihr Investmentportfolio, um die Wahrscheinlichkeiten besser zu verstehen.
+                        <p className="text-xs italic text-primary-foreground opacity-90 mt-2 ml-4">
+                            Hinweis: Die Simulation ist browser optimiert. Eine richtige MC-Simulation braucht 10000-50000 Simulationsiterationen. <br />
+                            Dafür kann man ein dediziertes PYTHON tool auf windows/linux/mac nutzen, hier eine Repository dafür: <a href="https://github.com/Tomato6966/python-monte-carlo-simulation" target="_blank" className="text-orange-300 hover:text-orange-500 opacity-90">python-monte-carlo-simulation</a>
+                        </p>
                     </CardDescription>
                 </div>
                 <Button onClick={handleShareConfig} className="ml-4" variant="secondary">
@@ -484,10 +488,10 @@ export function MontecarloSimulation({ initialData }: MonteCarloSimulationProps)
             <CardContent className="grid md:grid-cols-3 gap-8">
                 {/* Input Form */}
                 <div className="md:col-span-1 space-y-4">
-                    <div><Label>Anfangskapital (€)</Label><Input name="principal" type="number" value={monteCarloForm.principal} onChange={handleFormChange} /></div>
-                    <div><Label>Anlagedauer (Jahre)</Label><Input name="time" type="number" value={monteCarloForm.time} onChange={handleFormChange} /></div>
-                    <div><Label>Monatlicher Sparplan (€)</Label><Input name="monthlyContribution" type="number" value={monteCarloForm.monthlyContribution} onChange={handleFormChange} /></div>
-                    <div><Label>Anzahl Simulationen</Label><Input name="simulations" type="number" value={monteCarloForm.simulations} onChange={handleFormChange} /></div>
+                    <div><Label>Anfangskapital (€)</Label><Input min={0} name="principal" type="number" value={monteCarloForm.principal} onChange={handleFormChange} /></div>
+                    <div><Label>Anlagedauer (Jahre)</Label><Input min={0} name="time" type="number" value={monteCarloForm.time} onChange={handleFormChange} /></div>
+                    <div><Label>Monatlicher Sparplan (€)</Label><Input min={0} name="monthlyContribution" type="number" value={monteCarloForm.monthlyContribution} onChange={handleFormChange} /></div>
+                    <div><Label>Anzahl Simulationen</Label><Input max={150} min={MAX_DISPLAY_PATHS} name="simulations" type="number" value={monteCarloForm.simulations} onChange={handleFormChange} /></div>
 
                     <h3 className="text-lg font-semibold mt-6">Portfolio-Zusammensetzung</h3>
                     {monteCarloForm.assets.map((asset, index) => (

@@ -21,6 +21,9 @@ export default function Footer() {
                 <p className="italic text-gray-500 dark:text-muted-foreground mt-2">
                     Wichtiger Hinweis: Dies ist ein unabhängiges Projekt. Wir stehen in keiner direkten Verbindung zur Marke oder den Betreibern von <a href="https://finanzfluss.de" className="text-blue-600 hover:underline">Finanzfluss</a>.
                 </p>
+                <p className="text-gray-500 dark:text-muted-foreground mt-2">
+                    <a href="https://github.com/Tomato6966/finanzielle_bildung" className="text-blue-600 hover:underline">GitHub Repository - Contribute / Share / Like</a>
+                </p>
             </div>
         </div>
     </footer>;

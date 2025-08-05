@@ -271,7 +271,7 @@ export const CompoundInterestCalculator: FC<CompoundInterestCalculatorProps> = (
                 <div className="md:col-span-1 space-y-4">
                     <div>
                         <Label htmlFor="principal">Anfangskapital (€)</Label>
-                        <Input id="principal" name="principal" type="number" value={compoundForm.principal} onChange={memoizedHandleFormChange} />
+                        <Input min={0} id="principal" name="principal" type="number" value={compoundForm.principal} onChange={memoizedHandleFormChange} />
                     </div>
                     <div className="flex items-center justify-between">
                         <Label htmlFor="useContribution">Sparrate hinzufügen?</Label>
@@ -291,7 +291,7 @@ export const CompoundInterestCalculator: FC<CompoundInterestCalculatorProps> = (
                                 <>
                                     <div>
                                         <Label htmlFor="contribution">Monatliche Sparrate (€)</Label>
-                                        <Input id="contribution" name="contribution" type="number" value={compoundForm.contribution} onChange={memoizedHandleFormChange} />
+                                        <Input min={0} id="contribution" name="contribution" type="number" value={compoundForm.contribution} onChange={memoizedHandleFormChange} />
                                     </div>
                                     <div>
                                         <Label htmlFor="interval">Intervall</Label>
@@ -345,16 +345,16 @@ export const CompoundInterestCalculator: FC<CompoundInterestCalculatorProps> = (
                                             <div className="grid grid-cols-2 gap-2">
                                                 <div>
                                                     <Label htmlFor={`start-year-${period.id}`}>Von Jahr</Label>
-                                                    <Input id={`start-year-${period.id}`} type="number" value={period.startYear} onChange={(e) => handleAdvancedContributionChange(period.id, 'startYear', parseFloat(e.target.value) || 0)} />
+                                                    <Input max={period.endYear} id={`start-year-${period.id}`} type="number" value={period.startYear} onChange={(e) => handleAdvancedContributionChange(period.id, 'startYear', parseFloat(e.target.value) || 0)} />
                                                 </div>
                                                 <div>
                                                     <Label htmlFor={`end-year-${period.id}`}>Bis Jahr</Label>
-                                                    <Input id={`end-year-${period.id}`} type="number" value={period.endYear} onChange={(e) => handleAdvancedContributionChange(period.id, 'endYear', parseFloat(e.target.value) || 0)} />
+                                                    <Input min={period.startYear} id={`end-year-${period.id}`} type="number" value={period.endYear} onChange={(e) => handleAdvancedContributionChange(period.id, 'endYear', parseFloat(e.target.value) || 0)} />
                                                 </div>
                                             </div>
                                             <div>
                                                 <Label htmlFor={`amount-${period.id}`}>Monatliche Sparrate (€)</Label>
-                                                <Input id={`amount-${period.id}`} type="number" value={period.amount} onChange={(e) => handleAdvancedContributionChange(period.id, 'amount', parseFloat(e.target.value) || 0)} />
+                                                <Input min={0} id={`amount-${period.id}`} type="number" value={period.amount} onChange={(e) => handleAdvancedContributionChange(period.id, 'amount', parseFloat(e.target.value) || 0)} />
                                             </div>
                                             {advancedContributionPeriods.length > 1 && (
                                                 <Button variant="ghost" size="sm" onClick={() => removeAdvancedContributionPeriod(period.id)} className="w-full text-red-500">Periode entfernen</Button>
@@ -372,7 +372,7 @@ export const CompoundInterestCalculator: FC<CompoundInterestCalculatorProps> = (
                                 <HelpCircle className="w-4 h-4 text-gray-400" />
                             </TooltipWrapper>
                         </Label>
-                        <Input id="rate" name="rate" type="number" step="0.1" value={compoundForm.rate} onChange={memoizedHandleFormChange} />
+                        <Input min={0} id="rate" name="rate" type="number" step="0.1" value={compoundForm.rate} onChange={memoizedHandleFormChange} />
                     </div>
                     <div>
                         <Label htmlFor="inflationRate" className="flex items-center gap-1">Jährliche Inflationsrate (%)
@@ -380,11 +380,11 @@ export const CompoundInterestCalculator: FC<CompoundInterestCalculatorProps> = (
                                 <HelpCircle className="w-4 h-4 text-gray-400" />
                             </TooltipWrapper>
                         </Label>
-                        <Input id="inflationRate" name="inflationRate" type="number" step="0.1" value={inflationRate} onChange={(e) => setInflationRate(parseFloat(e.target.value) || 0)} />
+                        <Input min={0} id="inflationRate" name="inflationRate" type="number" step="0.1" value={inflationRate} onChange={(e) => setInflationRate(parseFloat(e.target.value) || 0)} />
                     </div>
                     <div>
                         <Label htmlFor="time">Anlagedauer (Jahre)</Label>
-                        <Input id="time" name="time" type="number" value={compoundForm.time} onChange={memoizedHandleFormChange} />
+                        <Input min={0} id="time" name="time" type="number" value={compoundForm.time} onChange={memoizedHandleFormChange} />
                     </div>
                 </div>
                 <div className="md:col-span-2">

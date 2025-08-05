@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
 import {
-	CompoundInterestCalculator, FinancialGoalsCalculator, MontecarloSimulation,
+	BudgetAnalysis, CompoundInterestCalculator, FinancialGoalsCalculator, MontecarloSimulation,
 	RetirementCalculator, WithdrawalPlanCalculator
 } from "@/components/Calculators";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,12 +14,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LoadingCard from "./LoadingCard";
 
 import type {
-	CompoundInterestData, FinancialGoalsData, MonteCarloData, RetirementData,
+    BudgetAnalysisData, CompoundInterestData, FinancialGoalsData, MonteCarloData, RetirementData,
     WithDrawalInitialData,
 } from "@/lib/calculator-types";
 
 interface SharedCalculatorState {
-    type: 'compound' | 'withdrawal' | 'retirement' | 'goals' | 'montecarlo';
+    type: 'compound' | 'withdrawal' | 'retirement' | 'goals' | 'montecarlo' | 'budget-analysis';
     data: unknown;
 }
 
@@ -35,11 +35,12 @@ export default function CalculatorsClient() {
     const [initialWithdrawalData, setInitialWithdrawalData] = useState<WithDrawalInitialData["initialData"] | null>(null);
     const [initialRetirementData, setInitialRetirementData] = useState<RetirementData | null>(null);
     const [initialMontecarloData, setInitialMontecarloData] = useState<MonteCarloData | null>(null);
+    const [initialBudgetAnalysisData, setInitialBudgetAnalysisData] = useState<BudgetAnalysisData | null>(null);
 
     useEffect(() => {
         const handleHashChange = () => {
             const hash = window.location.hash.substring(1);
-            const validTabs = ["compound", "withdrawal", "retirement", "goals", "montecarlo"];
+            const validTabs = ["compound", "withdrawal", "retirement", "goals", "montecarlo", "budget-analysis"];
             if (validTabs.includes(hash)) {
                 setActiveTab(hash);
             }
@@ -53,7 +54,7 @@ export default function CalculatorsClient() {
 
         window.addEventListener('hashchange', handleHashChange);
         return () => window.removeEventListener('hashchange', handleHashChange);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pathname, router]);
     useEffect(() => {
         const shareParam = searchParams.get('share');
@@ -84,6 +85,9 @@ export default function CalculatorsClient() {
                         case 'montecarlo':
                             setInitialMontecarloData(data as MonteCarloData);
                             break;
+                        case 'budget-analysis':
+                            setInitialBudgetAnalysisData(data as BudgetAnalysisData);
+                            break;
                         default:
                             console.warn("Unknown calculator type in shared state:", type);
                     }
@@ -112,36 +116,51 @@ export default function CalculatorsClient() {
             </div>
 
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full max-w-6xl mx-auto">
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 h-auto p-2 bg-slate-300 dark:bg-black">
-                    <TabsTrigger value="compound" className={activeTab === "compound" ? "bg-primary text-primary-foreground" : "bg-transparent text-foreground dark:text-muted-foreground"}><TrendingUp /> Zinseszins</TabsTrigger>
-                    <TabsTrigger value="withdrawal" className={activeTab === "withdrawal" ? "bg-primary text-primary-foreground" : "bg-transparent text-foreground dark:text-muted-foreground"}><TrendingDown /> Entnahmeplan</TabsTrigger>
-                    <TabsTrigger value="retirement" className={activeTab === "retirement" ? "bg-primary text-primary-foreground" : "bg-transparent text-foreground dark:text-muted-foreground"}><TrendingUpDown/>  Vorsorge</TabsTrigger>
-                    <TabsTrigger value="goals" className={activeTab === "goals" ? "bg-primary text-primary-foreground" : "bg-transparent text-foreground dark:text-muted-foreground"}><PiggyBank /> Sparziele</TabsTrigger>
-                    <TabsTrigger value="montecarlo" className={activeTab === "montecarlo" ? "bg-primary text-primary-foreground" : "bg-transparent text-foreground dark:text-muted-foreground"}><BarChart2 /> Monte Carlo</TabsTrigger>
+                <TabsList className="flex flex-wrap justify-center w-full gap-2 h-auto p-2 bg-slate-300 dark:bg-black">
+                    <TabsTrigger value="compound" className={`flex-1 min-w-[20%] ${activeTab === "compound" ? "bg-primary text-primary-foreground" : "bg-transparent text-foreground dark:text-muted-foreground"}`}>
+                        <TrendingUp /> Zinseszins
+                    </TabsTrigger>
+                    <TabsTrigger value="withdrawal" className={`flex-1 min-w-[20%] ${activeTab === "withdrawal" ? "bg-primary text-primary-foreground" : "bg-transparent text-foreground dark:text-muted-foreground"}`}>
+                        <TrendingDown /> Entnahmeplan
+                    </TabsTrigger>
+                    <TabsTrigger value="retirement" className={`flex-1 min-w-[20%] ${activeTab === "retirement" ? "bg-primary text-primary-foreground" : "bg-transparent text-foreground dark:text-muted-foreground"}`}>
+                        <TrendingUpDown /> Vorsorge
+                    </TabsTrigger>
+                    <TabsTrigger value="goals" className={`flex-1 min-w-[20%] ${activeTab === "goals" ? "bg-primary text-primary-foreground" : "bg-transparent text-foreground dark:text-muted-foreground"}`}>
+                        <PiggyBank /> Sparziele
+                    </TabsTrigger>
+                    <TabsTrigger value="montecarlo" className={`flex-1 min-w-[20%] ${activeTab === "montecarlo" ? "bg-primary text-primary-foreground" : "bg-transparent text-foreground dark:text-muted-foreground"}`}>
+                        <BarChart2 /> Monte Carlo
+                    </TabsTrigger>
+                    <TabsTrigger value="budget-analysis" className={`flex-1 min-w-[20%] ${activeTab === "budget-analysis" ? "bg-primary text-primary-foreground" : "bg-transparent text-foreground dark:text-muted-foreground"}`}>
+                        <PiggyBank /> Budgetanalyse
+                    </TabsTrigger>
                 </TabsList>
 
                 {
                     hasSearchParam
-                    ? <LoadingCard />
-                    : (<>
-                        <TabsContent value="compound">
-                            <CompoundInterestCalculator initialData={initialCompoundData} />
-                        </TabsContent>
-                        <TabsContent value="withdrawal">
-                            <WithdrawalPlanCalculator initialData={initialWithdrawalData} />
-                        </TabsContent>
-                        <TabsContent value="retirement">
-                            <RetirementCalculator initialData={initialRetirementData} />
-                        </TabsContent>
-                        <TabsContent value="goals">
-                            <FinancialGoalsCalculator initialData={initialFinancialGoalsData} />
-                        </TabsContent>
-                        <TabsContent value="montecarlo">
-                            <MontecarloSimulation initialData={initialMontecarloData} />
-                        </TabsContent>
-                    </>)
+                        ? <LoadingCard />
+                        : (<>
+                            <TabsContent value="compound">
+                                <CompoundInterestCalculator initialData={initialCompoundData} />
+                            </TabsContent>
+                            <TabsContent value="withdrawal">
+                                <WithdrawalPlanCalculator initialData={initialWithdrawalData} />
+                            </TabsContent>
+                            <TabsContent value="retirement">
+                                <RetirementCalculator initialData={initialRetirementData} />
+                            </TabsContent>
+                            <TabsContent value="goals">
+                                <FinancialGoalsCalculator initialData={initialFinancialGoalsData} />
+                            </TabsContent>
+                            <TabsContent value="montecarlo">
+                                <MontecarloSimulation initialData={initialMontecarloData} />
+                            </TabsContent>
+                            <TabsContent value="budget-analysis">
+                                <BudgetAnalysis initialData={initialBudgetAnalysisData} />
+                            </TabsContent>
+                        </>)
                 }
-
             </Tabs>
         </div>
     );

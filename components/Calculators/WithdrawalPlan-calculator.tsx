@@ -152,11 +152,11 @@ export const WithdrawalPlanCalculator: FC<WithDrawalInitialData> = ({
                 <div className="md:col-span-1 space-y-4">
                     <div>
                         <Label htmlFor="principal">Startkapital (€)</Label>
-                        <Input id="principal" name="principal" type="number" value={withdrawalForm.principal} onChange={memoizedHandleFormChange} />
+                        <Input min={0} id="principal" name="principal" type="number" value={withdrawalForm.principal} onChange={memoizedHandleFormChange} />
                     </div>
                     <div>
                         <Label htmlFor="rate">Erwartete Rendite p.a. (%)</Label>
-                        <Input id="rate" name="rate" type="number" step="0.1" value={withdrawalForm.rate} onChange={memoizedHandleFormChange} />
+                        <Input min={0} id="rate" name="rate" type="number" step="0.1" value={withdrawalForm.rate} onChange={memoizedHandleFormChange} />
                     </div>
                     <div>
                         <Label htmlFor="tax" className="flex items-center gap-1">Effektiver Steuersatz auf Erträge (%)
@@ -164,7 +164,7 @@ export const WithdrawalPlanCalculator: FC<WithDrawalInitialData> = ({
                                 <HelpCircle className="w-4 h-4 text-gray-400" />
                             </TooltipWrapper>
                         </Label>
-                        <Input id="tax" name="tax" type="number" step="0.1" value={withdrawalForm.tax} onChange={memoizedHandleFormChange} />
+                        <Input min={0} id="tax" name="tax" type="number" step="0.1" value={withdrawalForm.tax} onChange={memoizedHandleFormChange} />
                     </div>
 
                     <div className="flex items-center justify-between p-2 border-t mt-4 pt-4">
@@ -183,7 +183,7 @@ export const WithdrawalPlanCalculator: FC<WithDrawalInitialData> = ({
                     {withdrawalMode === 'fixed' ? (
                         <div>
                             <Label htmlFor="withdrawal">Monatliche Entnahme (€)</Label>
-                            <Input id="withdrawal" name="withdrawal" type="number" value={withdrawalForm.withdrawal} onChange={memoizedHandleFormChange} />
+                            <Input min={0} id="withdrawal" name="withdrawal" type="number" value={withdrawalForm.withdrawal} onChange={memoizedHandleFormChange} />
                         </div>
                     ) : (
                         <div className="space-y-4">

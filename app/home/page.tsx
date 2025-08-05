@@ -1,14 +1,9 @@
 "use client"
 
-import {
-	ArrowRight, BookOpen, Download, ExternalLink, Lightbulb, Target, TrendingUp
-} from "lucide-react";
-import Image from "next/image";
+import { ArrowRight, BookOpen, Lightbulb, PiggyBank, Target, TrendingUpDown } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { pdfResources, quickLinks } from "@/lib/HomePageConstants";
+import { Card, CardContent } from "@/components/ui/card";
+import { quickLinks } from "@/lib/HomePageConstants";
 import { Separator } from "@radix-ui/react-separator";
 
 import LinkButton from "../../components/ui/linkButton";
@@ -64,67 +59,11 @@ export default function HomePage() {
 
             <div>
                 <div className="text-center">
-                    <h2 className="text-3xl font-bold text-gray-900 dark:text-foreground mb-4">Kostenlose PDF-Ressourcen</h2>
+                    <h2 className="text-3xl font-bold text-gray-900 dark:text-foreground mb-4">Ratschläge der Community</h2>
                     <p className="text-lg text-gray-600 dark:text-muted-foreground max-w-3xl mx-auto">
                         Laden Sie unsere umfassenden Leitfäden herunter und starten Sie Ihre finanzielle Bildungsreise noch heute.
                         Alle PDFs sind kostenlos und sofort verfügbar.
                     </p>
-                </div>
-
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {pdfResources.map((resource, index) => (
-                        <Card
-                            key={index}
-                            className="hover:shadow-xl transition-all duration-300 group overflow-hidden flex flex-col justify-between min-h-[420px] hover:bg-gradient-to-br hover:from-blue-500/30 hover:to-purple-500/30"
-                        >
-                            <div>
-                                <div className="relative overflow-hidden">
-                                    <Image
-                                        src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}${resource.image || "/placeholder.svg"}`}
-                                        alt={resource.title}
-                                        width={800}
-                                        height={192}
-                                        className="h-48 w-full object-fill group-hover:scale-105 transition-transform duration-300"
-                                        unoptimized
-                                    />
-                                    <Badge className="absolute top-3 left-3 bg-white/90 text-gray-900">
-                                        {resource.category}
-                                    </Badge>
-                                </div>
-
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="text-lg text-gray-900 dark:text-card-foreground group-hover:text-blue-600 group-hover:font-bold dark:group-hover:text-blue-400 transition-colors">
-                                        {resource.title}
-                                    </CardTitle>
-                                    <CardDescription className="text-gray-600 dark:text-muted-foreground">
-                                        {resource.description}
-                                    </CardDescription>
-                                </CardHeader>
-
-                                <CardContent className="pt-0">
-                                    <div className="flex flex-wrap gap-2 mb-4">
-                                        {resource.topics.map((topic, topicIndex) => (
-                                            <Badge key={topicIndex} variant="secondary" className="text-xs">
-                                                {topic}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </div>
-
-                            <div className="px-6 pb-6">
-                                <div className="flex gap-2">
-                                    <Button className="flex-1" size="sm">
-                                        <Download className="w-4 h-4 mr-2" />
-                                        PDF herunterladen
-                                    </Button>
-                                    <Button variant="outline" size="sm">
-                                        <ExternalLink className="w-4 h-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </Card>
-                    ))}
                 </div>
             </div>
 
@@ -134,7 +73,7 @@ export default function HomePage() {
                 <div className="text-center mb-8">
                     <h2 className="text-3xl font-bold text-gray-900 dark:text-foreground mb-4">Warum FinanzWissen?</h2>
                     <p className="text-lg text-gray-600 dark:text-muted-foreground">
-                        Ihre All-in-One Plattform für finanzielle Bildung und praktische Tools
+                        Ihre All-in-One Plattform für finanzielle Bildung, finanzielle Strategien, Geldmanagement, finanzielle Rechner und mehr
                     </p>
                 </div>
 
@@ -155,7 +94,7 @@ export default function HomePage() {
                         </div>
                         <h3 className="text-xl font-semibold text-gray-900 dark:text-card-foreground mb-2">Praktische Tools</h3>
                         <p className="text-gray-600 dark:text-muted-foreground">
-                            Rechner, Vorlagen und KI-gestützte Analysen für bessere finanzielle Entscheidungen
+                            Rechner, Vorlagen und Analysen für bessere finanzielle Entscheidungen
                         </p>
                     </div>
 
@@ -163,9 +102,9 @@ export default function HomePage() {
                         <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Lightbulb className="w-8 h-8 text-purple-600 dark:text-purple-400" />
                         </div>
-                        <h3 className="text-xl font-semibold text-gray-900 dark:text-card-foreground mb-2">Personalisiert</h3>
+                        <h3 className="text-xl font-semibold text-gray-900 dark:text-card-foreground mb-2">Community-Tipps</h3>
                         <p className="text-gray-600 dark:text-muted-foreground">
-                            Individuelle Empfehlungen und Analysen basierend auf Ihrer persönlichen Situation
+                            Von der Community geteilte Strategien, Tipps und Erfahrungen.
                         </p>
                     </div>
                 </div>
@@ -184,11 +123,20 @@ export default function HomePage() {
                     <LinkButton
                         size="lg"
                         variant="outline"
-                        href="/budget-analysis"
+                        href="/calculators#budget-analysis"
                         className="text-lg px-8 py-3 border-white text-white hover:bg-white bg-transparent"
                     >
-                        <TrendingUp className="w-5 h-5 mr-2" />
+                        <PiggyBank className="w-5 h-5 mr-2" />
                         Budget analysieren
+                    </LinkButton>
+                    <LinkButton
+                        size="lg"
+                        variant="outline"
+                        href="/calculators#budget-analysis"
+                        className="text-lg px-8 py-3 border-white text-white hover:bg-white bg-transparent"
+                    >
+                        <TrendingUpDown className="w-5 h-5 mr-2" />
+                        Alters-Vorsorge berechnen
                     </LinkButton>
                 </div>
             </div>
