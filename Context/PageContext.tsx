@@ -1,37 +1,51 @@
 "use client";
 
-import { createContext } from "react";
+import { createContext, useEffect } from "react";
 
 import { useLocalStorage } from "../components/useCustomLocalStorage";
 
 export type ActiveTabKeys = "home" | "goals" | "household" | "mindset" | "calculators" | "tools" | "budget-analysis";
 
-export interface PageContext {
+export interface PageContextType {
     isDarkMode: boolean;
-    setIsDarkMode: (isDarkMode: boolean) => void;
+    toggleDarkMode: () => void;
 };
 
-export const PageContext = createContext<PageContext>({
+export const PageContext = createContext<PageContextType>({
     isDarkMode: false,
-    setIsDarkMode: () => { },
+    toggleDarkMode: () => { },
 })
-
 
 export default function PageRouter({
     children,
-  }: Readonly<{
+}: Readonly<{
     children: React.ReactNode;
-  }>) {
-    const [isDarkMode, setIsDarkMode] = useLocalStorage("darkmode", true);
-    return <div
-        className={`min-h-screen transition-colors duration-300 ${
-            isDarkMode
-            ? "dark bg-gray-900"
-            : "bg-gradient-to-br from-blue-50 to-indigo-100"
-        }`}
-    >
-        <PageContext.Provider value={{ isDarkMode, setIsDarkMode }}>
-            {children}
-        </PageContext.Provider>
-    </div>;
+}>) {
+    const [isDarkMode, setIsDarkMode] = useLocalStorage("darkMode", false);
+
+    const toggleDarkMode = () => {
+        setIsDarkMode(!isDarkMode);
+    };
+
+    useEffect(() => {
+        if (isDarkMode) {
+            document.documentElement.classList.add("dark");
+        } else {
+            document.documentElement.classList.remove("dark");
+        }
+    }, [isDarkMode]);
+
+    return (
+        <div
+            className={`min-h-screen transition-colors duration-300 ${
+                isDarkMode
+                    ? "dark bg-gray-900"
+                    : "bg-gradient-to-br from-blue-50 to-indigo-100"
+            }`}
+        >
+            <PageContext.Provider value={{ isDarkMode, toggleDarkMode }}>
+                {children}
+            </PageContext.Provider>
+        </div>
+    );
 }

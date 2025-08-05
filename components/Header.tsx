@@ -13,7 +13,7 @@ import LinkButton from "./ui/linkButton";
 
 export default function Header() {
     const [activeTab] = useGetActiveTab();
-    const { isDarkMode, setIsDarkMode } = useContext(PageContext)
+    const { isDarkMode, toggleDarkMode } = useContext(PageContext)
 
     return <header className="bg-white dark:bg-slate-700 shadow-sm border-b dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -35,10 +35,7 @@ export default function Header() {
 
                     <Button
                         variant="outline"
-                        size="icon" onClick={() => {
-                            setIsDarkMode(!isDarkMode)
-                            document.documentElement.classList.toggle("dark")
-                        }}
+                        size="icon" onClick={() => toggleDarkMode()}
                         className="hidden md:flex bg-transparent float-end"
                     >
                         {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
