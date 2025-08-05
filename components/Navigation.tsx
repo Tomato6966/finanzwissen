@@ -11,7 +11,6 @@ interface NavigationMenuProps {
 
 export const NavigationMenu = ({ mobile = false }: NavigationMenuProps) => {
     const [activeTab] = useGetActiveTab();
-
     return <nav className={`${mobile ? "flex flex-col space-y-4" : "hidden md:flex space-x-8"}`}>
         <LinkButton
             href="/mindset"

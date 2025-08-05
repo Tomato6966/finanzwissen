@@ -253,7 +253,7 @@ export const CompoundInterestCalculator: FC<CompoundInterestCalculatorProps> = (
     };
 
     return (
-        <Card className="w-full max-w-6xl shadow-xl rounded-lg overflow-hidden py-0">
+        <Card className="w-full max-w-6xl shadow-xl rounded-lg overflow-hidden py-0 dark:bg-card">
             <CardHeader className="bg-primary text-primary-foreground p-6 rounded-t-lg flex flex-row items-center justify-between">
                 <div>
                     <CardTitle className="text-3xl font-bold flex items-center gap-4">
@@ -282,7 +282,7 @@ export const CompoundInterestCalculator: FC<CompoundInterestCalculatorProps> = (
                             <div className="flex items-center justify-between">
                                 <Label htmlFor="useAdvancedContribution">Erweiterte Sparrate?</Label>
                                 <TooltipWrapper content="Aktivieren Sie dies, um unterschiedliche Sparraten für verschiedene Zeiträume festzulegen.">
-                                    <HelpCircle className="w-4 h-4 text-gray-400" />
+                                    <HelpCircle className="w-4 h-4 text-muted-foreground" />
                                 </TooltipWrapper>
                                 <Switch id="useAdvancedContribution" checked={useAdvancedContribution} onCheckedChange={setUseAdvancedContribution} />
                             </div>
@@ -313,7 +313,7 @@ export const CompoundInterestCalculator: FC<CompoundInterestCalculatorProps> = (
                                             Dynamische Sparraten-Anpassung?
                                         </Label>
                                         <TooltipWrapper content="Erhöhen Sie Ihre Sparrate jährlich um einen festen Prozentsatz. Dies gilt nur für die Standard-Sparrate, nicht für die erweiterte Konfiguration.">
-                                            <HelpCircle className="h-4 w-4 text-gray-400" />
+                                            <HelpCircle className="h-4 w-4 text-muted-foreground" />
                                         </TooltipWrapper>
                                         <Switch
                                             id="dynamicSavingsAdjustment"
@@ -422,11 +422,12 @@ export const CompoundInterestCalculator: FC<CompoundInterestCalculatorProps> = (
                     </div>
                 </div>
             </CardContent>
-            <CardFooter className="p-6 text-sm text-gray-500 flex justify-between items-center">
+            <CardFooter className="p-6 text-sm text-muted-foreground flex justify-between items-center">
                 <p>
                     Hinweis: Dies ist ein Modell, keine Garantie. Die tatsächliche Rendite kann von der hier angegebenen Schätzung abweichen.
                 </p>
             </CardFooter>
         </Card>
+
     );
 };

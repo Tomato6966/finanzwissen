@@ -467,7 +467,7 @@ export function MontecarloSimulation({ initialData }: MonteCarloSimulationProps)
     const isWeightValid = totalWeight === 100;
 
     return (
-        <Card className="w-full max-w-6xl shadow-xl rounded-lg overflow-hidden py-0">
+        <Card className="w-full max-w-6xl shadow-xl rounded-lg overflow-hidden py-0 dark:bg-card">
             <CardHeader className="bg-primary text-primary-foreground p-6 rounded-t-lg flex flex-row items-center justify-between">
                 <div>
                     <CardTitle className="text-3xl font-bold flex items-center gap-4">
@@ -491,7 +491,7 @@ export function MontecarloSimulation({ initialData }: MonteCarloSimulationProps)
 
                     <h3 className="text-lg font-semibold mt-6">Portfolio-Zusammensetzung</h3>
                     {monteCarloForm.assets.map((asset, index) => (
-                        <div key={index} className="relative flex flex-wrap items-end gap-2 mb-4 p-2 border rounded-md bg-gray-50">
+                        <div key={index} className="relative flex flex-wrap items-end gap-2 mb-4 p-2 border rounded-md bg-gray-50 dark:bg-gray-800">
                             <div className="flex-1">
                                 <Label>Aktiensymbol / Name</Label>
                                 <Input
@@ -556,7 +556,7 @@ export function MontecarloSimulation({ initialData }: MonteCarloSimulationProps)
                 {/* Results & Chart */}
                 <div className="md:col-span-2">
                     <h3 className="text-lg font-semibold mb-2">Simulationsergebnisse</h3>
-                    <span className="text-xs text-gray-300 dark:text-gray-700 italic">(Es werden nur {MAX_DISPLAY_PATHS} Varianten angezeigt, aus performance gründen)</span>
+                    <span className="text-xs text-muted-foreground italic">(Es werden nur {MAX_DISPLAY_PATHS} Varianten angezeigt, aus performance gründen)</span>
                     <ResponsiveContainer width="100%" height={300}>
                         <LineChart>
                             <CartesianGrid strokeDasharray="3 3" />
@@ -618,7 +618,7 @@ export function MontecarloSimulation({ initialData }: MonteCarloSimulationProps)
                         <div className="mt-8">
                             <h3 className="text-lg font-semibold mb-2">Detaillierte Portfolio-Metriken nach Perzentil</h3>
                             <div className="overflow-x-auto">
-                                <table className="min-w-full bg-white rounded-lg shadow-sm">
+                                <table className="min-w-full bg-card rounded-lg shadow-sm">
                                     <thead>
                                         <tr className="bg-gray-200 text-gray-700 uppercase text-sm leading-normal">
                                             <th className="py-3 px-6 text-left">Perzentil</th>
@@ -627,7 +627,7 @@ export function MontecarloSimulation({ initialData }: MonteCarloSimulationProps)
                                             <th className="py-3 px-6 text-left">Sharpe Ratio</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="text-gray-600 text-sm font-light">
+                                    <tbody className="text-muted-foreground text-sm font-light">
                                         {Object.entries(monteCarloResults.percentileMetrics).map(([key, metrics]) => (
                                             <tr key={key} className="border-b border-gray-200 hover:bg-gray-100">
                                                 <td className="py-3 px-6 text-left font-medium">{key.toUpperCase()}</td>
@@ -639,7 +639,7 @@ export function MontecarloSimulation({ initialData }: MonteCarloSimulationProps)
                                     </tbody>
                                 </table>
                             </div>
-                            <p className="text-sm text-gray-500 mt-4">
+                            <p className="text-sm text-muted-foreground mt-4">
                                 *Hinweis: Die Volatilität des Portfolios wird hier vereinfacht als gewichteter Durchschnitt der Einzelvolatilitäten berechnet. Eine präzisere Berechnung würde die Korrelationen zwischen den Assets berücksichtigen.
                                 <br />
                                 **Sharpe Ratio basiert auf einer risikofreien Rate von {RISK_FREE_RATE}%.
@@ -648,7 +648,7 @@ export function MontecarloSimulation({ initialData }: MonteCarloSimulationProps)
                     )}
                 </div>
             </CardContent>
-            <CardFooter className="p-6 text-sm text-gray-500 flex justify-between items-center">
+            <CardFooter className="p-6 text-sm text-muted-foreground flex justify-between items-center">
                 <p>
                     Hinweis: Dies ist ein Modell, keine Garantie. Die tatsächliche Rendite kann von der hier angegebenen Schätzung abweichen.
                 </p>

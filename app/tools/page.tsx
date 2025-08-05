@@ -137,8 +137,8 @@ export default function ToolsPage() {
     <div className="space-y-12">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Tools & Ressourcen</h1>
-        <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-foreground mb-4">Tools & Ressourcen</h1>
+        <p className="text-xl text-gray-600 dark:text-muted-foreground max-w-3xl mx-auto">
           Praktische Tools, Vorlagen und Rechner für Ihre finanzielle Planung. Alle Ressourcen sind kostenlos und sofort
           einsatzbereit.
         </p>
@@ -173,23 +173,23 @@ export default function ToolsPage() {
                     className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                     unoptimized
                 />
-                <Badge className="absolute top-3 left-3 bg-white/90 text-gray-900">{template.category}</Badge>
+                <Badge className="absolute top-3 left-3 bg-white/90 text-gray-900 dark:text-card-foreground dark:bg-card">{template.category}</Badge>
                   <Badge className="absolute top-3 right-3 bg-blue-600 text-white">{template.format}</Badge>
                 </div>
 
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  <CardTitle className="text-lg text-gray-900 dark:text-card-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                     {template.title}
                   </CardTitle>
-                  <CardDescription className="text-gray-600 dark:text-gray-300">{template.description}</CardDescription>
+                  <CardDescription className="text-gray-600 dark:text-muted-foreground">{template.description}</CardDescription>
                 </CardHeader>
 
                 <CardContent className="pt-0">
                   <div className="space-y-3 mb-4">
-                    <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Features:</h4>
+                    <h4 className="font-semibold text-sm text-gray-900 dark:text-card-foreground">Features:</h4>
                     <ul className="space-y-1">
                       {template.features.map((feature, featureIndex) => (
-                        <li key={featureIndex} className="text-sm text-gray-600 dark:text-gray-300 flex items-center">
+                        <li key={featureIndex} className="text-sm text-gray-600 dark:text-muted-foreground flex items-center">
                           <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
                           {feature}
                         </li>
@@ -224,20 +224,20 @@ export default function ToolsPage() {
                       <tool.icon className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <CardTitle className="text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      <CardTitle className="text-gray-900 dark:text-card-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {tool.title}
                       </CardTitle>
-                      <CardDescription className="text-gray-600 dark:text-gray-300">{tool.description}</CardDescription>
+                      <CardDescription className="text-gray-600 dark:text-muted-foreground">{tool.description}</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
 
                 <CardContent>
                   <div className="space-y-3 mb-4">
-                    <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Features:</h4>
+                    <h4 className="font-semibold text-sm text-gray-900 dark:text-card-foreground">Features:</h4>
                     <ul className="space-y-1">
                       {tool.features.map((feature, featureIndex) => (
-                        <li key={featureIndex} className="text-sm text-gray-600 dark:text-gray-300 flex items-center">
+                        <li key={featureIndex} className="text-sm text-gray-600 dark:text-muted-foreground flex items-center">
                           <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
                           {feature}
                         </li>
@@ -260,11 +260,11 @@ export default function ToolsPage() {
             {resources.map((resource, index) => (
               <Card key={index} className="hover:shadow-lg transition-all duration-300 hover:bg-gradient-to-br hover:from-blue-500/30 hover:to-purple-500/30">
                 <CardHeader>
-                  <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
+                  <CardTitle className="text-gray-900 dark:text-card-foreground flex items-center gap-2">
                     <Shield className="w-5 h-5 text-blue-600" />
                     {resource.title}
                   </CardTitle>
-                  <CardDescription className="text-gray-600 dark:text-gray-300">{resource.description}</CardDescription>
+                  <CardDescription className="text-gray-600 dark:text-muted-foreground">{resource.description}</CardDescription>
                 </CardHeader>
 
                 <CardContent>
@@ -272,7 +272,7 @@ export default function ToolsPage() {
                     {resource.items.map((item, itemIndex) => (
                       <li
                         key={itemIndex}
-                        className="text-sm text-gray-600 dark:text-gray-300 flex items-center hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        className="text-sm text-gray-600 dark:text-muted-foreground flex items-center hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                       >
                         <ExternalLink className="w-3 h-3 mr-2" />
                         {item}
@@ -291,10 +291,10 @@ export default function ToolsPage() {
       </Tabs>
 
       {/* Popular Downloads Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
+      <div className="bg-card rounded-2xl p-8 shadow-lg">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Beliebteste Downloads</h2>
-          <p className="text-lg text-gray-600 dark:text-gray-300">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-foreground mb-4">Beliebteste Downloads</h2>
+          <p className="text-lg text-gray-600 dark:text-muted-foreground">
             Die am häufigsten heruntergeladenen Tools unserer Community
           </p>
         </div>
@@ -304,8 +304,8 @@ export default function ToolsPage() {
             <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-3">
               <FileText className="w-6 h-6 text-white" />
             </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Haushaltsplan</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Excel-Vorlage</p>
+            <h3 className="font-semibold text-gray-900 dark:text-card-foreground mb-1">Haushaltsplan</h3>
+            <p className="text-sm text-gray-600 dark:text-muted-foreground mb-3">Excel-Vorlage</p>
             <Button size="sm" className="w-full">
               <Download className="w-3 h-3 mr-1" />
               Download
@@ -316,8 +316,8 @@ export default function ToolsPage() {
             <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center mx-auto mb-3">
               <Target className="w-6 h-6 text-white" />
             </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Sparziel-Planer</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">PDF + Excel</p>
+            <h3 className="font-semibold text-gray-900 dark:text-card-foreground mb-1">Sparziel-Planer</h3>
+            <p className="text-sm text-gray-600 dark:text-muted-foreground mb-3">PDF + Excel</p>
             <Button size="sm" className="w-full">
               <Download className="w-3 h-3 mr-1" />
               Download
@@ -328,8 +328,8 @@ export default function ToolsPage() {
             <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mx-auto mb-3">
               <TrendingUp className="w-6 h-6 text-white" />
             </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Investment-Tracker</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Excel-Vorlage</p>
+            <h3 className="font-semibold text-gray-900 dark:text-card-foreground mb-1">Investment-Tracker</h3>
+            <p className="text-sm text-gray-600 dark:text-muted-foreground mb-3">Excel-Vorlage</p>
             <Button size="sm" className="w-full">
               <Download className="w-3 h-3 mr-1" />
               Download
@@ -340,8 +340,8 @@ export default function ToolsPage() {
             <div className="w-12 h-12 bg-orange-600 rounded-lg flex items-center justify-center mx-auto mb-3">
               <Shield className="w-6 h-6 text-white" />
             </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Notgroschen-Rechner</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Excel-Vorlage</p>
+            <h3 className="font-semibold text-gray-900 dark:text-card-foreground mb-1">Notgroschen-Rechner</h3>
+            <p className="text-sm text-gray-600 dark:text-muted-foreground mb-3">Excel-Vorlage</p>
             <Button size="sm" className="w-full">
               <Download className="w-3 h-3 mr-1" />
               Download

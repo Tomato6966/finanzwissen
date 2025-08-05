@@ -188,7 +188,7 @@ export const FinancialGoalsCalculator: FC<FinancialGoalsCalculatorProps> = ({
     };
 
     return (
-        <Card className="w-full max-w-6xl shadow-xl rounded-lg overflow-hidden py-0">
+        <Card className="w-full max-w-6xl shadow-xl rounded-lg overflow-hidden py-0 dark:bg-card">
             <CardHeader className="bg-primary text-primary-foreground p-6 rounded-t-lg flex flex-row items-center justify-between">
                 <div>
                     <CardTitle className="text-3xl font-bold flex items-center gap-4">
@@ -351,7 +351,7 @@ export const FinancialGoalsCalculator: FC<FinancialGoalsCalculatorProps> = ({
                                 <h5 className="font-semibold text-orange-700 flex items-center gap-2">
                                     <AlertCircle size={18} /> Unerreichbare Ziele
                                 </h5>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-sm text-muted-foreground">
                                     Mit der aktuellen Sparrate und Rendite werden die folgenden Ziele innerhalb von 50 Jahren nicht erreicht.
                                     Passen Sie Ihre Eingaben an, um die Zeit zu verkürzen.
                                 </p>
@@ -366,13 +366,13 @@ export const FinancialGoalsCalculator: FC<FinancialGoalsCalculatorProps> = ({
                         )}
 
                         {goalData.reached.length === 0 && goalData.unreachable.length === 0 && (
-                            <p className="text-gray-500">Fügen Sie Ziele hinzu, um die Ergebnisse zu sehen.</p>
+                            <p className="text-muted-foreground">Fügen Sie Ziele hinzu, um die Ergebnisse zu sehen.</p>
                         )}
                     </div>
                 </div>
             </CardContent>
 
-            <CardFooter className="p-6 text-sm text-gray-500 flex justify-between items-center">
+            <CardFooter className="p-6 text-sm text-muted-foreground flex justify-between items-center">
                 <p>
                     Hinweis: Dies ist ein Modell, keine Garantie. Die tatsächliche Rendite kann von der hier angegebenen Schätzung abweichen.
                 </p>

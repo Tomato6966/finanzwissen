@@ -380,7 +380,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
 
     return (
         <TooltipProvider>
-            <Card className="w-full max-w-6xl shadow-xl rounded-lg overflow-hidden py-0">
+            <Card className="w-full max-w-6xl shadow-xl rounded-lg overflow-hidden py-0 dark:bg-card">
                 <CardHeader className="bg-primary text-primary-foreground p-6 rounded-t-lg flex flex-row items-center justify-between">
                     <div>
                         <CardTitle className="text-3xl font-bold flex items-center">
@@ -438,7 +438,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                         <Label htmlFor="currentAge">Aktuelles Alter</Label>
                                         <ShadcnTooltip>
                                             <TooltipTrigger>
-                                                <HelpCircle className="h-4 w-4 text-gray-500" />
+                                                <HelpCircle className="h-4 w-4 text-muted-foreground" />
                                             </TooltipTrigger>
                                             <TooltipContent>
                                                 <p>Ihr derzeitiges Alter in Jahren.</p>
@@ -461,7 +461,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                         <Label htmlFor="currentCapital">Aktuelles Kapital (€)</Label>
                                         <ShadcnTooltip>
                                             <TooltipTrigger>
-                                                <HelpCircle className="h-4 w-4 text-gray-500" />
+                                                <HelpCircle className="h-4 w-4 text-muted-foreground" />
                                             </TooltipTrigger>
                                             <TooltipContent>
                                                 <p>Ihr derzeit angespartes Kapital.</p>
@@ -486,7 +486,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                         </Label>
                                         <ShadcnTooltip>
                                             <TooltipTrigger>
-                                                <HelpCircle className="h-4 w-4 text-gray-500" />
+                                                <HelpCircle className="h-4 w-4 text-muted-foreground" />
                                             </TooltipTrigger>
                                             <TooltipContent>
                                                 <p>
@@ -512,7 +512,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                         <Label htmlFor="inflation">Jährliche Inflation (%)</Label>
                                         <ShadcnTooltip>
                                             <TooltipTrigger>
-                                                <HelpCircle className="h-4 w-4 text-gray-500" />
+                                                <HelpCircle className="h-4 w-4 text-muted-foreground" />
                                             </TooltipTrigger>
                                             <TooltipContent>
                                                 <p>
@@ -542,7 +542,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                             </Label>
                                             <ShadcnTooltip>
                                                 <TooltipTrigger>
-                                                    <HelpCircle className="h-4 w-4 text-gray-500" />
+                                                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     <p>Der Betrag, den Sie regelmäßig sparen.</p>
@@ -569,7 +569,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                             </Label>
                                             <ShadcnTooltip>
                                                 <TooltipTrigger>
-                                                    <HelpCircle className="h-4 w-4 text-gray-500" />
+                                                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     <p>
@@ -609,7 +609,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                             </Label>
                                             <ShadcnTooltip>
                                                 <TooltipTrigger>
-                                                    <HelpCircle className="h-4 w-4 text-gray-500" />
+                                                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     <p>
@@ -638,7 +638,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                             </Label>
                                             <ShadcnTooltip>
                                                 <TooltipTrigger>
-                                                    <HelpCircle className="h-4 w-4 text-gray-500" />
+                                                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     <p>
@@ -668,7 +668,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                             </Label>
                                             <ShadcnTooltip>
                                                 <TooltipTrigger>
-                                                    <HelpCircle className="h-4 w-4 text-gray-500" />
+                                                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     <p>
@@ -700,7 +700,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                             </Label>
                                             <ShadcnTooltip>
                                                 <TooltipTrigger>
-                                                    <HelpCircle className="h-4 w-4 text-gray-500" />
+                                                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     <p>Ihre gewünschte monatliche Auszahlung nach Steuern.</p>
@@ -723,7 +723,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                         <Label htmlFor="taxRate">Steuersatz / Auszahlung (%)</Label>
                                         <ShadcnTooltip>
                                             <TooltipTrigger>
-                                                <HelpCircle className="h-4 w-4 text-gray-500" />
+                                                <HelpCircle className="h-4 w-4 text-muted-foreground" />
                                             </TooltipTrigger>
                                             <TooltipContent>
                                                 <p>
@@ -749,7 +749,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                             <Label>Entnahme</Label>
                                             <ShadcnTooltip>
                                                 <TooltipTrigger>
-                                                    <HelpCircle className="h-4 w-4 text-gray-500" />
+                                                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     <p>
@@ -909,7 +909,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
 
                         {/* Chart Toggles */}
                         {(isPayoutMode || isAgeMode) && (
-                            <div className="bg-white p-4 rounded-lg shadow-md space-y-4">
+                            <div className="bg-white p-4 rounded-lg shadow-md space-y-4 dark:bg-black">
                                 <h3 className="text-lg font-semibold flex items-center">
                                     <TrendingUp className="mr-2 h-5 w-5" /> Diagramm-Optionen
                                 </h3>
@@ -960,7 +960,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
 
                         {/* Chart for Payout and Age modes */}
                         {(isPayoutMode || isAgeMode) && calculationResult && (
-                            <div className="bg-white p-4 rounded-lg shadow-md">
+                            <div className="bg-white p-4 rounded-lg shadow-md dark:bg-slate-800">
                                 <ResponsiveContainer width="100%" height={400}>
                                     <AreaChart
                                         margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
