@@ -228,7 +228,7 @@ export const CompoundInterestCalculator: FC<CompoundInterestCalculatorProps> = (
     // Handle share config button click
     const handleShareConfig = () => {
         const serialized = serializeState();
-        const shareUrl = `${window.location.origin}/calculators?share=${serialized}`;
+        const shareUrl = `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ''}/calculators?share=${serialized}`;
         try {
             document.execCommand('copy'); // Fallback for older browsers
             navigator.clipboard.writeText(shareUrl).then(() => {

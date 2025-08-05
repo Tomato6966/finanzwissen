@@ -199,7 +199,7 @@ Erwartete Ausgabe:
             JSON.stringify(dataToShare)
         );
         // Construct the shareable URL
-        const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encodedData}`;
+        const shareUrl = `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ''}${window.location.pathname}?share=${encodedData}`;
 
         // Copy the share URL to clipboard
         const textArea = document.createElement('textarea');
