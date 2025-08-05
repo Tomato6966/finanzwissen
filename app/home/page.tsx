@@ -1,6 +1,8 @@
 "use client"
 
-import { ArrowRight, BookOpen, Lightbulb, PiggyBank, Target, TrendingUpDown } from "lucide-react";
+import {
+	ArrowRight, BookOpen, ExternalLink, Lightbulb, PiggyBank, Target, TrendingUpDown
+} from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { quickLinks } from "@/lib/HomePageConstants";
@@ -60,9 +62,18 @@ export default function HomePage() {
             <div>
                 <div className="text-center">
                     <h2 className="text-3xl font-bold text-gray-900 dark:text-foreground mb-4">Ratschläge der Community</h2>
-                    <p className="text-lg text-gray-600 dark:text-muted-foreground max-w-3xl mx-auto">
-                        Laden Sie unsere umfassenden Leitfäden herunter und starten Sie Ihre finanzielle Bildungsreise noch heute.
-                        Alle PDFs sind kostenlos und sofort verfügbar.
+                    <p className="text-lg text-gray-600 dark:text-muted-foreground max-w-3xl mx-auto flex flex-wrap gap-8 justify-center">
+                        <div className="text-gray-600 dark:text-muted-foreground w-full">
+                            Community-Tipps, -Tutorials, -Strategien, ...
+                        </div>
+                        <div className="text-gray-600 dark:text-muted-foreground italic w-full">
+                            Von der Community geteilte Strategien, Tipps und Erfahrungen.
+                            Lerne von der FF-Community.
+                            Erfahre von Strategien und mehr.
+                        </div>
+                        <LinkButton href="/community" variant="outline" className="text-gray-600 dark:text-muted-foreground">
+                            <ExternalLink className="w-4 h-4 mr-2" /> Community-Tipps, -Tutorials, -Strategien, ...
+                        </LinkButton>
                     </p>
                 </div>
             </div>

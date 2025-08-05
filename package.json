@@ -2,11 +2,13 @@
   "name": "finanzielle_bildung",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
+    "dev": "npm run generate-doc-names && next dev --turbopack",
+    "build": "npm run generate-doc-names && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "generate-doc-names": "node scripts/generate_doc_names.js"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.14",
@@ -36,7 +38,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^20.19.9",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

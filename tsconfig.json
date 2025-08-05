@@ -24,6 +24,6 @@
       "@/Calculators/*": ["./components/Calculators/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "scripts/generate_doc_names.js"],
   "exclude": ["node_modules"]
 }
