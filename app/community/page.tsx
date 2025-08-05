@@ -62,7 +62,7 @@ const CommunityContent = () => {
   }, [slug, getFileById]);
 
   const handleShare = () => {
-    const url = `${window.location.origin}/community?slug=${slug}`;
+    const url = `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ""}/community?slug=${slug}`;
     if (navigator.share) {
       navigator.share({
         title: parseMarkdown(modalContent?.content || ''),
