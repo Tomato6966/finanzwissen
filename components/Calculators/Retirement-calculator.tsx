@@ -168,20 +168,32 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
         }
 
         const retirementCapital = accumulatedCapital;
+        const retirementCapitalReal = accumulatedCapital / cumulativeInflationFactor;
 
         // Calculation for the "max monthly payout" mode
         if (calculationType === "calculate_monthly_payout") {
+            // Calculate real (inflation-adjusted) return rate
+            // Formula: real_rate = (1 + nominal_rate) / (1 + inflation_rate) - 1
+            // This gives us the actual purchasing power growth rate
+            const realRateOfReturn = (1 + rateOfReturn) / (1 + inflationRate) - 1;
+
             // Payout phase
             if (annuityType === "endless") {
-                const monthlyPayoutBrutto = (retirementCapital * rateOfReturn) / 12;
-                const monthlyPayoutNetto = monthlyPayoutBrutto * taxFactor;
+                // Calculate payout using real return rate (inflation-adjusted) and real capital
+                const monthlyPayoutBruttoReal = (retirementCapitalReal * realRateOfReturn) / 12;
+                const monthlyPayoutNettoReal = monthlyPayoutBruttoReal * taxFactor;
+
+                // Calculate nominal payout for comparison (using nominal return rate and nominal capital)
+                const monthlyPayoutBruttoNominal = (retirementCapital * rateOfReturn) / 12;
+                const monthlyPayoutNettoNominal = monthlyPayoutBruttoNominal * taxFactor;
 
                 let currentPayoutCapital = retirementCapital;
                 let currentInflationFactor = cumulativeInflationFactor;
                 for (let year = desiredRetirementAge; year <= lifeExpectancy; year++) {
                     const yearIndex = year - desiredRetirementAge;
                     if (yearIndex > 0) {
-                        currentPayoutCapital = currentPayoutCapital * (1 + rateOfReturn) - monthlyPayoutBrutto * 12;
+                        // Use real return rate for capital growth in payout phase
+                        currentPayoutCapital = currentPayoutCapital * (1 + realRateOfReturn) - monthlyPayoutBruttoReal * 12;
                         currentInflationFactor = currentInflationFactor * (1 + inflationRate);
                     }
                     payoutPhaseData.push({
@@ -194,8 +206,11 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
 
                 return {
                     retirementCapital,
-                    monthlyPayoutBrutto,
-                    monthlyPayoutNetto,
+                    retirementCapitalReal,
+                    monthlyPayoutBrutto: monthlyPayoutBruttoReal, // Use real payout as primary
+                    monthlyPayoutNetto: monthlyPayoutNettoReal, // Use real payout as primary
+                    monthlyPayoutBruttoNominal, // Add nominal payout for comparison
+                    monthlyPayoutNettoNominal, // Add nominal payout for comparison
                     savingsPhaseData,
                     payoutPhaseData,
                     type: "payout",
@@ -203,12 +218,20 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
             } else {
                 const yearsInRetirement = lifeExpectancy - desiredRetirementAge;
                 const totalMonths = yearsInRetirement * 12;
-                const monthlyRate = Math.pow(1 + rateOfReturn, 1 / 12) - 1;
+                const monthlyRealRate = Math.pow(1 + realRateOfReturn, 1 / 12) - 1;
+                const monthlyNominalRate = Math.pow(1 + rateOfReturn, 1 / 12) - 1;
 
-                const monthlyPayoutBrutto =
-                    (retirementCapital * monthlyRate) /
-                    (1 - Math.pow(1 + monthlyRate, -totalMonths));
-                const monthlyPayoutNetto = monthlyPayoutBrutto * taxFactor;
+                // Calculate payout using real return rate (inflation-adjusted) and real capital
+                const monthlyPayoutBruttoReal =
+                    (retirementCapitalReal * monthlyRealRate) /
+                    (1 - Math.pow(1 + monthlyRealRate, -totalMonths));
+                const monthlyPayoutNettoReal = monthlyPayoutBruttoReal * taxFactor;
+
+                // Calculate nominal payout for comparison
+                const monthlyPayoutBruttoNominal =
+                    (retirementCapital * monthlyNominalRate) /
+                    (1 - Math.pow(1 + monthlyNominalRate, -totalMonths));
+                const monthlyPayoutNettoNominal = monthlyPayoutBruttoNominal * taxFactor;
 
                 let currentPayoutCapital = retirementCapital;
                 let currentInflationFactor = cumulativeInflationFactor;
@@ -219,9 +242,10 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                 ) {
                     const yearIndex = year - desiredRetirementAge;
                     if (yearIndex > 0) {
+                        // Use real return rate for capital growth in payout phase
                         currentPayoutCapital =
-                            currentPayoutCapital * Math.pow(1 + rateOfReturn, 1) -
-                            monthlyPayoutBrutto * 12;
+                            currentPayoutCapital * Math.pow(1 + realRateOfReturn, 1) -
+                            monthlyPayoutBruttoReal * 12;
                         currentInflationFactor = currentInflationFactor * (1 + inflationRate);
                     }
                     payoutPhaseData.push({
@@ -234,8 +258,11 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
 
                 return {
                     retirementCapital,
-                    monthlyPayoutBrutto,
-                    monthlyPayoutNetto,
+                    retirementCapitalReal,
+                    monthlyPayoutBrutto: monthlyPayoutBruttoReal, // Use real payout as primary
+                    monthlyPayoutNetto: monthlyPayoutNettoReal, // Use real payout as primary
+                    monthlyPayoutBruttoNominal, // Add nominal payout for comparison
+                    monthlyPayoutNettoNominal, // Add nominal payout for comparison
                     savingsPhaseData,
                     payoutPhaseData,
                     type: "payout",
@@ -245,19 +272,23 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
 
         // Calculation for the "calculate retirement age" mode
         if (calculationType === "calculate_retirement_age") {
+            // Calculate real (inflation-adjusted) return rate for required capital calculation
+            const realRateOfReturn = (1 + rateOfReturn) / (1 + inflationRate) - 1;
+
             const annualNetPayout = desiredNetPayout * 12;
             const annualGrossPayout = annualNetPayout / taxFactor;
             let requiredCapital = 0;
 
             if (annuityType === "endless") {
-                requiredCapital = annualGrossPayout / rateOfReturn;
+                // Use real return rate for required capital calculation
+                requiredCapital = annualGrossPayout / realRateOfReturn;
             } else {
                 const yearsToConsume = lifeExpectancy - desiredRetirementAge;
-                const monthlyRate = Math.pow(1 + rateOfReturn, 1 / 12) - 1;
+                const monthlyRealRate = Math.pow(1 + realRateOfReturn, 1 / 12) - 1;
                 const totalMonths = yearsToConsume * 12;
                 requiredCapital =
                     (annualGrossPayout / 12) *
-                    ((1 - Math.pow(1 + monthlyRate, -totalMonths)) / monthlyRate);
+                    ((1 - Math.pow(1 + monthlyRealRate, -totalMonths)) / monthlyRealRate);
             }
 
             let retirementAge = currentAge;
@@ -278,6 +309,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                     currentAnnualSavingsSim = currentAnnualSavingsSim * (1 + savingsIncreaseRate / 100);
                 }
 
+                // Use nominal return rate for capital growth during savings phase (as before)
                 currentCapitalSim =
                     currentCapitalSim * (1 + rateOfReturn) + currentAnnualSavingsSim;
                 cumulativeContributionsSim += currentAnnualSavingsSim; // Add to contributions for simulation
@@ -291,9 +323,16 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                 retirementAge++;
             }
 
+            // Calculate the real capital at the actual retirement age
+            const actualRetirementAge = retirementAge - 1;
+            const yearsToRetirement = actualRetirementAge - currentAge;
+            const inflationFactorAtRetirement = Math.pow(1 + inflationRate, yearsToRetirement);
+            const retirementCapitalRealAtAge = currentCapitalSim / inflationFactorAtRetirement;
+
             return {
                 requiredCapital,
-                retirementAge: retirementAge - 1,
+                retirementAge: actualRetirementAge,
+                retirementCapitalReal: retirementCapitalRealAtAge,
                 savingsPhaseData: savingsPhaseDataSim,
                 type: "age",
             };
@@ -301,22 +340,27 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
 
         // Calculation for the "calculate savings rate" mode
         if (calculationType === "calculate_savings_rate") {
+            // Calculate real (inflation-adjusted) return rate for required capital calculation
+            const realRateOfReturn = (1 + rateOfReturn) / (1 + inflationRate) - 1;
+
             const yearsToRetirement = desiredRetirementAge - currentAge;
             const totalMonths = yearsToRetirement * 12;
-            const monthlyRate = Math.pow(1 + rateOfReturn, 1 / 12) - 1;
+            const monthlyRate = Math.pow(1 + rateOfReturn, 1 / 12) - 1; // Keep nominal for savings phase
 
             const annualNetPayout = desiredNetPayout * 12;
             const annualGrossPayout = annualNetPayout / taxFactor;
             let requiredCapital = 0;
 
             if (annuityType === "endless") {
-                requiredCapital = annualGrossPayout / rateOfReturn;
+                // Use real return rate for required capital calculation
+                requiredCapital = annualGrossPayout / realRateOfReturn;
             } else {
                 const yearsInRetirement = lifeExpectancy - desiredRetirementAge;
                 const retirementTotalMonths = yearsInRetirement * 12;
+                const monthlyRealRate = Math.pow(1 + realRateOfReturn, 1 / 12) - 1;
                 requiredCapital =
                     (annualGrossPayout / 12) *
-                    ((1 - Math.pow(1 + monthlyRate, -retirementTotalMonths)) / monthlyRate);
+                    ((1 - Math.pow(1 + monthlyRealRate, -retirementTotalMonths)) / monthlyRealRate);
             }
 
             const futureValueFactor = (Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate;
@@ -326,9 +370,14 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
             const requiredFutureSavings = requiredCapital - futureValueFromCurrentCapital;
             const requiredMonthlySavingsRate = requiredFutureSavings / futureValueFactor;
 
+            // Calculate the real capital at the desired retirement age
+            const inflationFactorAtRetirement = Math.pow(1 + inflationRate, yearsToRetirement);
+            const retirementCapitalRealAtAge = (currentCapital + requiredFutureSavings) / inflationFactorAtRetirement;
+
             return {
                 futureCapital: requiredFutureSavings,
                 requiredMonthlySavingsRate: requiredMonthlySavingsRate > 0 ? requiredMonthlySavingsRate : 0,
+                retirementCapitalReal: retirementCapitalRealAtAge,
                 type: "savings",
             };
         }
@@ -837,8 +886,20 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                             </CardHeader>
                                             <CardContent>
                                                 <div className="text-4xl font-bold text-purple-800 dark:text-purple-200">
-                                                    {formatCurrency(calculationResult.retirementCapital!)}
+                                                    {formatCurrency(calculationResult.retirementCapitalReal!)}
                                                 </div>
+                                                <p className="text-sm text-purple-600 dark:text-purple-400 mt-1">
+                                                    Real (inflationsbereinigt)
+                                                </p>
+                                                {/* Show real capital if inflation > 0 */}
+                                                {calculationResult.retirementCapitalReal && formData.inflation > 0 && (
+                                                    <div className="mt-2 p-2 bg-purple-50 dark:bg-purple-800/30 rounded">
+                                                        <p className="text-xs text-purple-600 dark:text-purple-400">
+                                                            <strong>Nominal (ohne Inflation):</strong><br />
+                                                            {formatCurrency(calculationResult.retirementCapital!)}
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </CardContent>
                                         </Card>
                                         <Card className="bg-orange-100 dark:bg-orange-900 border-orange-300 dark:border-orange-700">
@@ -855,8 +916,19 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                                     {formatCurrency(calculationResult.monthlyPayoutNetto!)}
                                                 </div>
                                                 <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">
-                                                    ({formatCurrency(calculationResult.monthlyPayoutBrutto!)} brutto)
+                                                    ({formatCurrency(calculationResult.monthlyPayoutBrutto!)} brutto - inflationsbereinigt)
                                                 </p>
+                                                {/* Show nominal payout for comparison */}
+                                                {calculationResult.monthlyPayoutNettoNominal && (
+                                                    <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-800/30 rounded">
+                                                        <p className="text-xs text-orange-600 dark:text-orange-400">
+                                                            <strong>Zum Vergleich (ohne Inflation):</strong><br />
+                                                            {formatCurrency(calculationResult.monthlyPayoutNettoNominal)} netto
+                                                            <br />
+                                                            ({formatCurrency(calculationResult.monthlyPayoutBruttoNominal)} brutto)
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </CardContent>
                                         </Card>
                                     </>
