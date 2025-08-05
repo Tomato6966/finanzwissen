@@ -1,11 +1,15 @@
+"use client"
+
 import {
 	Calculator, Calendar, Clock, Coins, Euro, HelpCircle, TrendingUp, Wallet
 } from "lucide-react";
-import React, { useMemo, useState } from "react";
+import LZString from "lz-string";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
 	Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis
 } from "recharts";
 
+import { Button } from "@/components/ui/button";
 import {
 	Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle
 } from "@/components/ui/card";
@@ -23,42 +27,9 @@ import {
 
 import { formatCurrency, formatCurrencyPrecise } from "./tools";
 
-// Types for the component state
-type CalculationType =
-    | "calculate_monthly_payout"
-    | "calculate_retirement_age"
-    | "calculate_savings_rate";
-
-type AnnuityType = "capital_consumption" | "endless";
-
-interface FormData {
-    currentAge: number;
-    currentCapital: number;
-    yield: number;
-    inflation: number;
-    savingsRate: number;
-    savingsInterval:
-    | "daily"
-    | "weekly"
-    | "bi_weekly"
-    | "monthly"
-    | "quarterly"
-    | "yearly";
-    desiredRetirementAge: number;
-    desiredNetPayout: number;
-    taxRate: number;
-    annuityType: AnnuityType;
-    lifeExpectancy: number;
-    // New fields for dynamic savings adjustment
-    dynamicSavingsAdjustment: boolean;
-    savingsIncreaseRate: number;
-    // New fields for chart visibility toggles
-    showNominalCapital: boolean;
-    showContributions: boolean;
-}
-
+import type { AnnuityType, CalculationType, FormData, RetirementCalculatorProps } from "../../lib/calculator-types";
 // Main component
-export function RetirementCalculator() {
+export function RetirementCalculator({ initialData }: RetirementCalculatorProps) {
     const [calculationType, setCalculationType] =
         useState<CalculationType>("calculate_monthly_payout");
     const [formData, setFormData] = useState<FormData>({
@@ -78,6 +49,44 @@ export function RetirementCalculator() {
         showNominalCapital: true, // Default to true
         showContributions: true, // Default to true
     });
+    const [shareMessage, setShareMessage] = useState<string | null>(null); // State for share message
+
+
+    const serializeState = useCallback(() => {
+        const state = {
+            type: 'retirement',
+            data: {
+                calculationType,
+                formData,
+            }
+        };
+        const jsonString = JSON.stringify(state);
+        return LZString.compressToEncodedURIComponent(jsonString);
+    }, [calculationType, formData]);
+
+    // Effect to read initial state from props on component mount
+    useEffect(() => {
+        if (initialData) {
+            setCalculationType(initialData.calculationType || "calculate_monthly_payout");
+            setFormData(initialData.formData || {
+                currentAge: 30,
+                currentCapital: 25000,
+                yield: 7,
+                inflation: 2.5,
+                savingsRate: 500,
+                savingsInterval: "monthly",
+                desiredRetirementAge: 67,
+                desiredNetPayout: 1500,
+                taxRate: 25,
+                annuityType: "capital_consumption",
+                lifeExpectancy: 90,
+                dynamicSavingsAdjustment: false,
+                savingsIncreaseRate: 2,
+                showNominalCapital: true,
+                showContributions: true,
+            });
+        }
+    }, [initialData]);
 
     // Calculate annual savings based on interval
     const getAnnualSavings = (
@@ -327,14 +336,40 @@ export function RetirementCalculator() {
         return null;
     }, [formData, calculationType]);
 
-    // Handle form field changes
-    const handleInputChange = (field: keyof FormData, value: string | number | boolean) => {
+    const memoizedHandleInputChange = useCallback((field: keyof FormData, value: string | number | boolean) => {
         setFormData((prev) => ({
             ...prev,
-            // Ensure numeric inputs are parsed to float, except for savingsInterval which is a string
             [field]: typeof value === "string" && field !== "savingsInterval" ? parseFloat(value) : value,
         }));
+    }, []);
+
+    // Handle share config button click
+    const handleShareConfig = () => {
+        const serialized = serializeState();
+        const shareUrl = `${window.location.origin}/calculators?share=${serialized}`;
+        try {
+            document.execCommand('copy'); // Fallback for older browsers
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                setShareMessage("Link kopiert!");
+                setTimeout(() => setShareMessage(null), 3000);
+            }).catch(() => {
+                // Fallback if writeText fails (e.g., not in secure context or permissions)
+                const textarea = document.createElement('textarea');
+                textarea.value = shareUrl;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                setShareMessage("Link kopiert! (Fallback)");
+                setTimeout(() => setShareMessage(null), 3000);
+            });
+        } catch (err) {
+            console.error('Failed to copy text: ', err);
+            setShareMessage("Kopieren fehlgeschlagen!");
+            setTimeout(() => setShareMessage(null), 3000);
+        }
     };
+
 
     const isPayoutMode = calculationType === "calculate_monthly_payout";
     const isAgeMode = calculationType === "calculate_retirement_age";
@@ -346,14 +381,19 @@ export function RetirementCalculator() {
     return (
         <TooltipProvider>
             <Card className="w-full max-w-6xl shadow-xl rounded-lg overflow-hidden py-0">
-                <CardHeader className="bg-primary text-primary-foreground p-6 rounded-t-lg">
-                    <CardTitle className="text-3xl font-bold flex items-center">
-                        <Calculator className="mr-3 h-8 w-8" /> Vorsorgerechner
-                    </CardTitle>
-                    <CardDescription className="text-primary-foreground opacity-90 text-sm">
-                        Planen Sie Ihre Anspar- und Entnahmephase. Finden Sie Ihr optimales
-                        Rentenalter oder die nötige Sparrate.
-                    </CardDescription>
+                <CardHeader className="bg-primary text-primary-foreground p-6 rounded-t-lg flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle className="text-3xl font-bold flex items-center">
+                            <Calculator className="mr-3 h-8 w-8" /> Vorsorgerechner
+                        </CardTitle>
+                        <CardDescription className="text-primary-foreground opacity-90 text-sm mt-2">
+                            Planen Sie Ihre Anspar- und Entnahmephase. Finden Sie Ihr optimales
+                            Rentenalter oder die nötige Sparrate.
+                        </CardDescription>
+                    </div>
+                    <Button onClick={handleShareConfig} className="ml-4" variant="secondary">
+                        {shareMessage || "Share Config"}
+                    </Button>
                 </CardHeader>
                 <CardContent className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Input Panel */}
@@ -410,7 +450,7 @@ export function RetirementCalculator() {
                                         type="number"
                                         value={String(formData.currentAge)}
                                         onChange={(e) =>
-                                            handleInputChange("currentAge", e.target.value)
+                                            memoizedHandleInputChange("currentAge", e.target.value)
                                         }
                                     />
                                 </div>
@@ -433,7 +473,7 @@ export function RetirementCalculator() {
                                         type="number"
                                         value={String(formData.currentCapital)}
                                         onChange={(e) =>
-                                            handleInputChange("currentCapital", e.target.value)
+                                            memoizedHandleInputChange("currentCapital", e.target.value)
                                         }
                                     />
                                 </div>
@@ -461,7 +501,7 @@ export function RetirementCalculator() {
                                         type="number"
                                         value={String(formData.yield)}
                                         onChange={(e) =>
-                                            handleInputChange("yield", e.target.value)
+                                            memoizedHandleInputChange("yield", e.target.value)
                                         }
                                     />
                                 </div>
@@ -485,9 +525,10 @@ export function RetirementCalculator() {
                                     <Input
                                         id="inflation"
                                         type="number"
+                                        step={0.1}
                                         value={String(formData.inflation)}
                                         onChange={(e) =>
-                                            handleInputChange("inflation", e.target.value)
+                                            memoizedHandleInputChange("inflation", e.target.value)
                                         }
                                     />
                                 </div>
@@ -513,7 +554,7 @@ export function RetirementCalculator() {
                                             type="number"
                                             value={String(formData.savingsRate)}
                                             onChange={(e) =>
-                                                handleInputChange("savingsRate", e.target.value)
+                                                memoizedHandleInputChange("savingsRate", e.target.value)
                                             }
                                         />
                                     </div>
@@ -529,34 +570,34 @@ export function RetirementCalculator() {
                                             <ShadcnTooltip>
                                                 <TooltipTrigger>
                                                     <HelpCircle className="h-4 w-4 text-gray-500" />
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>
-                                                    Die Häufigkeit, mit der die Sparrate eingezahlt
-                                                    wird.
-                                                </p>
-                                            </TooltipContent>
-                                        </ShadcnTooltip>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>
+                                                        Die Häufigkeit, mit der die Sparrate eingezahlt
+                                                        wird.
+                                                    </p>
+                                                </TooltipContent>
+                                            </ShadcnTooltip>
+                                        </div>
+                                        <Select
+                                            value={formData.savingsInterval}
+                                            onValueChange={(value: FormData["savingsInterval"]) =>
+                                                setFormData((prev) => ({
+                                                    ...prev,
+                                                    savingsInterval: value,
+                                                }))
+                                            }
+                                        >
+                                            <SelectTrigger id="savingsInterval">
+                                                <SelectValue placeholder="Intervall wählen" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="monthly">monatlich</SelectItem>
+                                                <SelectItem value="quarterly">quartalsweise</SelectItem>
+                                                <SelectItem value="yearly">jährlich</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
-                                    <Select
-                                        value={formData.savingsInterval}
-                                        onValueChange={(value: FormData["savingsInterval"]) =>
-                                            setFormData((prev) => ({
-                                                ...prev,
-                                                savingsInterval: value,
-                                            }))
-                                        }
-                                    >
-                                        <SelectTrigger id="savingsInterval">
-                                            <SelectValue placeholder="Intervall wählen" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="monthly">monatlich</SelectItem>
-                                            <SelectItem value="quarterly">quartalsweise</SelectItem>
-                                            <SelectItem value="yearly">jährlich</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
                                 )}
 
                                 {/* Dynamic Savings Adjustment Switch */}
@@ -582,7 +623,7 @@ export function RetirementCalculator() {
                                             id="dynamicSavingsAdjustment"
                                             checked={formData.dynamicSavingsAdjustment}
                                             onCheckedChange={(checked) =>
-                                                handleInputChange("dynamicSavingsAdjustment", checked)
+                                                memoizedHandleInputChange("dynamicSavingsAdjustment", checked)
                                             }
                                         />
                                     </div>
@@ -612,7 +653,7 @@ export function RetirementCalculator() {
                                             type="number"
                                             value={String(formData.savingsIncreaseRate)}
                                             onChange={(e) =>
-                                                handleInputChange("savingsIncreaseRate", e.target.value)
+                                                memoizedHandleInputChange("savingsIncreaseRate", e.target.value)
                                             }
                                         />
                                     </div>
@@ -641,7 +682,7 @@ export function RetirementCalculator() {
                                             type="number"
                                             value={String(formData.desiredRetirementAge)}
                                             onChange={(e) =>
-                                                handleInputChange(
+                                                memoizedHandleInputChange(
                                                     "desiredRetirementAge",
                                                     e.target.value
                                                 )
@@ -671,7 +712,7 @@ export function RetirementCalculator() {
                                             type="number"
                                             value={String(formData.desiredNetPayout)}
                                             onChange={(e) =>
-                                                handleInputChange("desiredNetPayout", e.target.value)
+                                                memoizedHandleInputChange("desiredNetPayout", e.target.value)
                                             }
                                         />
                                     </div>
@@ -696,7 +737,7 @@ export function RetirementCalculator() {
                                         type="number"
                                         value={String(formData.taxRate)}
                                         onChange={(e) =>
-                                            handleInputChange("taxRate", e.target.value)
+                                            memoizedHandleInputChange("taxRate", e.target.value)
                                         }
                                     />
                                 </div>
@@ -770,12 +811,7 @@ export function RetirementCalculator() {
                                                 id="lifeExpectancy"
                                                 type="number"
                                                 value={String(formData.lifeExpectancy)}
-                                                onChange={(e) =>
-                                                    handleInputChange(
-                                                        "lifeExpectancy",
-                                                        e.target.value
-                                                    )
-                                                }
+                                                onChange={(e) => memoizedHandleInputChange("lifeExpectancy", e.target.value)}
                                             />
                                         </div>
                                     )}
@@ -894,7 +930,7 @@ export function RetirementCalculator() {
                                             id="showNominalCapital"
                                             checked={formData.showNominalCapital}
                                             onCheckedChange={(checked) =>
-                                                handleInputChange("showNominalCapital", checked)
+                                                memoizedHandleInputChange("showNominalCapital", checked)
                                             }
                                         />
                                     </div>
@@ -914,7 +950,7 @@ export function RetirementCalculator() {
                                             id="showContributions"
                                             checked={formData.showContributions}
                                             onCheckedChange={(checked) =>
-                                                handleInputChange("showContributions", checked)
+                                                memoizedHandleInputChange("showContributions", checked)
                                             }
                                         />
                                     </div>
@@ -1104,7 +1140,7 @@ export function RetirementCalculator() {
                         )}
                     </div>
                 </CardContent>
-                <CardFooter className="p-6 text-sm text-gray-500">
+                <CardFooter className="p-6 text-sm text-gray-500 flex justify-between items-center">
                     <p>
                         Hinweis: Dies ist ein Modell, keine Garantie. Die tatsächliche Rendite kann von der hier angegebenen Schätzung abweichen.
                     </p>

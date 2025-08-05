@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export function GoalsPage() {
+export default function GoalsPage() {
     return (
         <div className="space-y-8">
             <span className="bg-red-500 text-white"> TO BE FILLED ?!? </span>

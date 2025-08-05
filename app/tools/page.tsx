@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export function ToolsPage() {
+export default function ToolsPage() {
   const templates = [
     {
       title: "Haushaltsplan Excel-Vorlage",
@@ -19,6 +19,7 @@ export function ToolsPage() {
       category: "Budgetplanung",
       format: "Excel (.xlsx)",
       image: "/placeholder.svg?height=200&width=300",
+      // `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/excel/haushaltsplan.png`
       downloadUrl: "#",
       features: ["Automatische Berechnungen", "Kategorisierung", "Grafische Auswertung"],
     },
@@ -27,6 +28,7 @@ export function ToolsPage() {
       description: "Berechnen Sie die optimale Höhe Ihres Notgroschens basierend auf Ihren Ausgaben",
       category: "Notfallplanung",
       format: "Excel (.xlsx)",
+      // `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/excel/notgroschen.png`
       image: "/placeholder.svg?height=200&width=300",
       downloadUrl: "#",
       features: ["Personalisierte Berechnung", "Szenario-Analyse", "Sparziel-Tracking"],
@@ -36,6 +38,7 @@ export function ToolsPage() {
       description: "Strategische Planung zur optimalen Tilgung Ihrer Schulden",
       category: "Schuldenmanagement",
       format: "Excel (.xlsx)",
+      // `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/excel/schulden-tilgung.png`
       image: "/placeholder.svg?height=200&width=300",
       downloadUrl: "#",
       features: ["Schneeball-Methode", "Avalanche-Methode", "Zinseinsparungen"],
@@ -46,6 +49,7 @@ export function ToolsPage() {
       category: "Investieren",
       format: "Excel (.xlsx)",
       image: "/placeholder.svg?height=200&width=300",
+      // `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/excel/investment-tracker.png`
       downloadUrl: "#",
       features: ["Portfolio-Übersicht", "Performance-Tracking", "Diversifikations-Analyse"],
     },
@@ -55,6 +59,7 @@ export function ToolsPage() {
       category: "Zielsetzung",
       format: "PDF + Excel",
       image: "/placeholder.svg?height=200&width=300",
+      // `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/excel/finanzielle-ziele-tracker.png`
       downloadUrl: "#",
       features: ["SMART-Kriterien", "Meilenstein-Tracking", "Motivations-Tools"],
     },
@@ -63,6 +68,7 @@ export function ToolsPage() {
       description: "Detaillierte Rentenplanung mit verschiedenen Szenarien",
       category: "Altersvorsorge",
       format: "Excel (.xlsx)",
+      // `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/excel/renten-rechner.png`
       image: "/placeholder.svg?height=200&width=300",
       downloadUrl: "#",
       features: ["Mehrere Szenarien", "Inflationsberücksichtigung", "Grafische Darstellung"],

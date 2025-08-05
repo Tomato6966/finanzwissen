@@ -1,8 +1,8 @@
-/* eslint-disable */
 "use client"
 
 import { AlertCircle, Calendar, Target, Trash } from "lucide-react";
-import React, { FC, useMemo, useState } from "react";
+import LZString from "lz-string";
+import React, { FC, useCallback, useEffect, useMemo, useState } from "react";
 import {
 	Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis
 } from "recharts";
@@ -14,28 +14,29 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import { Switch } from "../../../ui/switch";
+import { Switch } from "../ui/switch";
 import { formatCurrency, formatCurrencyPrecise, handleFormChange } from "./tools";
 
-// Define the shape of a single goal
 interface Goal {
     id: number;
     title: string;
     value: number;
 }
 
-// Define the shape of the form data
 interface GoalForm {
     principal: number;
     contribution: number;
     rate: number;
 }
 
-// Define the shape of the calculated data
 interface GoalData {
     timeline: { month: number; balance: number }[];
     reached: { id: number; title: string; value: number; months: number; date: string }[];
     unreachable: Goal[];
+}
+
+interface FinancialGoalsCalculatorProps {
+    initialData: { showGoalLines: boolean, goals: Goal[], goalForm: GoalForm } | null;
 }
 
 // Main function to calculate future value and goal timelines
@@ -87,7 +88,9 @@ const calculateFutureValue = (form: GoalForm, goals: Goal[]): GoalData => {
     };
 };
 
-export const FinancialGoalsCalculator: FC = () => {
+export const FinancialGoalsCalculator: FC<FinancialGoalsCalculatorProps> = ({
+    initialData,
+}) => {
     // Initial state for form inputs
     const [goalForm, setGoalForm] = useState<GoalForm>({
         principal: 1000,
@@ -95,20 +98,72 @@ export const FinancialGoalsCalculator: FC = () => {
         rate: 5,
     });
 
-    // Initial state for the list of financial goals
     const [goals, setGoals] = useState<Goal[]>([
         { id: 1, title: 'Neues Auto', value: 20000 },
         { id: 2, title: 'Urlaubskasse', value: 5000 },
         { id: 3, title: 'Haus Anzahlung', value: 50000 },
     ]);
 
-    // State for toggling the goal lines on the chart
     const [showGoalLines, setShowGoalLines] = useState(true);
+    const [shareMessage, setShareMessage] = useState<string | null>(null);
+
+
+    const serializeState = useCallback(() => {
+        const state = {
+            type: 'goals',
+            data: {
+                goalForm,
+                goals,
+                showGoalLines,
+            }
+        };
+        const jsonString = JSON.stringify(state);
+        return LZString.compressToEncodedURIComponent(jsonString);
+    }, [goalForm, goals, showGoalLines]);
+
+    // Effect to read initial state from props
+    useEffect(() => {
+        if (initialData) {
+            setGoalForm(initialData.goalForm || { principal: 1000, contribution: 100, rate: 5 });
+            setGoals(initialData.goals || [{ id: 1, title: 'Neues Auto', value: 20000 }]);
+            setShowGoalLines(initialData.showGoalLines ?? true);
+        }
+    }, [initialData]);
 
     // Memoize the calculation for performance
     const goalData = useMemo(() => {
         return calculateFutureValue(goalForm, goals);
     }, [goalForm, goals]);
+
+    // eslint-disable-next-line
+    const memoizedHandleFormChange = useCallback(handleFormChange(setGoalForm), []);
+
+    // Handle share config button click
+    const handleShareConfig = () => {
+        const serialized = serializeState();
+                const shareUrl = `${window.location.origin}/calculators?share=${serialized}`;
+        try {
+            document.execCommand('copy'); // Fallback for older browsers
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                setShareMessage("Link kopiert!");
+                setTimeout(() => setShareMessage(null), 3000);
+            }).catch(() => {
+                // Fallback if writeText fails (e.g., not in secure context or permissions)
+                const textarea = document.createElement('textarea');
+                textarea.value = shareUrl;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                setShareMessage("Link kopiert! (Fallback)");
+                setTimeout(() => setShareMessage(null), 3000);
+            });
+        } catch (err) {
+            console.error('Failed to copy text: ', err);
+            setShareMessage("Kopieren fehlgeschlagen!");
+            setTimeout(() => setShareMessage(null), 3000);
+        }
+    };
 
     // Handler for updating individual goal properties
     const handleGoalChange = (index: number, field: keyof Omit<Goal, 'id'>, value: string) => {
@@ -134,13 +189,18 @@ export const FinancialGoalsCalculator: FC = () => {
 
     return (
         <Card className="w-full max-w-6xl shadow-xl rounded-lg overflow-hidden py-0">
-            <CardHeader className="bg-primary text-primary-foreground p-6 rounded-t-lg">
-                <CardTitle className="text-3xl font-bold flex items-center gap-4">
-                    <Target /> Sparzielrechner
-                </CardTitle>
-                <CardDescription className="text-primary-foreground opacity-90 text-sm">
-                    Verfolgen Sie mehrere Sparziele und sehen Sie, wann Sie diese erreichen.
-                </CardDescription>
+            <CardHeader className="bg-primary text-primary-foreground p-6 rounded-t-lg flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle className="text-3xl font-bold flex items-center gap-4">
+                        <Target /> Sparzielrechner
+                    </CardTitle>
+                    <CardDescription className="text-primary-foreground opacity-90 text-sm mt-2">
+                        Verfolgen Sie mehrere Sparziele und sehen Sie, wann Sie diese erreichen.
+                    </CardDescription>
+                </div>
+                <Button onClick={handleShareConfig} className="ml-4" variant="secondary">
+                    {shareMessage || "Share Config"}
+                </Button>
             </CardHeader>
             <CardContent className="grid lg:grid-cols-3 gap-8 pb-6 p-6">
                 {/* Input Controls for the Calculator */}
@@ -149,15 +209,15 @@ export const FinancialGoalsCalculator: FC = () => {
                         <h4 className="font-bold text-lg">Finanzielle Eckdaten</h4>
                         <div>
                             <Label htmlFor="principal">Startkapital (€)</Label>
-                            <Input id="principal" name="principal" type="number" value={goalForm.principal} onChange={handleFormChange(setGoalForm)} />
+                            <Input id="principal" name="principal" type="number" value={goalForm.principal} onChange={memoizedHandleFormChange} />
                         </div>
                         <div>
                             <Label htmlFor="contribution">Monatliche Sparrate (€)</Label>
-                            <Input id="contribution" name="contribution" type="number" value={goalForm.contribution} onChange={handleFormChange(setGoalForm)} />
+                            <Input id="contribution" name="contribution" type="number" value={goalForm.contribution} onChange={memoizedHandleFormChange} />
                         </div>
                         <div>
                             <Label htmlFor="rate">Erwartete Rendite p.a. (%)</Label>
-                            <Input id="rate" name="rate" type="number" value={goalForm.rate} onChange={handleFormChange(setGoalForm)} />
+                            <Input id="rate" name="rate" type="number" value={goalForm.rate} onChange={memoizedHandleFormChange} />
                         </div>
                     </div>
 
@@ -223,9 +283,7 @@ export const FinancialGoalsCalculator: FC = () => {
                                     label={{ value: 'Vermögen (€)', angle: -90, position: 'insideLeft', offset: 10 }}
                                 />
                                 <Tooltip
-                                    formatter={(value: number, name: string) => {
-                                        return formatCurrencyPrecise(value);
-                                    }}
+                                    formatter={(value: number) => formatCurrencyPrecise(value)}
                                     labelFormatter={(label: number) => `Monat ${label} (${(label / 12).toFixed(1)} Jahre)`}
                                 />
                                 <Area
@@ -246,25 +304,25 @@ export const FinancialGoalsCalculator: FC = () => {
                                             label={{ value: goal.title, position: 'insideTopLeft' }}
                                         />
                                     ))}
-                                    {showGoalLines &&
-                                        goalData.reached.map((r) => (
-                                            <ReferenceLine
-                                                key={`v-line-${r.id}`}
-                                                x={r.months}
-                                                stroke="#8884d8"
-                                                strokeWidth={1}
-                                                strokeDasharray="5 5"
-                                                ifOverflow="extendDomain"
-                                                label={{
-                                                    value: r.title,
-                                                    position: 'top',
-                                                    fill: '#dc2626',
-                                                    fontWeight: 'bold',
-                                                    fontSize: '12',
-                                                    dy: -10,
-                                                }}
-                                            />
-                                        ))}
+                                {showGoalLines &&
+                                    goalData.reached.map((r) => (
+                                        <ReferenceLine
+                                            key={`v-line-${r.id}`}
+                                            x={r.months}
+                                            stroke="#8884d8"
+                                            strokeWidth={1}
+                                            strokeDasharray="5 5"
+                                            ifOverflow="extendDomain"
+                                            label={{
+                                                value: r.title,
+                                                position: 'top',
+                                                fill: '#dc2626',
+                                                fontWeight: 'bold',
+                                                fontSize: '12',
+                                                dy: -10,
+                                            }}
+                                        />
+                                    ))}
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
@@ -313,7 +371,8 @@ export const FinancialGoalsCalculator: FC = () => {
                     </div>
                 </div>
             </CardContent>
-            <CardFooter className="p-6 text-sm text-gray-500">
+
+            <CardFooter className="p-6 text-sm text-gray-500 flex justify-between items-center">
                 <p>
                     Hinweis: Dies ist ein Modell, keine Garantie. Die tatsächliche Rendite kann von der hier angegebenen Schätzung abweichen.
                 </p>

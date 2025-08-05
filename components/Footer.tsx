@@ -1,3 +1,4 @@
+"use client";
 import Image from "next/image";
 
 export default function Footer() {
@@ -7,7 +8,7 @@ export default function Footer() {
                 <div className="flex items-center space-x-2 justify-center mb-4">
                     <Image
                         className="w-8 h-8 mt-1"
-                        src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/finanzwissen.png`}
+                        src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/images/finanzwissen.png`}
                         width={120}
                         height={120}
                         alt="logo"

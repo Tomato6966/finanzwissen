@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export function HouseHoldPage() {
+export default function HouseHoldPage() {
     return <div className="space-y-8">
         <span className="bg-red-500 text-white"> TO BE FILLED ?!? </span>
         <div className="text-center mb-12">

@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export function MindSetPage() {
+export default function MindSetPage() {
     return <div className="space-y-8">
     <div className="text-center mb-12">
         <span className="bg-red-500 text-white"> TO BE FILLED ?!? </span>

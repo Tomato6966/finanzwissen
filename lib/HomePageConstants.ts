@@ -58,7 +58,7 @@ export type QuickLink = {
     title: string;
     description: string;
     icon: ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>;
-    activePage: ActiveTabKeys;
+    activePage: `/${ActiveTabKeys}`;
     color: string;
 };
 export const quickLinks: QuickLink[] = [
@@ -66,28 +66,28 @@ export const quickLinks: QuickLink[] = [
         title: "Budgetanalyse starten",
         description: "Analysieren Sie Ihr Budget mit KI",
         icon: TrendingUp,
-        activePage: "budget-analysis",
+        activePage: "/budget-analysis",
         color: "bg-blue-500",
     },
     {
         title: "Finanzrechner nutzen",
         description: "Berechnen Sie Zinsen, Kredite & mehr",
         icon: PiggyBank,
-        activePage: "calculators",
+        activePage: "/calculators",
         color: "bg-green-500",
     },
     {
         title: "Lernmaterialien",
         description: "Erweitern Sie Ihr Finanzwissen",
         icon: BookOpen,
-        activePage: "mindset",
+        activePage: "/mindset",
         color: "bg-purple-500",
     },
     {
         title: "Tools & Vorlagen",
         description: "Praktische Hilfsmittel herunterladen",
         icon: Shield,
-        activePage: "tools",
+        activePage: "/tools",
         color: "bg-orange-500",
     },
 ]

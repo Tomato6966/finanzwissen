@@ -1,8 +1,9 @@
-/* eslint-disable */
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client"
 
 import { HelpCircle, TrendingUp } from "lucide-react";
-import React, { FC, useEffect, useState } from "react";
+import LZString from "lz-string";
+import React, { FC, useCallback, useEffect, useState } from "react";
 import {
 	Area, AreaChart, CartesianGrid, Line, ResponsiveContainer, Tooltip, XAxis, YAxis
 } from "recharts";
@@ -17,6 +18,7 @@ import {
 	Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { CompoundInterestData } from "@/lib/calculator-types";
 
 import {
 	formatCurrency, formatCurrencyPrecise, handleFormChange, handleSelectChange, TooltipWrapper
@@ -33,7 +35,6 @@ export interface CompoundDataPoint {
     contributions: number;
 }
 
-// Interface für die erweiterte Sparraten-Konfiguration
 interface AdvancedContributionPeriod {
     id: number;
     startYear: number;
@@ -41,7 +42,13 @@ interface AdvancedContributionPeriod {
     amount: number;
 }
 
-export const CompoundInterestCalculator: FC = () => {
+interface CompoundInterestCalculatorProps {
+    initialData: CompoundInterestData | null;
+}
+
+export const CompoundInterestCalculator: FC<CompoundInterestCalculatorProps> = ({
+    initialData,
+}) => {
     // State for all calculators
     const [compoundForm, setCompoundForm] = useState({ principal: 10000, rate: 7, time: 20, contribution: 500, interval: 12 });
     const [useContribution, setUseContribution] = useState<boolean>(true);
@@ -55,14 +62,58 @@ export const CompoundInterestCalculator: FC = () => {
         { id: Date.now(), startYear: 0, endYear: 20, amount: 500 }
     ]);
 
-    // New states for dynamic savings adjustment
     const [dynamicSavingsAdjustment, setDynamicSavingsAdjustment] = useState<boolean>(false);
     const [savingsIncreaseRate, setSavingsIncreaseRate] = useState<number>(2);
-
 
     const [showContributions, setShowContributions] = useState(true);
     const [showNominal, setShowNominal] = useState(true);
 
+    const [shareMessage, setShareMessage] = useState<string | null>(null); // State for share message
+
+
+    const serializeState = useCallback(() => {
+        const state = {
+            type: 'compound',
+            data: {
+                compoundForm,
+                useContribution,
+                inflationRate,
+                showRange,
+                bestCasePercentage,
+                worstCasePercentage,
+                useAdvancedContribution,
+                advancedContributionPeriods,
+                dynamicSavingsAdjustment,
+                savingsIncreaseRate,
+                showContributions,
+                showNominal,
+            }
+        };
+        const jsonString = JSON.stringify(state);
+        return LZString.compressToEncodedURIComponent(jsonString);
+    }, [
+        compoundForm, useContribution, inflationRate, showRange, bestCasePercentage,
+        worstCasePercentage, useAdvancedContribution, advancedContributionPeriods,
+        dynamicSavingsAdjustment, savingsIncreaseRate, showContributions, showNominal
+    ]);
+
+    // Effect to read initial state from props
+    useEffect(() => {
+        if (initialData) {
+            setCompoundForm(initialData.compoundForm || { principal: 10000, rate: 7, time: 20, contribution: 500, interval: 12 });
+            setUseContribution(initialData.useContribution ?? true);
+            setInflationRate(initialData.inflationRate ?? 2.5);
+            setShowRange(initialData.showRange ?? false);
+            setBestCasePercentage(initialData.bestCasePercentage ?? 2.5);
+            setWorstCasePercentage(initialData.worstCasePercentage ?? -2.5);
+            setUseAdvancedContribution(initialData.useAdvancedContribution ?? false);
+            setAdvancedContributionPeriods(initialData.advancedContributionPeriods || [{ id: Date.now(), startYear: 0, endYear: 20, amount: 500 }]);
+            setDynamicSavingsAdjustment(initialData.dynamicSavingsAdjustment ?? false);
+            setSavingsIncreaseRate(initialData.savingsIncreaseRate ?? 2);
+            setShowContributions(initialData.showContributions ?? true);
+            setShowNominal(initialData.showNominal ?? true);
+        }
+    }, [initialData]);
 
     const calculateCompoundInterest = () => {
         const { principal, rate, time } = compoundForm;
@@ -135,6 +186,7 @@ export const CompoundInterestCalculator: FC = () => {
         setCompoundData(finalData);
     };
 
+    // Effect to calculate whenever local state changes
     useEffect(() => {
         calculateCompoundInterest();
     }, [
@@ -145,12 +197,14 @@ export const CompoundInterestCalculator: FC = () => {
         worstCasePercentage,
         useAdvancedContribution,
         advancedContributionPeriods,
-        dynamicSavingsAdjustment, // Add new dependencies
-        savingsIncreaseRate,      // Add new dependencies
+        dynamicSavingsAdjustment,
+        savingsIncreaseRate,
+        showContributions,
+        showNominal,
     ]);
 
 
-    // Handler für erweiterte Sparraten
+    // Handler for advanced contribution periods
     const handleAdvancedContributionChange = (id: number, field: keyof AdvancedContributionPeriod, value: number) => {
         setAdvancedContributionPeriods(prevPeriods =>
             prevPeriods.map(period =>
@@ -168,21 +222,56 @@ export const CompoundInterestCalculator: FC = () => {
         setAdvancedContributionPeriods((prevPeriods) => prevPeriods.filter(p => p.id !== id));
     };
 
+    const memoizedHandleFormChange = useCallback(handleFormChange(setCompoundForm), []);
+    const memoizedHandleSelectChange = useCallback(handleSelectChange(setCompoundForm, 'interval'), []);
+
+    // Handle share config button click
+    const handleShareConfig = () => {
+        const serialized = serializeState();
+        const shareUrl = `${window.location.origin}/calculators?share=${serialized}`;
+        try {
+            document.execCommand('copy'); // Fallback for older browsers
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                setShareMessage("Link kopiert!");
+                setTimeout(() => setShareMessage(null), 3000);
+            }).catch(() => {
+                // Fallback if writeText fails (e.g., not in secure context or permissions)
+                const textarea = document.createElement('textarea');
+                textarea.value = shareUrl;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                setShareMessage("Link kopiert! (Fallback)");
+                setTimeout(() => setShareMessage(null), 3000);
+            });
+        } catch (err) {
+            console.error('Failed to copy text: ', err);
+            setShareMessage("Kopieren fehlgeschlagen!");
+            setTimeout(() => setShareMessage(null), 3000);
+        }
+    };
+
     return (
         <Card className="w-full max-w-6xl shadow-xl rounded-lg overflow-hidden py-0">
-            <CardHeader className="bg-primary text-primary-foreground p-6 rounded-t-lg">
-                <CardTitle className="text-3xl font-bold flex items-center gap-4">
-                    <TrendingUp /> Zinseszinsrechner
-                </CardTitle>
-                <CardDescription className="text-primary-foreground opacity-90 text-sm">
-                    Visualisieren Sie das Wachstum Ihres Vermögens nominal und real (inflationsbereinigt).
-                </CardDescription>
+            <CardHeader className="bg-primary text-primary-foreground p-6 rounded-t-lg flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle className="text-3xl font-bold flex items-center gap-4">
+                        <TrendingUp /> Zinseszinsrechner
+                    </CardTitle>
+                    <CardDescription className="text-primary-foreground opacity-90 text-sm mt-2">
+                        Visualisieren Sie das Wachstum Ihres Vermögens nominal und real (inflationsbereinigt).
+                    </CardDescription>
+                </div>
+                <Button onClick={handleShareConfig} className="ml-4" variant="secondary">
+                    {shareMessage || "Share Config"}
+                </Button>
             </CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-8 pb-6">
                 <div className="md:col-span-1 space-y-4">
                     <div>
                         <Label htmlFor="principal">Anfangskapital (€)</Label>
-                        <Input id="principal" name="principal" type="number" value={compoundForm.principal} onChange={handleFormChange(setCompoundForm)} />
+                        <Input id="principal" name="principal" type="number" value={compoundForm.principal} onChange={memoizedHandleFormChange} />
                     </div>
                     <div className="flex items-center justify-between">
                         <Label htmlFor="useContribution">Sparrate hinzufügen?</Label>
@@ -202,11 +291,11 @@ export const CompoundInterestCalculator: FC = () => {
                                 <>
                                     <div>
                                         <Label htmlFor="contribution">Monatliche Sparrate (€)</Label>
-                                        <Input id="contribution" name="contribution" type="number" value={compoundForm.contribution} onChange={handleFormChange(setCompoundForm)} />
+                                        <Input id="contribution" name="contribution" type="number" value={compoundForm.contribution} onChange={memoizedHandleFormChange} />
                                     </div>
                                     <div>
                                         <Label htmlFor="interval">Intervall</Label>
-                                        <Select value={String(compoundForm.interval)} onValueChange={handleSelectChange(setCompoundForm, 'interval')}>
+                                        <Select value={String(compoundForm.interval)} onValueChange={memoizedHandleSelectChange}>
                                             <SelectTrigger><SelectValue /></SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="365">Täglich</SelectItem>
@@ -251,7 +340,7 @@ export const CompoundInterestCalculator: FC = () => {
                             ) : (
                                 <div className="space-y-4 pt-4">
                                     <h4 className="font-bold border-b pb-2">Erweiterte Sparraten-Konfiguration</h4>
-                                    {advancedContributionPeriods.map((period, index) => (
+                                    {advancedContributionPeriods.map((period) => (
                                         <div key={period.id} className="flex flex-col gap-2 p-2 border rounded-md bg-gray-50">
                                             <div className="grid grid-cols-2 gap-2">
                                                 <div>
@@ -283,7 +372,7 @@ export const CompoundInterestCalculator: FC = () => {
                                 <HelpCircle className="w-4 h-4 text-gray-400" />
                             </TooltipWrapper>
                         </Label>
-                        <Input id="rate" name="rate" type="number" step="0.1" value={compoundForm.rate} onChange={handleFormChange(setCompoundForm)} />
+                        <Input id="rate" name="rate" type="number" step="0.1" value={compoundForm.rate} onChange={memoizedHandleFormChange} />
                     </div>
                     <div>
                         <Label htmlFor="inflationRate" className="flex items-center gap-1">Jährliche Inflationsrate (%)
@@ -295,7 +384,7 @@ export const CompoundInterestCalculator: FC = () => {
                     </div>
                     <div>
                         <Label htmlFor="time">Anlagedauer (Jahre)</Label>
-                        <Input id="time" name="time" type="number" value={compoundForm.time} onChange={handleFormChange(setCompoundForm)} />
+                        <Input id="time" name="time" type="number" value={compoundForm.time} onChange={memoizedHandleFormChange} />
                     </div>
                 </div>
                 <div className="md:col-span-2">
@@ -316,22 +405,6 @@ export const CompoundInterestCalculator: FC = () => {
                             </div>
                         </div>
                     </div>
-                    {showRange && (
-                        <div className="flex gap-4 mb-4">
-                            <div className="flex-1 flex flex-wrap">
-                                <b className="text-xs">Best/Worst-Case Offset:</b>
-                                <i className="text-xs">Eine Prozentualer Offset zur angabe des nominellen Jährlichen Zinssates von <b>{compoundForm.rate} %</b></i>
-                            </div>
-                            <div className="flex-1">
-                                <Label htmlFor="worstCasePercentage">Worst-Case-Anpassung (%)</Label>
-                                <Input id="worstCasePercentage" name="worstCasePercentage" type="number" step="0.1" value={worstCasePercentage} onChange={(e) => setWorstCasePercentage(parseFloat(e.target.value) || 0)} />
-                            </div>
-                            <div className="flex-1">
-                                <Label htmlFor="bestCasePercentage">Best-Case-Anpassung (%)</Label>
-                                <Input id="bestCasePercentage" name="bestCasePercentage" type="number" step="0.1" value={bestCasePercentage} onChange={(e) => setBestCasePercentage(parseFloat(e.target.value) || 0)} />
-                            </div>
-                        </div>
-                    )}
                     <div className="flex w-full justify-center p-5">
                         <ResponsiveContainer width="100%" height={500}>
                             <AreaChart data={compoundData}>
@@ -349,7 +422,7 @@ export const CompoundInterestCalculator: FC = () => {
                     </div>
                 </div>
             </CardContent>
-            <CardFooter className="p-6 text-sm text-gray-500">
+            <CardFooter className="p-6 text-sm text-gray-500 flex justify-between items-center">
                 <p>
                     Hinweis: Dies ist ein Modell, keine Garantie. Die tatsächliche Rendite kann von der hier angegebenen Schätzung abweichen.
                 </p>

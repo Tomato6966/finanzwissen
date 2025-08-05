@@ -1,3 +1,4 @@
+"use client";
 import { Menu, Moon, Sun, TrendingUp } from "lucide-react";
 import Image from "next/image";
 import { useContext } from "react";
@@ -6,24 +7,27 @@ import { Button } from "@/components/ui//button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 import { PageContext } from "../Context/PageContext";
+import { useGetActiveTab } from "../utils/PathUtils";
 import { NavigationMenu } from "./Navigation";
+import LinkButton from "./ui/linkButton";
 
 export default function Header() {
-    const { isDarkMode, setIsDarkMode, activeTab, setActiveTab } = useContext(PageContext)
+    const [activeTab] = useGetActiveTab();
+    const { isDarkMode, setIsDarkMode } = useContext(PageContext)
 
     return <header className="bg-white dark:bg-slate-700 shadow-sm border-b dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
-                <Button className="flex justify-center items-center space-x-1 text-2xl" variant={activeTab === "home" ? "secondary" : "ghost"} onClick={() => setActiveTab("home")}>
+                <LinkButton href="/" className="flex justify-center items-center space-x-1 text-2xl" variant={!activeTab ? "secondary" : "ghost"}>
                     <Image
                         className="w-8 h-8 mt-1"
-                        src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/finanzwissen.png`}
+                        src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/images/finanzwissen.png`}
                         width={120}
                         height={120}
                         alt="logo"
                     />
                     FinanzWissen
-                </Button>
+                </LinkButton>
 
                 <div className="flex items-center space-x-4">
                     {/* Desktop Navigation */}

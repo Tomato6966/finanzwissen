@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function BudgetAnalysis() {
+export default function BudgetAnalysis() {
   const [budgetData, setBudgetData] = useState({
     income: "",
     housing: "",

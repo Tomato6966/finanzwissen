@@ -4,19 +4,16 @@ import {
 	ArrowRight, BookOpen, Download, ExternalLink, Lightbulb, Target, TrendingUp
 } from "lucide-react";
 import Image from "next/image";
-import { useContext } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { pdfResources, quickLinks } from "@/lib/HomePageConstants";
 import { Separator } from "@radix-ui/react-separator";
 
-import { PageContext } from "../../../Context/PageContext";
-import { pdfResources, quickLinks } from "../../../lib/HomePageConstants";
+import LinkButton from "../../components/ui/linkButton";
 
-export function HomePage() {
-    const { setActiveTab } = useContext(PageContext);
-
+export default function HomePage() {
     return (
         <div>
             {/* Hero Section */}
@@ -49,14 +46,14 @@ export function HomePage() {
                                 </div>
                                 <p className="text-sm text-gray-600 dark:text-gray-300 text-start mb-4 italic">{link.description}</p>
 
-                                <Button
-                                    onClick={() => setActiveTab(link.activePage)}
+                                <LinkButton
+                                    href={link.activePage}
                                     className="flex items-center text-sm font-medium"
                                     variant="default"
                                 >
                                     Mehr erfahren
                                     <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                                </Button>
+                                </LinkButton>
                             </CardContent>
                         </Card>
                     ))}
@@ -180,19 +177,19 @@ export function HomePage() {
                 <h2 className="text-3xl font-bold mb-4">Bereit für Ihre finanzielle Transformation?</h2>
                 <p className="text-xl mb-6 opacity-90">Starten Sie noch heute mit unseren kostenlosen Ressourcen und Tools</p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    <Button onClick={() => setActiveTab("tools")} size="lg" variant="secondary" className="text-lg px-8 py-3">
+                    <LinkButton href="/tools" size="lg" variant="secondary" className="text-lg px-8 py-3">
                         <BookOpen className="w-5 h-5 mr-2" />
                         Lernmaterialien & Tools erkunden
-                    </Button>
-                    <Button
+                    </LinkButton>
+                    <LinkButton
                         size="lg"
                         variant="outline"
-                        onClick={() => setActiveTab("budget-analysis")}
+                        href="/budget-analysis"
                         className="text-lg px-8 py-3 border-white text-white hover:bg-white bg-transparent"
                     >
                         <TrendingUp className="w-5 h-5 mr-2" />
                         Budget analysieren
-                    </Button>
+                    </LinkButton>
                 </div>
             </div>
         </div>

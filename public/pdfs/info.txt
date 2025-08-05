@@ -1,0 +1,1 @@
+Put *.pdfs / *.doc / *.docx files in this folder

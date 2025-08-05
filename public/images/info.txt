@@ -1,0 +1,1 @@
+Put *.png / *.jpg / *.jpeg / *.gif / *.tif / *.svg files in this folder

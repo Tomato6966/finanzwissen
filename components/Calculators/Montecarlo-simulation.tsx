@@ -1,66 +1,29 @@
+"use client"
+
 import { ArrowRightCircle, BarChart2, X } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import LZString from "lz-string";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
 	CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis
 } from "recharts";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-// Import functions and types from the new yahoofinanceService file
+import { MonteCarloData, MonteCarloForm, MonteCarloResults } from "@/lib/calculator-types";
 import {
 	Asset as YahooAsset, EQUITY_TYPES, getHistoricalData, searchAssets
 } from "@/lib/yahoofinanceService";
 
 import { formatCurrency, formatCurrencyPrecise, formatPercentage } from "./tools";
 
-interface MonteCarloPathPoint {
-    x: number;
-    y: number;
-}
-
-interface MonteCarloStats {
-    median: number;
-    p10: number;
-    p90: number;
-    worst: number;
-    best: number;
-}
-
-interface MonteCarloForm {
-    principal: number;
-    time: number; // Anlagedauer
-    monthlyContribution: number; // Monatlicher Sparplan
-    simulations: number;
-    assets: { ticker: string; name: string; weight: number; drift: number; volatility: number; }[]; // Multiple assets with weights, drift, and volatility
-}
-
-interface MonteCarloResultMetrics {
-    maxDrawdown: number;
-    avgAnnualReturn: number;
-    sharpeRatio: number;
-}
-
-interface MonteCarloResults {
-    paths: MonteCarloPathPoint[][]; // Now contains only the selected representative paths
-    percentileMetrics: {
-        p10: MonteCarloResultMetrics;
-        p25: MonteCarloResultMetrics;
-        p50: MonteCarloResultMetrics;
-        p75: MonteCarloResultMetrics;
-        p90: MonteCarloResultMetrics;
-    } | null;
-    overallStats: MonteCarloStats | null; // Keep overall stats for end values
-    totalContributions: number; // New field for total contributions
-}
-
 const RISK_FREE_RATE = 2; // Example: 2% risk-free rate for Sharpe Ratio calculation
 const MAX_DISPLAY_PATHS = 15; // Maximum number of paths to display in the chart
 
 // --- Web Worker Code (as a separate blob) ---
-// This code is a string that will be used to create a Web Worker.
-// It contains the core Monte Carlo simulation logic.
 const workerCode = `
 self.onmessage = (e) => {
     const { principal, time, monthlyContribution, simulations, portfolioDrift, portfolioVolatility, RISK_FREE_RATE, MAX_DISPLAY_PATHS } = e.data;
@@ -235,8 +198,11 @@ self.onmessage = (e) => {
 
 const workerUrl = URL.createObjectURL(new Blob([workerCode], { type: 'application/javascript' }));
 
-// --- Main App Component ---
-export function MontecarloSimulation() {
+interface MonteCarloSimulationProps {
+    initialData: MonteCarloData | null;
+}
+
+export function MontecarloSimulation({ initialData }: MonteCarloSimulationProps) {
     const [monteCarloForm, setMonteCarloForm] = useState<MonteCarloForm>({
         principal: 10000,
         time: 20,
@@ -250,9 +216,38 @@ export function MontecarloSimulation() {
     const [simulationProgress, setSimulationProgress] = useState<number>(0);
     const [searchResults, setSearchResults] = useState<YahooAsset[]>([]);
     const [searchQuery, setSearchQuery] = useState<string>('');
-    const [activeSearchIndex, setActiveSearchIndex] = useState<number | null>(null); // To track which asset input is being searched for
+    const [activeSearchIndex, setActiveSearchIndex] = useState<number | null>(null);
+    const [shareMessage, setShareMessage] = useState<string | null>(null);
 
-    const workerRef = useRef<Worker>();
+
+    const workerRef = useRef<Worker>(null);
+
+    const serializeState = useCallback(() => {
+        const cloned = structuredClone(monteCarloForm);
+        cloned.assets = cloned.assets.map(a => ({ ticker: a.ticker, name: a.name, weight: a.weight, drift: 0, volatility: 0 }))
+        const state = {
+            type: 'montecarlo',
+            data: {
+                monteCarloForm: cloned,
+            }
+        };
+        const jsonString = JSON.stringify(state);
+        return LZString.compressToEncodedURIComponent(jsonString);
+    }, [monteCarloForm]);
+
+    useEffect(() => {
+        if (initialData) {
+            setMonteCarloForm(initialData.monteCarloForm || {
+                principal: 10000,
+                time: 20,
+                monthlyContribution: 0,
+                simulations: 100,
+                assets: [{ ticker: 'SPY', name: 'SPDR S&P 500 ETF Trust', weight: 100, drift: 0, volatility: 0 }],
+            });
+            setMonteCarloResults({ paths: [], percentileMetrics: null, overallStats: null, totalContributions: 0 });
+        }
+    }, [initialData]);
+
 
     // Initialize and clean up the Web Worker
     useEffect(() => {
@@ -277,7 +272,35 @@ export function MontecarloSimulation() {
         return () => {
             workerRef.current?.terminate(); // Terminate worker on component unmount
         };
-    }, []);
+    }, []); // Empty dependency array means this runs once on mount and cleanup on unmount
+
+
+    // Handle share config button click
+    const handleShareConfig = () => {
+        const serialized = serializeState();
+        const shareUrl = `${window.location.origin}/calculators?share=${serialized}`;
+        try {
+            document.execCommand('copy'); // Fallback for older browsers
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                setShareMessage("Link kopiert!");
+                setTimeout(() => setShareMessage(null), 3000);
+            }).catch(() => {
+                // Fallback if writeText fails (e.g., not in secure context or permissions)
+                const textarea = document.createElement('textarea');
+                textarea.value = shareUrl;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                setShareMessage("Link kopiert! (Fallback)");
+                setTimeout(() => setShareMessage(null), 3000);
+            });
+        } catch (err) {
+            console.error('Failed to copy text: ', err);
+            setShareMessage("Kopieren fehlgeschlagen!");
+            setTimeout(() => setShareMessage(null), 3000);
+        }
+    };
 
 
     // Handles changes to the main form inputs
@@ -444,188 +467,192 @@ export function MontecarloSimulation() {
     const isWeightValid = totalWeight === 100;
 
     return (
-        <main className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-            <div className="container max-w-6xl">
-                <Card className="rounded-xl shadow-lg">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-800">
-                            <BarChart2 className="w-6 h-6 text-indigo-600" />
-                            Monte-Carlo-Simulation für Portfolio
-                        </CardTitle>
-                        <CardDescription className="text-gray-600">
-                            Simulieren Sie Tausende möglicher Zukünfte für Ihr Investmentportfolio, um die Wahrscheinlichkeiten besser zu verstehen.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid md:grid-cols-3 gap-8">
-                        {/* Input Form */}
-                        <div className="md:col-span-1 space-y-4">
-                            <div><Label>Anfangskapital (€)</Label><Input name="principal" type="number" value={monteCarloForm.principal} onChange={handleFormChange} /></div>
-                            <div><Label>Anlagedauer (Jahre)</Label><Input name="time" type="number" value={monteCarloForm.time} onChange={handleFormChange} /></div>
-                            <div><Label>Monatlicher Sparplan (€)</Label><Input name="monthlyContribution" type="number" value={monteCarloForm.monthlyContribution} onChange={handleFormChange} /></div>
-                            <div><Label>Anzahl Simulationen</Label><Input name="simulations" type="number" value={monteCarloForm.simulations} onChange={handleFormChange} /></div>
+        <Card className="w-full max-w-6xl shadow-xl rounded-lg overflow-hidden py-0">
+            <CardHeader className="bg-primary text-primary-foreground p-6 rounded-t-lg flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle className="text-3xl font-bold flex items-center gap-4">
+                        <BarChart2 /> Monte-Carlo-Simulation für Portfolio
+                    </CardTitle>
+                    <CardDescription className="text-primary-foreground opacity-90 text-sm mt-2">
+                        Simulieren Sie Tausende möglicher Zukünfte für Ihr Investmentportfolio, um die Wahrscheinlichkeiten besser zu verstehen.
+                    </CardDescription>
+                </div>
+                <Button onClick={handleShareConfig} className="ml-4" variant="secondary">
+                    {shareMessage || "Share Config"}
+                </Button>
+            </CardHeader>
+            <CardContent className="grid md:grid-cols-3 gap-8">
+                {/* Input Form */}
+                <div className="md:col-span-1 space-y-4">
+                    <div><Label>Anfangskapital (€)</Label><Input name="principal" type="number" value={monteCarloForm.principal} onChange={handleFormChange} /></div>
+                    <div><Label>Anlagedauer (Jahre)</Label><Input name="time" type="number" value={monteCarloForm.time} onChange={handleFormChange} /></div>
+                    <div><Label>Monatlicher Sparplan (€)</Label><Input name="monthlyContribution" type="number" value={monteCarloForm.monthlyContribution} onChange={handleFormChange} /></div>
+                    <div><Label>Anzahl Simulationen</Label><Input name="simulations" type="number" value={monteCarloForm.simulations} onChange={handleFormChange} /></div>
 
-                            <h3 className="text-lg font-semibold mt-6">Portfolio-Zusammensetzung</h3>
-                            {monteCarloForm.assets.map((asset, index) => (
-                                <div key={index} className="relative flex flex-wrap items-end gap-2 mb-4 p-2 border rounded-md bg-gray-50">
-                                    <div className="flex-1">
-                                        <Label>Aktiensymbol / Name</Label>
-                                        <Input
-                                            type="text"
-                                            value={activeSearchIndex === index ? searchQuery : asset.ticker || asset.name}
-                                            onChange={(e) => handleAssetChange(index, 'ticker', e.target.value)}
-                                            placeholder="z.B. SPY oder Apple"
-                                            onFocus={() => setActiveSearchIndex(index)}
-                                            onBlur={() => setTimeout(() => setActiveSearchIndex(null), 100)} // Delay to allow click on search results
-                                        />
-                                        {activeSearchIndex === index && searchResults.length > 0 && (
-                                            <ul className="absolute z-10 bg-white border border-gray-300 w-full rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto">
-                                                {searchResults.map((result) => (
-                                                    <li
-                                                        key={result.symbol}
-                                                        className="p-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center"
-                                                        onMouseDown={() => selectAssetFromSearch(index, result)} // Use onMouseDown to prevent blur before click
-                                                    >
-                                                        <span>{result.symbol} - {result.name}</span>
-                                                        <span className="text-xs text-gray-500">{result.quoteType}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
-                                    </div>
-                                    <div className="w-24">
-                                        <Label>Gewicht (%)</Label>
-                                        <Input
-                                            type="number"
-                                            value={asset.weight}
-                                            onChange={(e) => handleAssetChange(index, 'weight', Number(e.target.value))}
-                                        />
-                                    </div>
-                                    <Button variant="destructive" onClick={() => removeAsset(index)} className="mb-0.5 p-2 h-auto">
-                                        <X className="w-4 h-4" />
-                                    </Button>
-                                    {asset.ticker && (asset.drift !== 0 || asset.volatility !== 0) && (
-                                        <div className="top-1 right-12 text-xs text-gray-500">
-                                            Rendite: {asset.drift.toFixed(2)}% | Vol: {asset.volatility.toFixed(2)}%
-                                        </div>
-                                    )}
+                    <h3 className="text-lg font-semibold mt-6">Portfolio-Zusammensetzung</h3>
+                    {monteCarloForm.assets.map((asset, index) => (
+                        <div key={index} className="relative flex flex-wrap items-end gap-2 mb-4 p-2 border rounded-md bg-gray-50">
+                            <div className="flex-1">
+                                <Label>Aktiensymbol / Name</Label>
+                                <Input
+                                    type="text"
+                                    value={activeSearchIndex === index ? searchQuery : asset.ticker || asset.name}
+                                    onChange={(e) => handleAssetChange(index, 'ticker', e.target.value)}
+                                    placeholder="z.B. SPY oder Apple"
+                                    onFocus={() => setActiveSearchIndex(index)}
+                                    onBlur={() => setTimeout(() => setActiveSearchIndex(null), 100)} // Delay to allow click on search results
+                                />
+                                {activeSearchIndex === index && searchResults.length > 0 && (
+                                    <ul className="absolute z-10 bg-white border border-gray-300 w-full rounded-md shadow-lg mt-1 max-h-60 overflow-y-auto">
+                                        {searchResults.map((result) => (
+                                            <li
+                                                key={result.symbol}
+                                                className="p-2 hover:bg-gray-100 cursor-pointer flex justify-between items-center"
+                                                onMouseDown={() => selectAssetFromSearch(index, result)} // Use onMouseDown to prevent blur before click
+                                            >
+                                                <span>{result.symbol} - {result.name}</span>
+                                                <span className="text-xs text-gray-500">{result.quoteType}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                            <div className="w-24">
+                                <Label>Gewicht (%)</Label>
+                                <Input
+                                    type="number"
+                                    value={asset.weight}
+                                    onChange={(e) => handleAssetChange(index, 'weight', Number(e.target.value))}
+                                />
+                            </div>
+                            <Button variant="destructive" onClick={() => removeAsset(index)} className="mb-0.5 p-2 h-auto">
+                                <X className="w-4 h-4" />
+                            </Button>
+                            {asset.ticker && (asset.drift !== 0 || asset.volatility !== 0) && (
+                                <div className="top-1 right-12 text-xs text-gray-500">
+                                    Rendite: {asset.drift.toFixed(2)}% | Vol: {asset.volatility.toFixed(2)}%
                                 </div>
+                            )}
+                        </div>
+                    ))}
+                    <Button onClick={addAsset} className="w-full mt-2">Asset hinzufügen</Button>
+                    {!isWeightValid && (
+                        <p className="text-red-500 text-sm mt-2">Gesamtgewicht muss 100% betragen. Aktuell: {totalWeight}%</p>
+                    )}
+
+                    <Button onClick={fetchHistoricalData} disabled={isFetching} className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">
+                        {isFetching ? 'Lade Daten...' : <><ArrowRightCircle className="w-4 h-4 mr-2" />Historische Daten holen</>}
+                    </Button>
+
+                    <Button
+                        onClick={runMonteCarlo}
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md"
+                        disabled={isSimulating || !isWeightValid || monteCarloForm.assets.some(a => a.drift === 0 && a.volatility === 0)}
+                    >
+                        {isSimulating ? `Simuliere... (${simulationProgress}%)` : 'Simulation starten'}
+                    </Button>
+                </div>
+
+                {/* Results & Chart */}
+                <div className="md:col-span-2">
+                    <h3 className="text-lg font-semibold mb-2">Simulationsergebnisse</h3>
+                    <span className="text-xs text-gray-300 dark:text-gray-700 italic">(Es werden nur {MAX_DISPLAY_PATHS} Varianten angezeigt, aus performance gründen)</span>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <LineChart>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis width="auto" dataKey="x" type="number" domain={[0, monteCarloForm.time]} unit=" J" />
+                            <YAxis width="auto" tickFormatter={(val: number) => formatCurrency(val)} domain={['dataMin', 'dataMax']} />
+                            <Tooltip formatter={(value: number) => formatCurrencyPrecise(value)} />
+                            {/* Render only the selected paths */}
+                            {monteCarloResults.paths.map((path, i) => (
+                                <Line
+                                    key={i}
+                                    data={path}
+                                    dataKey="y"
+                                    stroke="#cad5e2"
+                                    dot={false}
+                                    strokeWidth={0.5}
+                                    isAnimationActive={false}
+                                />
                             ))}
-                            <Button onClick={addAsset} className="w-full mt-2">Asset hinzufügen</Button>
-                            {!isWeightValid && (
-                                <p className="text-red-500 text-sm mt-2">Gesamtgewicht muss 100% betragen. Aktuell: {totalWeight}%</p>
-                            )}
-
-                            <Button onClick={fetchHistoricalData} disabled={isFetching} className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">
-                                {isFetching ? 'Lade Daten...' : <><ArrowRightCircle className="w-4 h-4 mr-2" />Historische Daten holen</>}
-                            </Button>
-
-                            <Button
-                                onClick={runMonteCarlo}
-                                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md"
-                                disabled={isSimulating || !isWeightValid || monteCarloForm.assets.some(a => a.drift === 0 && a.volatility === 0)}
-                            >
-                                {isSimulating ? `Simuliere... (${simulationProgress}%)` : 'Simulation starten'}
-                            </Button>
-                        </div>
-
-                        {/* Results & Chart */}
-                        <div className="md:col-span-2">
-                            <h3 className="text-lg font-semibold mb-2">Simulationsergebnisse</h3>
-                            <span className="text-xs text-gray-300 dark:text-gray-700 italic">(Es werden nur {MAX_DISPLAY_PATHS} Varianten angezeigt, aus performance gründen)</span>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis width="auto" dataKey="x" type="number" domain={[0, monteCarloForm.time]} unit=" J" />
-                                    <YAxis width="auto" tickFormatter={(val: number) => formatCurrency(val)} domain={['dataMin', 'dataMax']} />
-                                    <Tooltip formatter={(value: number) => formatCurrencyPrecise(value)} />
-                                    {/* Render only the selected paths */}
-                                    {monteCarloResults.paths.map((path, i) => (
-                                        <Line
-                                            key={i}
-                                            data={path}
-                                            dataKey="y"
-                                            stroke="#cad5e2"
-                                            dot={false}
-                                            strokeWidth={0.5}
-                                            isAnimationActive={false}
-                                        />
-                                    ))}
-                                </LineChart>
-                            </ResponsiveContainer>
-                            {monteCarloResults.overallStats && (
-                                <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
-                                    <div className="p-3 bg-red-50 rounded-lg shadow-sm"><div className="text-sm text-red-700">Schlechtester Fall</div>
-                                        <div className="flex flex-wrap font-bold text-lg text-red-900 justify-center">
-                                            {formatCurrency(monteCarloResults.overallStats.worst)}
-                                            <span className="text-xs opacity-50 w-full">
-                                                ({monteCarloResults.overallStats.worst < monteCarloResults.totalContributions ? "-" : "+"} {formatPercentage(monteCarloResults.overallStats.worst/monteCarloResults.totalContributions*100)})
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="p-3 bg-gray-100 rounded-lg shadow-sm"><div className="text-sm text-gray-700">Median (50%)</div>
-                                        <div className="flex flex-wrap font-bold text-lg text-gray-900 justify-center">
-                                            {formatCurrency(monteCarloResults.overallStats.median)}
-                                            <span className="text-xs opacity-50 w-full">
-                                                ({monteCarloResults.overallStats.median < monteCarloResults.totalContributions ? "-" : "+"} {formatPercentage(monteCarloResults.overallStats.median/monteCarloResults.totalContributions*100)})
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="p-3 bg-green-50 rounded-lg shadow-sm"><div className="text-sm text-green-700">Bester Fall</div>
-                                        <div className="flex flex-wrap font-bold text-lg text-green-900 justify-center">
-                                            {formatCurrency(monteCarloResults.overallStats.best)}
-                                            <span className="text-xs opacity-50 w-full">
-                                                ({monteCarloResults.overallStats.best < monteCarloResults.totalContributions ? "-" : "+"} {formatPercentage(monteCarloResults.overallStats.best/monteCarloResults.totalContributions*100)})
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="p-3 bg-orange-50 rounded-lg shadow-sm col-span-2 md:col-span-3">
-                                        <div className="text-sm text-orange-700">Wahrscheinlicher Bereich (10% - 90% Perzentil)</div>
-                                        <div className="font-bold text-lg text-orange-900">{formatCurrency(monteCarloResults.overallStats.p10)} – {formatCurrency(monteCarloResults.overallStats.p90)}</div>
-                                    </div>
-                                    {/* New: Total Contributions */}
-                                    <div className="p-3 bg-blue-50 rounded-lg shadow-sm col-span-2 md:col-span-3">
-                                        <div className="text-sm text-blue-700">Gesamte Einzahlungen</div>
-                                        <div className="font-bold text-lg text-blue-900">{formatCurrency(monteCarloResults.totalContributions)}</div>
-                                    </div>
+                        </LineChart>
+                    </ResponsiveContainer>
+                    {monteCarloResults.overallStats && (
+                        <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
+                            <div className="p-3 bg-red-50 rounded-lg shadow-sm"><div className="text-sm text-red-700">Schlechtester Fall</div>
+                                <div className="flex flex-wrap font-bold text-lg text-red-900 justify-center">
+                                    {formatCurrency(monteCarloResults.overallStats.worst)}
+                                    <span className="text-xs opacity-50 w-full">
+                                        ({monteCarloResults.overallStats.worst < monteCarloResults.totalContributions ? "-" : "+"} {formatPercentage((monteCarloResults.overallStats.worst / monteCarloResults.totalContributions - 1) * 100)})
+                                    </span>
                                 </div>
-                            )}
-
-                            {monteCarloResults.percentileMetrics && (
-                                <div className="mt-8">
-                                    <h3 className="text-lg font-semibold mb-2">Detaillierte Portfolio-Metriken nach Perzentil</h3>
-                                    <div className="overflow-x-auto">
-                                        <table className="min-w-full bg-white rounded-lg shadow-sm">
-                                            <thead>
-                                                <tr className="bg-gray-200 text-gray-700 uppercase text-sm leading-normal">
-                                                    <th className="py-3 px-6 text-left">Perzentil</th>
-                                                    <th className="py-3 px-6 text-left">Max Drawdown</th>
-                                                    <th className="py-3 px-6 text-left">Ø Jährliche Rendite</th>
-                                                    <th className="py-3 px-6 text-left">Sharpe Ratio</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="text-gray-600 text-sm font-light">
-                                                {Object.entries(monteCarloResults.percentileMetrics).map(([key, metrics]) => (
-                                                    <tr key={key} className="border-b border-gray-200 hover:bg-gray-100">
-                                                        <td className="py-3 px-6 text-left font-medium">{key.toUpperCase()}</td>
-                                                        <td className="py-3 px-6 text-left">{formatPercentage(metrics.maxDrawdown)}</td>
-                                                        <td className="py-3 px-6 text-left">{formatPercentage(metrics.avgAnnualReturn)}</td>
-                                                        <td className="py-3 px-6 text-left">{metrics.sharpeRatio.toFixed(2)}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <p className="text-sm text-gray-500 mt-4">
-                                        *Hinweis: Die Volatilität des Portfolios wird hier vereinfacht als gewichteter Durchschnitt der Einzelvolatilitäten berechnet. Eine präzisere Berechnung würde die Korrelationen zwischen den Assets berücksichtigen.
-                                        <br />
-                                        **Sharpe Ratio basiert auf einer risikofreien Rate von {RISK_FREE_RATE}%.
-                                    </p>
+                            </div>
+                            <div className="p-3 bg-gray-100 rounded-lg shadow-sm"><div className="text-sm text-gray-700">Median (50%)</div>
+                                <div className="flex flex-wrap font-bold text-lg text-gray-900 justify-center">
+                                    {formatCurrency(monteCarloResults.overallStats.median)}
+                                    <span className="text-xs opacity-50 w-full">
+                                        ({monteCarloResults.overallStats.median < monteCarloResults.totalContributions ? "-" : "+"} {formatPercentage((monteCarloResults.overallStats.median / monteCarloResults.totalContributions - 1) * 100)})
+                                    </span>
                                 </div>
-                            )}
+                            </div>
+                            <div className="p-3 bg-green-50 rounded-lg shadow-sm"><div className="text-sm text-green-700">Bester Fall</div>
+                                <div className="flex flex-wrap font-bold text-lg text-green-900 justify-center">
+                                    {formatCurrency(monteCarloResults.overallStats.best)}
+                                    <span className="text-xs opacity-50 w-full">
+                                        ({monteCarloResults.overallStats.best < monteCarloResults.totalContributions ? "-" : "+"} {formatPercentage((monteCarloResults.overallStats.best / monteCarloResults.totalContributions - 1) * 100)})
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="p-3 bg-orange-50 rounded-lg shadow-sm col-span-2 md:col-span-3">
+                                <div className="text-sm text-orange-700">Wahrscheinlicher Bereich (10% - 90% Perzentil)</div>
+                                <div className="font-bold text-lg text-orange-900">{formatCurrency(monteCarloResults.overallStats.p10)} – {formatCurrency(monteCarloResults.overallStats.p90)}</div>
+                            </div>
+                            <div className="p-3 bg-blue-50 rounded-lg shadow-sm col-span-2 md:col-span-3">
+                                <div className="text-sm text-blue-700">Gesamte Einzahlungen</div>
+                                <div className="font-bold text-lg text-blue-900">{formatCurrency(monteCarloResults.totalContributions)}</div>
+                            </div>
                         </div>
-                    </CardContent>
-                </Card>
-            </div>
-        </main>
+                    )}
+
+                    {monteCarloResults.percentileMetrics && (
+                        <div className="mt-8">
+                            <h3 className="text-lg font-semibold mb-2">Detaillierte Portfolio-Metriken nach Perzentil</h3>
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full bg-white rounded-lg shadow-sm">
+                                    <thead>
+                                        <tr className="bg-gray-200 text-gray-700 uppercase text-sm leading-normal">
+                                            <th className="py-3 px-6 text-left">Perzentil</th>
+                                            <th className="py-3 px-6 text-left">Max Drawdown</th>
+                                            <th className="py-3 px-6 text-left">Ø Jährliche Rendite</th>
+                                            <th className="py-3 px-6 text-left">Sharpe Ratio</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="text-gray-600 text-sm font-light">
+                                        {Object.entries(monteCarloResults.percentileMetrics).map(([key, metrics]) => (
+                                            <tr key={key} className="border-b border-gray-200 hover:bg-gray-100">
+                                                <td className="py-3 px-6 text-left font-medium">{key.toUpperCase()}</td>
+                                                <td className="py-3 px-6 text-left">{formatPercentage(metrics.maxDrawdown)}</td>
+                                                <td className="py-3 px-6 text-left">{formatPercentage(metrics.avgAnnualReturn)}</td>
+                                                <td className="py-3 px-6 text-left">{metrics.sharpeRatio.toFixed(2)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <p className="text-sm text-gray-500 mt-4">
+                                *Hinweis: Die Volatilität des Portfolios wird hier vereinfacht als gewichteter Durchschnitt der Einzelvolatilitäten berechnet. Eine präzisere Berechnung würde die Korrelationen zwischen den Assets berücksichtigen.
+                                <br />
+                                **Sharpe Ratio basiert auf einer risikofreien Rate von {RISK_FREE_RATE}%.
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </CardContent>
+            <CardFooter className="p-6 text-sm text-gray-500 flex justify-between items-center">
+                <p>
+                    Hinweis: Dies ist ein Modell, keine Garantie. Die tatsächliche Rendite kann von der hier angegebenen Schätzung abweichen.
+                </p>
+            </CardFooter>
+        </Card>
     );
 }
