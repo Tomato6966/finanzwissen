@@ -1,8 +1,8 @@
 "use client";
 import Image from "next/image";
 
-export default function Footer() {
-    return <footer className="bg-white dark:bg-card border-t dark:border-border mt-16">
+const Footer = () => (
+    <footer className="bg-white dark:bg-card border-t dark:border-border bottom-0 h-fullw-full flex-grow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="text-center">
                 <div className="flex items-center space-x-2 justify-center mb-4">
@@ -26,5 +26,7 @@ export default function Footer() {
                 </p>
             </div>
         </div>
-    </footer>;
-}
+    </footer>
+);
+
+export default Footer;

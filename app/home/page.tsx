@@ -14,7 +14,7 @@ export default function HomePage() {
     return (
         <div>
             {/* Hero Section */}
-            <div className="text-center py-12">
+            <div className="text-center py-8">
                 <div className="max-w-4xl mx-auto">
                     <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-foreground mb-6">
                         Ihre Reise zur <br />
@@ -59,28 +59,24 @@ export default function HomePage() {
 
             <Separator className="border-2 my-8" />
 
-            <div>
-                <div className="text-center">
-                    <h2 className="text-3xl font-bold text-gray-900 dark:text-foreground mb-4">Ratschläge der Community</h2>
-                    <p className="text-lg text-gray-600 dark:text-muted-foreground max-w-3xl mx-auto flex flex-wrap gap-8 justify-center">
-                        <div className="text-gray-600 dark:text-muted-foreground w-full">
-                            Community-Tipps, -Tutorials, -Strategien, ...
-                        </div>
-                        <div className="text-gray-600 dark:text-muted-foreground italic w-full">
-                            Von der Community geteilte Strategien, Tipps und Erfahrungen.
-                            Lerne von der FF-Community.
-                            Erfahre von Strategien und mehr.
-                        </div>
-                        <LinkButton href="/community" variant="outline" className="text-gray-600 dark:text-muted-foreground">
-                            <ExternalLink className="w-4 h-4 mr-2" /> Community-Tipps, -Tutorials, -Strategien, ...
-                        </LinkButton>
-                    </p>
+            <div className="text-center py-6 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl mb-8 text-white hover:shadow-md transition-all duration-100 hover:shadow-blue-500/50">
+                <h2 className="text-3xl font-bold mb-4">Ratschläge der Community</h2>
+                <div className="text-lg max-w-3xl mx-auto flex flex-wrap gap-8 justify-center">
+                    <div className="w-full">
+                        Community-Tipps, -Tutorials, -Strategien, ...
+                    </div>
+                    <div className="italic w-full">
+                        Von der Community geteilte Strategien, Tipps und Erfahrungen.
+                        Lerne von der FF-Community.
+                        Erfahre von Strategien und mehr.
+                    </div>
+                    <LinkButton href="/community" className="text-3xl bg-blue-500 hover:bg-blue-600 p-6 text-white">
+                        <ExternalLink  className="size-7" /> Community-Tipps, -Tutorials, -Strategien, ...
+                    </LinkButton>
                 </div>
             </div>
 
-            <Separator className="border-2 my-8" />
-
-            <div className="bg-card rounded-2xl p-8 shadow-lg">
+            <div className="bg-card rounded-2xl p-8 shadow-lg mb-8">
                 <div className="text-center mb-8">
                     <h2 className="text-3xl font-bold text-gray-900 dark:text-foreground mb-4">Warum FinanzWissen?</h2>
                     <p className="text-lg text-gray-600 dark:text-muted-foreground">
@@ -121,9 +117,7 @@ export default function HomePage() {
                 </div>
             </div>
 
-            <Separator className="border-2 my-8" />
-
-            <div className="text-center bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
+            <div className="text-center bg-gradient-to-r from-blue-600/50 to-purple-600/50 rounded-2xl p-8 text-white">
                 <h2 className="text-3xl font-bold mb-4">Bereit für Ihre finanzielle Transformation?</h2>
                 <p className="text-xl mb-6 opacity-90">Starten Sie noch heute mit unseren kostenlosen Ressourcen und Tools</p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">

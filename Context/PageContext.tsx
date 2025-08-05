@@ -37,7 +37,7 @@ export default function PageRouter({
 
     return (
         <div
-            className={`min-h-screen transition-colors duration-300 ${
+            className={`h-full transition-colors duration-300 ${
                 isDarkMode
                     ? "dark bg-gray-900"
                     : "bg-gradient-to-br from-blue-50 to-indigo-100"

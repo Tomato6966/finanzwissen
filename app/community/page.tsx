@@ -103,7 +103,7 @@ const CommunityContent = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-h-[calc(100vh-25vh)]">
       <div className="text-center">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-foreground mb-4">
           Community Knowledge Base
