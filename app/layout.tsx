@@ -24,7 +24,7 @@ const domain = process.env.NEXT_PUBLIC_DOMAIN + (process.env.NEXT_PUBLIC_BASE_PA
 
 export const metadata: Metadata = {
   title: "FinanzWissen",
-  description: "FinanzWissen by Finanzfluss Community",
+  description: "FinanzWissen by Finanzfluss Community (not affiliated with Finanzfluss.de) - Lerne alles über finanzielle Bildung, Investieren und Geldmanagement. Nutze Rechner, Tools und mehr.",
   keywords: ["finanzielle bildung", "finanzwissen", "finanzfluss", "geld", "investieren"],
   authors: [{ name: "Finanzfluss Community" }],
   creator: "Finanzfluss Community",
@@ -41,22 +41,22 @@ export const metadata: Metadata = {
     url: domain,
     siteName: "FinanzWissen",
     title: "FinanzWissen - Finanzielle Bildung",
-    description: "FinanzWissen by Finanzfluss Community - Lerne alles über finanzielle Bildung, Investieren und Geldmanagement",
+    description: "FinanzWissen by Finanzfluss Community (not affiliated with Finanzfluss.de) - Lerne alles über finanzielle Bildung, Investieren und Geldmanagement. Nutze Rechner, Tools und mehr.",
     images: [
       {
         url: `${domain}/images/finanzwissen_community.png`,
-        width: 1200,
-        height: 630,
+        width: 500,
+        height: 500,
         alt: "FinanzWissen Logo",
       },
     ],
   },
   twitter: {
-    card: "summary_large_image",
-    site: "@finanzfluss",
-    creator: "@finanzfluss",
+    card: "summary",
+    site: domain,
+    creator: "@finanzfluss_community @chrissy8282",
     title: "FinanzWissen - Finanzielle Bildung",
-    description: "FinanzWissen by Finanzfluss Community - Lerne alles über finanzielle Bildung, Investieren und Geldmanagement",
+    description: "FinanzWissen by Finanzfluss Community (not affiliated with Finanzfluss.de) - Lerne alles über finanzielle Bildung, Investieren und Geldmanagement. Nutze Rechner, Tools und mehr.",
     images: [`${domain}/images/finanzwissen_community.png`],
   },
   other: {
