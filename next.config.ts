@@ -13,6 +13,7 @@ const nextConfig = {
     env: {
         NEXT_PUBLIC_USE_PROXYURL: "true",
         NEXT_PUBLIC_BASE_PATH: basePath,
+        NEXT_PUBLIC_DOMAIN: isGithubPages ? "https://tomato6966.github.io" : "http://localhost:3000",
     },
 };
 

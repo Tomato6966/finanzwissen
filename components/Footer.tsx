@@ -4,7 +4,24 @@ import Image from "next/image";
 
 const Footer = () => (
     <footer className="bg-white dark:bg-card border-t dark:border-border bottom-0 h-full w-full flex-grow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <Image
+                src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/images/finanzwissen_community.png`}
+                alt="FinanzWissen Logo"
+                width={350}
+                height={350}
+                style={{ borderRadius: "25%", opacity: 0.1 }}
+                className="absolute top-0 mt-8 left-0 object-cover -rotate-6"
+            />
+            <Image
+                src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/images/finanzwissen_community.png`}
+                alt="FinanzWissen Logo"
+                width={350}
+                height={350}
+                style={{ borderRadius: "25%", opacity: 0.1 }}
+                className="absolute top-0 mt-8 right-0 object-cover rotate-6"
+            />
             <div className="text-center">
                 <div className="flex items-center space-x-2 justify-center mb-4">
                     <Image
