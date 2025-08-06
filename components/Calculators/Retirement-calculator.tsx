@@ -1,7 +1,7 @@
 "use client"
 
 import {
-	Calculator, Calendar, Clock, Coins, Euro, HelpCircle, TrendingUp, Wallet
+	AlertTriangle, Calculator, Calendar, Clock, Coins, Euro, HelpCircle, TrendingUp, Wallet
 } from "lucide-react";
 import LZString from "lz-string";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -9,6 +9,7 @@ import {
 	Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis
 } from "recharts";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
 	Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle
@@ -19,15 +20,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
 	Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import {
 	Tooltip as ShadcnTooltip, TooltipContent, TooltipProvider, TooltipTrigger
 } from "@/components/ui/tooltip";
 
-import { formatCurrency, formatCurrencyPrecise } from "./tools";
+import { formatCurrency } from "./tools";
 
 import type { AnnuityType, CalculationType, FormData, RetirementCalculatorProps } from "../../lib/calculator-types";
+
 // Main component
 export function RetirementCalculator({ initialData }: RetirementCalculatorProps) {
     const [calculationType, setCalculationType] =
@@ -44,12 +45,13 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
         taxRate: 25,
         annuityType: "capital_consumption",
         lifeExpectancy: 90,
-        dynamicSavingsAdjustment: false, // Default to false
-        savingsIncreaseRate: 2, // Default to 2% annual increase
-        showNominalCapital: true, // Default to true
-        showContributions: true, // Default to true
+        dynamicSavingsAdjustment: false,
+        savingsIncreaseRate: 2,
+        showNominalCapital: true,
+        showContributions: true,
     });
-    const [shareMessage, setShareMessage] = useState<string | null>(null); // State for share message
+    const [shareMessage, setShareMessage] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
 
     const serializeState = useCallback(() => {
@@ -113,6 +115,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
 
     // Main calculation logic
     const calculationResult = useMemo(() => {
+        setError(null); // Reset error on each calculation
         const {
             currentAge,
             currentCapital,
@@ -129,255 +132,263 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
             savingsIncreaseRate,
         } = formData;
 
+        // --- Input Validation ---
+        if (desiredRetirementAge <= currentAge) {
+            setError("Das Rentenalter muss nach dem aktuellen Alter liegen.");
+            return null;
+        }
+        if (lifeExpectancy <= desiredRetirementAge && annuityType === 'capital_consumption') {
+            setError("Die Lebenserwartung muss nach dem Rentenalter liegen.");
+            return null;
+        }
+        if (currentAge < 0 || currentCapital < 0 || rawYield < 0 || savingsRate < 0 || desiredRetirementAge < 0 || desiredNetPayout < 0 || taxRate < 0 || lifeExpectancy < 0) {
+            setError("Negative Werte sind für die meisten Felder nicht zulässig.");
+            return null;
+        }
+
+
         const rateOfReturn = rawYield / 100;
         const inflationRate = rawInflation / 100;
         const taxFactor = 1 - taxRate / 100;
-        let currentAnnualSavings = getAnnualSavings(savingsRate, savingsInterval);
+        const realRateOfReturn = (1 + rateOfReturn) / (1 + inflationRate) - 1;
 
-        let accumulatedCapital = currentCapital;
-        let cumulativeContributions = currentCapital; // Start with currentCapital for contributions
-        const savingsPhaseData = [];
-        const payoutPhaseData = [];
+        const currentAnnualSavings = getAnnualSavings(savingsRate, savingsInterval);
 
-        let cumulativeInflationFactor = 1;
+        // --- Shared Savings Phase Logic ---
+        const calculateSavingsPhase = (endAge: number) => {
+            let accumulatedCapital = currentCapital;
+            let cumulativeContributions = currentCapital;
+            const savingsData = [];
+            let cumulativeInflationFactor = 1;
+            let dynamicAnnualSavings = getAnnualSavings(savingsRate, savingsInterval);
 
-        // Savings phase
-        for (let year = currentAge; year <= desiredRetirementAge; year++) {
-            const yearIndex = year - currentAge;
-            if (yearIndex > 0) {
-                // Apply dynamic savings rate increase if enabled and in relevant modes
-                if (
-                    dynamicSavingsAdjustment &&
-                    savingsIncreaseRate > 0 &&
-                    (calculationType === "calculate_monthly_payout" ||
-                        calculationType === "calculate_retirement_age")
-                ) {
-                    currentAnnualSavings = currentAnnualSavings * (1 + savingsIncreaseRate / 100);
-                }
-                accumulatedCapital =
-                    accumulatedCapital * (1 + rateOfReturn) + currentAnnualSavings;
-                cumulativeContributions += currentAnnualSavings; // Add current year's savings to total contributions
-                cumulativeInflationFactor = cumulativeInflationFactor * (1 + inflationRate);
-            }
-            savingsPhaseData.push({
-                age: year,
-                "Kapital nominal": accumulatedCapital,
-                "Kapital real": accumulatedCapital / cumulativeInflationFactor,
-                "Einzahlungen": cumulativeContributions, // Add contributions to data
-            });
-        }
-
-        const retirementCapital = accumulatedCapital;
-        const retirementCapitalReal = accumulatedCapital / cumulativeInflationFactor;
-
-        // Calculation for the "max monthly payout" mode
-        if (calculationType === "calculate_monthly_payout") {
-            // Calculate real (inflation-adjusted) return rate
-            // Formula: real_rate = (1 + nominal_rate) / (1 + inflation_rate) - 1
-            // This gives us the actual purchasing power growth rate
-            const realRateOfReturn = (1 + rateOfReturn) / (1 + inflationRate) - 1;
-
-            // Payout phase
-            if (annuityType === "endless") {
-                // Calculate payout using real return rate (inflation-adjusted) and real capital
-                const monthlyPayoutBruttoReal = (retirementCapitalReal * realRateOfReturn) / 12;
-                const monthlyPayoutNettoReal = monthlyPayoutBruttoReal * taxFactor;
-
-                // Calculate nominal payout for comparison (using nominal return rate and nominal capital)
-                const monthlyPayoutBruttoNominal = (retirementCapital * rateOfReturn) / 12;
-                const monthlyPayoutNettoNominal = monthlyPayoutBruttoNominal * taxFactor;
-
-                let currentPayoutCapital = retirementCapital;
-                let currentInflationFactor = cumulativeInflationFactor;
-                for (let year = desiredRetirementAge; year <= lifeExpectancy; year++) {
-                    const yearIndex = year - desiredRetirementAge;
-                    if (yearIndex > 0) {
-                        // Use real return rate for capital growth in payout phase
-                        currentPayoutCapital = currentPayoutCapital * (1 + realRateOfReturn) - monthlyPayoutBruttoReal * 12;
-                        currentInflationFactor = currentInflationFactor * (1 + inflationRate);
+            for (let age = currentAge; age <= endAge; age++) {
+                const yearIndex = age - currentAge;
+                if (yearIndex > 0) {
+                    if (dynamicSavingsAdjustment && savingsIncreaseRate > 0) {
+                        dynamicAnnualSavings *= (1 + savingsIncreaseRate / 100);
                     }
-                    payoutPhaseData.push({
-                        age: year,
-                        "Kapital nominal": currentPayoutCapital,
-                        "Kapital real": currentPayoutCapital / currentInflationFactor,
-                        "Einzahlungen": cumulativeContributions, // Contributions remain constant in payout phase
-                    });
+                    accumulatedCapital = accumulatedCapital * (1 + rateOfReturn) + dynamicAnnualSavings;
+                    cumulativeContributions += dynamicAnnualSavings;
                 }
+                cumulativeInflationFactor *= (1 + inflationRate);
+                savingsData.push({
+                    age: age,
+                    "Kapital nominal": accumulatedCapital,
+                    "Kapital real": accumulatedCapital / cumulativeInflationFactor,
+                    "Einzahlungen": cumulativeContributions,
+                });
+            }
+            return { savingsData, accumulatedCapital, cumulativeContributions, cumulativeInflationFactor };
+        };
 
-                return {
-                    retirementCapital,
-                    retirementCapitalReal,
-                    monthlyPayoutBrutto: monthlyPayoutBruttoReal, // Use real payout as primary
-                    monthlyPayoutNetto: monthlyPayoutNettoReal, // Use real payout as primary
-                    monthlyPayoutBruttoNominal, // Add nominal payout for comparison
-                    monthlyPayoutNettoNominal, // Add nominal payout for comparison
-                    savingsPhaseData,
-                    payoutPhaseData,
-                    type: "payout",
-                };
+
+        // --- Mode: Calculate Monthly Payout ---
+        if (calculationType === "calculate_monthly_payout") {
+            const { savingsData, accumulatedCapital, cumulativeContributions, cumulativeInflationFactor } = calculateSavingsPhase(desiredRetirementAge);
+            const retirementCapitalNominal = accumulatedCapital;
+            const retirementCapitalReal = retirementCapitalNominal / cumulativeInflationFactor;
+
+            let monthlyPayoutBruttoReal: number;
+            if (annuityType === "endless") {
+                if (realRateOfReturn <= 0) {
+                    setError("Bei einer endlosen Rente muss die reale Rendite positiv sein, um ein Schrumpfen des Kapitals zu vermeiden.");
+                    return null;
+                }
+                monthlyPayoutBruttoReal = (retirementCapitalReal * realRateOfReturn) / 12;
             } else {
                 const yearsInRetirement = lifeExpectancy - desiredRetirementAge;
+                if (yearsInRetirement <= 0) {
+                     setError("Die Lebenserwartung muss größer als das Rentenalter sein.");
+                     return null;
+                }
                 const totalMonths = yearsInRetirement * 12;
                 const monthlyRealRate = Math.pow(1 + realRateOfReturn, 1 / 12) - 1;
-                const monthlyNominalRate = Math.pow(1 + rateOfReturn, 1 / 12) - 1;
-
-                // Calculate payout using real return rate (inflation-adjusted) and real capital
-                const monthlyPayoutBruttoReal =
-                    (retirementCapitalReal * monthlyRealRate) /
-                    (1 - Math.pow(1 + monthlyRealRate, -totalMonths));
-                const monthlyPayoutNettoReal = monthlyPayoutBruttoReal * taxFactor;
-
-                // Calculate nominal payout for comparison
-                const monthlyPayoutBruttoNominal =
-                    (retirementCapital * monthlyNominalRate) /
-                    (1 - Math.pow(1 + monthlyNominalRate, -totalMonths));
-                const monthlyPayoutNettoNominal = monthlyPayoutBruttoNominal * taxFactor;
-
-                let currentPayoutCapital = retirementCapital;
-                let currentInflationFactor = cumulativeInflationFactor;
-                for (
-                    let year = desiredRetirementAge;
-                    year <= lifeExpectancy;
-                    year++
-                ) {
-                    const yearIndex = year - desiredRetirementAge;
-                    if (yearIndex > 0) {
-                        // Use real return rate for capital growth in payout phase
-                        currentPayoutCapital =
-                            currentPayoutCapital * Math.pow(1 + realRateOfReturn, 1) -
-                            monthlyPayoutBruttoReal * 12;
-                        currentInflationFactor = currentInflationFactor * (1 + inflationRate);
-                    }
-                    payoutPhaseData.push({
-                        age: year,
-                        "Kapital nominal": currentPayoutCapital,
-                        "Kapital real": currentPayoutCapital / currentInflationFactor,
-                        "Einzahlungen": cumulativeContributions, // Contributions remain constant in payout phase
-                    });
+                if (monthlyRealRate === 0) {
+                    monthlyPayoutBruttoReal = retirementCapitalReal / totalMonths;
+                } else {
+                    monthlyPayoutBruttoReal = (retirementCapitalReal * monthlyRealRate) / (1 - Math.pow(1 + monthlyRealRate, -totalMonths));
                 }
-
-                return {
-                    retirementCapital,
-                    retirementCapitalReal,
-                    monthlyPayoutBrutto: monthlyPayoutBruttoReal, // Use real payout as primary
-                    monthlyPayoutNetto: monthlyPayoutNettoReal, // Use real payout as primary
-                    monthlyPayoutBruttoNominal, // Add nominal payout for comparison
-                    monthlyPayoutNettoNominal, // Add nominal payout for comparison
-                    savingsPhaseData,
-                    payoutPhaseData,
-                    type: "payout",
-                };
             }
+
+            const monthlyPayoutNettoReal = monthlyPayoutBruttoReal * taxFactor;
+
+            // Payout phase simulation (using REAL values for consistency)
+            const payoutPhaseData = [];
+            let currentRealCapital = retirementCapitalReal;
+            let payoutPhaseInflationFactor = cumulativeInflationFactor;
+
+            for (let age = desiredRetirementAge; age <= lifeExpectancy; age++) {
+                 const yearIndex = age - desiredRetirementAge;
+                 if (yearIndex > 0) {
+                     const annualRealWithdrawal = monthlyPayoutBruttoReal * 12;
+                     currentRealCapital = currentRealCapital * (1 + realRateOfReturn) - annualRealWithdrawal;
+                     if (currentRealCapital < 0) currentRealCapital = 0; // Capital cannot be negative
+                 }
+                 payoutPhaseInflationFactor *= (1 + inflationRate);
+                 payoutPhaseData.push({
+                     age: age,
+                     "Kapital nominal": currentRealCapital * payoutPhaseInflationFactor,
+                     "Kapital real": currentRealCapital,
+                     "Einzahlungen": cumulativeContributions,
+                 });
+            }
+
+            // Combine savings and payout data for the chart with distinct keys
+            const chartData = savingsData.map(p => ({
+                age: p.age,
+                "Anspar-Kapital-Real": p["Kapital real"],
+                "Anspar-Kapital-Nominal": p["Kapital nominal"],
+                "Entnahme-Kapital-Real": p["Kapital real"],
+                "Entnahme-Kapital-Nominal": p["Kapital nominal"],
+                "Einzahlungen": p["Einzahlungen"],
+            }));
+
+            const connectionPointIndex = savingsData.length - 1;
+            if (connectionPointIndex >= 0) {
+                const connectionPoint = chartData[connectionPointIndex];
+                connectionPoint["Entnahme-Kapital-Real"] = connectionPoint["Anspar-Kapital-Real"];
+                connectionPoint["Entnahme-Kapital-Nominal"] = connectionPoint["Anspar-Kapital-Nominal"];
+            }
+
+            payoutPhaseData.slice(1).forEach(p => {
+                if(chartData.find(v => v.age === p.age)) return;
+                chartData.push({
+                    age: p.age,
+                    "Entnahme-Kapital-Real": p["Kapital real"],
+                    "Anspar-Kapital-Real": 0,
+                    "Anspar-Kapital-Nominal": 0,
+                    "Entnahme-Kapital-Nominal": p["Kapital nominal"],
+                    "Einzahlungen": p["Einzahlungen"],
+                });
+            });
+
+            return {
+                retirementCapital: retirementCapitalNominal,
+                retirementCapitalReal: retirementCapitalReal,
+                monthlyPayoutBrutto: monthlyPayoutBruttoReal,
+                monthlyPayoutNetto: monthlyPayoutNettoReal,
+                chartData: chartData,
+                type: "payout",
+            };
         }
 
-        // Calculation for the "calculate retirement age" mode
+        // --- Mode: Calculate Retirement Age ---
         if (calculationType === "calculate_retirement_age") {
-            // Calculate real (inflation-adjusted) return rate for required capital calculation
-            const realRateOfReturn = (1 + rateOfReturn) / (1 + inflationRate) - 1;
-
             const annualNetPayout = desiredNetPayout * 12;
-            const annualGrossPayout = annualNetPayout / taxFactor;
-            let requiredCapital = 0;
+            const annualGrossPayoutReal = annualNetPayout / taxFactor; // This is a real value
+            let requiredCapitalReal: number;
 
             if (annuityType === "endless") {
-                // Use real return rate for required capital calculation
-                requiredCapital = annualGrossPayout / realRateOfReturn;
+                if (realRateOfReturn <= 0) {
+                    setError("Für eine endlose Rente mit der gewünschten Auszahlung muss die reale Rendite positiv sein.");
+                    return null;
+                }
+                requiredCapitalReal = annualGrossPayoutReal / realRateOfReturn;
             } else {
-                const yearsToConsume = lifeExpectancy - desiredRetirementAge;
+                const yearsToConsume = lifeExpectancy - desiredRetirementAge; // Initial estimate
+                 if (yearsToConsume <= 0) {
+                     setError("Die Lebenserwartung muss größer als das Rentenalter sein.");
+                     return null;
+                }
                 const monthlyRealRate = Math.pow(1 + realRateOfReturn, 1 / 12) - 1;
                 const totalMonths = yearsToConsume * 12;
-                requiredCapital =
-                    (annualGrossPayout / 12) *
-                    ((1 - Math.pow(1 + monthlyRealRate, -totalMonths)) / monthlyRealRate);
+                requiredCapitalReal = (annualGrossPayoutReal / 12) * ((1 - Math.pow(1 + monthlyRealRate, -totalMonths)) / monthlyRealRate);
             }
 
             let retirementAge = currentAge;
-            let currentCapitalSim = currentCapital;
-            let currentAnnualSavingsSim = getAnnualSavings(savingsRate, savingsInterval);
-            let cumulativeContributionsSim = currentCapital; // Initialize for simulation
+            let accumulatedNominalCapital = currentCapital;
+            let accumulatedRealCapital = currentCapital;
+            let dynamicAnnualSavings = currentAnnualSavings;
+            let cumulativeContributions = currentCapital;
             const savingsPhaseDataSim = [];
 
-            while (currentCapitalSim < requiredCapital) {
-                if (retirementAge >= 100) {
-                    retirementAge = 100;
-                    break;
+            while (accumulatedRealCapital < requiredCapitalReal) {
+                retirementAge++;
+                if (retirementAge > 120) { // Boundary condition
+                    setError("Rentenalter nicht erreichbar. Überprüfen Sie Ihre Sparrate und Renditeerwartungen.");
+                    return null;
                 }
-                const yearIndex = retirementAge - currentAge;
-                const inflationFactor = Math.pow(1 + inflationRate, yearIndex);
 
                 if (dynamicSavingsAdjustment && savingsIncreaseRate > 0) {
-                    currentAnnualSavingsSim = currentAnnualSavingsSim * (1 + savingsIncreaseRate / 100);
+                    dynamicAnnualSavings *= (1 + savingsIncreaseRate / 100);
                 }
 
-                // Use nominal return rate for capital growth during savings phase (as before)
-                currentCapitalSim =
-                    currentCapitalSim * (1 + rateOfReturn) + currentAnnualSavingsSim;
-                cumulativeContributionsSim += currentAnnualSavingsSim; // Add to contributions for simulation
+                accumulatedNominalCapital = accumulatedNominalCapital * (1 + rateOfReturn) + dynamicAnnualSavings;
+                cumulativeContributions += dynamicAnnualSavings;
+                const inflationFactor = Math.pow(1 + inflationRate, retirementAge - currentAge);
+                accumulatedRealCapital = accumulatedNominalCapital / inflationFactor;
 
                 savingsPhaseDataSim.push({
-                    age: retirementAge + 1,
-                    "Kapital nominal": currentCapitalSim,
-                    "Kapital real": currentCapitalSim / inflationFactor,
-                    "Einzahlungen": cumulativeContributionsSim, // Add contributions to data
+                    age: retirementAge,
+                    "Kapital nominal": accumulatedNominalCapital,
+                    "Kapital real": accumulatedRealCapital,
+                    "Einzahlungen": cumulativeContributions,
                 });
-                retirementAge++;
             }
 
-            // Calculate the real capital at the actual retirement age
-            const actualRetirementAge = retirementAge - 1;
-            const yearsToRetirement = actualRetirementAge - currentAge;
-            const inflationFactorAtRetirement = Math.pow(1 + inflationRate, yearsToRetirement);
-            const retirementCapitalRealAtAge = currentCapitalSim / inflationFactorAtRetirement;
+            const chartData = savingsPhaseDataSim.map(p => ({
+                age: p.age,
+                "Anspar-Kapital-Real": p["Kapital real"],
+                "Anspar-Kapital-Nominal": p["Kapital nominal"],
+                "Einzahlungen": p["Einzahlungen"],
+            }));
 
             return {
-                requiredCapital,
-                retirementAge: actualRetirementAge,
-                retirementCapitalReal: retirementCapitalRealAtAge,
-                savingsPhaseData: savingsPhaseDataSim,
+                requiredCapital: requiredCapitalReal,
+                retirementAge: retirementAge,
+                retirementCapitalReal: accumulatedRealCapital,
+                chartData: chartData,
                 type: "age",
             };
         }
 
-        // Calculation for the "calculate savings rate" mode
+        // --- Mode: Calculate Savings Rate ---
         if (calculationType === "calculate_savings_rate") {
-            // Calculate real (inflation-adjusted) return rate for required capital calculation
-            const realRateOfReturn = (1 + rateOfReturn) / (1 + inflationRate) - 1;
-
             const yearsToRetirement = desiredRetirementAge - currentAge;
-            const totalMonths = yearsToRetirement * 12;
-            const monthlyRate = Math.pow(1 + rateOfReturn, 1 / 12) - 1; // Keep nominal for savings phase
-
             const annualNetPayout = desiredNetPayout * 12;
-            const annualGrossPayout = annualNetPayout / taxFactor;
-            let requiredCapital = 0;
+            const annualGrossPayoutReal = annualNetPayout / taxFactor;
+            let requiredCapitalReal: number;
 
             if (annuityType === "endless") {
-                // Use real return rate for required capital calculation
-                requiredCapital = annualGrossPayout / realRateOfReturn;
+                 if (realRateOfReturn <= 0) {
+                    setError("Für eine endlose Rente mit der gewünschten Auszahlung muss die reale Rendite positiv sein.");
+                    return null;
+                }
+                requiredCapitalReal = annualGrossPayoutReal / realRateOfReturn;
             } else {
                 const yearsInRetirement = lifeExpectancy - desiredRetirementAge;
                 const retirementTotalMonths = yearsInRetirement * 12;
                 const monthlyRealRate = Math.pow(1 + realRateOfReturn, 1 / 12) - 1;
-                requiredCapital =
-                    (annualGrossPayout / 12) *
-                    ((1 - Math.pow(1 + monthlyRealRate, -retirementTotalMonths)) / monthlyRealRate);
+                requiredCapitalReal = (annualGrossPayoutReal / 12) * ((1 - Math.pow(1 + monthlyRealRate, -retirementTotalMonths)) / monthlyRealRate);
             }
 
+            // What is the required capital in NOMINAL terms at retirement?
+            const requiredCapitalNominal = requiredCapitalReal * Math.pow(1 + inflationRate, yearsToRetirement);
+
+            // What will our current capital grow to in NOMINAL terms?
+            const futureValueFromCurrentCapital = currentCapital * Math.pow(1 + rateOfReturn, yearsToRetirement);
+
+            const nominalShortfall = requiredCapitalNominal - futureValueFromCurrentCapital;
+
+            if (nominalShortfall <= 0) {
+                // Current capital is already enough
+                return {
+                    requiredMonthlySavingsRate: 0,
+                    futureCapital: requiredCapitalNominal,
+                    type: "savings",
+                };
+            }
+
+            // What savings rate is needed to cover the nominal shortfall?
+            const monthlyRate = Math.pow(1 + rateOfReturn, 1 / 12) - 1;
+            const totalMonths = yearsToRetirement * 12;
             const futureValueFactor = (Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate;
-
-            const futureValueFromCurrentCapital = currentCapital * Math.pow(1 + monthlyRate, totalMonths);
-
-            const requiredFutureSavings = requiredCapital - futureValueFromCurrentCapital;
-            const requiredMonthlySavingsRate = requiredFutureSavings / futureValueFactor;
-
-            // Calculate the real capital at the desired retirement age
-            const inflationFactorAtRetirement = Math.pow(1 + inflationRate, yearsToRetirement);
-            const retirementCapitalRealAtAge = (currentCapital + requiredFutureSavings) / inflationFactorAtRetirement;
+            const requiredMonthlySavingsRate = nominalShortfall / futureValueFactor;
 
             return {
-                futureCapital: requiredFutureSavings,
-                requiredMonthlySavingsRate: requiredMonthlySavingsRate > 0 ? requiredMonthlySavingsRate : 0,
-                retirementCapitalReal: retirementCapitalRealAtAge,
+                futureCapital: requiredCapitalNominal,
+                requiredMonthlySavingsRate: requiredMonthlySavingsRate,
                 type: "savings",
             };
         }
@@ -388,7 +399,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
     const memoizedHandleInputChange = useCallback((field: keyof FormData, value: string | number | boolean) => {
         setFormData((prev) => ({
             ...prev,
-            [field]: typeof value === "string" && field !== "savingsInterval" ? parseFloat(value) : value,
+            [field]: typeof value === "string" && !["savingsInterval", "annuityType"].includes(field) ? parseFloat(value) || 0 : value,
         }));
     }, []);
 
@@ -397,19 +408,18 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
         const serialized = serializeState();
         const shareUrl = `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ''}/calculators?share=${serialized}`;
         try {
-            document.execCommand('copy'); // Fallback for older browsers
             navigator.clipboard.writeText(shareUrl).then(() => {
                 setShareMessage("Link kopiert!");
                 setTimeout(() => setShareMessage(null), 3000);
             }).catch(() => {
-                // Fallback if writeText fails (e.g., not in secure context or permissions)
+                // Fallback for older browsers or non-secure contexts
                 const textarea = document.createElement('textarea');
                 textarea.value = shareUrl;
                 document.body.appendChild(textarea);
                 textarea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textarea);
-                setShareMessage("Link kopiert! (Fallback)");
+                setShareMessage("Link kopiert!");
                 setTimeout(() => setShareMessage(null), 3000);
             });
         } catch (err) {
@@ -531,7 +541,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
                                         <Label htmlFor="yield">
-                                            Rendite in der Ansparphase p.a. (%)
+                                            Rendite p.a. (%)
                                         </Label>
                                         <ShadcnTooltip>
                                             <TooltipTrigger>
@@ -539,8 +549,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                             </TooltipTrigger>
                                             <TooltipContent>
                                                 <p>
-                                                    Die jährliche Rendite, die Sie während der
-                                                    Ansparphase erwarten.
+                                                    Die jährliche nominale Rendite, die Sie auf Ihr Kapital erwarten.
                                                 </p>
                                             </TooltipContent>
                                         </ShadcnTooltip>
@@ -565,8 +574,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                             </TooltipTrigger>
                                             <TooltipContent>
                                                 <p>
-                                                    Die jährliche Inflationsrate, die die Kaufkraft
-                                                    reduziert.
+                                                    Die erwartete jährliche Inflationsrate.
                                                 </p>
                                             </TooltipContent>
                                         </ShadcnTooltip>
@@ -587,7 +595,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between">
                                             <Label htmlFor="savingsRate">
-                                                Monatliche Sparrate (€)
+                                                Sparrate
                                             </Label>
                                             <ShadcnTooltip>
                                                 <TooltipTrigger>
@@ -616,25 +624,11 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                             <Label htmlFor="savingsInterval">
                                                 Intervall der Einzahlung
                                             </Label>
-                                            <ShadcnTooltip>
-                                                <TooltipTrigger>
-                                                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>
-                                                        Die Häufigkeit, mit der die Sparrate eingezahlt
-                                                        wird.
-                                                    </p>
-                                                </TooltipContent>
-                                            </ShadcnTooltip>
                                         </div>
                                         <Select
                                             value={formData.savingsInterval}
                                             onValueChange={(value: FormData["savingsInterval"]) =>
-                                                setFormData((prev) => ({
-                                                    ...prev,
-                                                    savingsInterval: value,
-                                                }))
+                                                memoizedHandleInputChange("savingsInterval", value)
                                             }
                                         >
                                             <SelectTrigger id="savingsInterval">
@@ -652,9 +646,9 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                 {/* Dynamic Savings Adjustment Switch */}
                                 {showDynamicSavingsSection && (
                                     <div className="space-y-2">
-                                        <div className="flex items-center justify-between">
+                                        <div className="flex items-center justify-between pt-2">
                                             <Label htmlFor="dynamicSavingsAdjustment">
-                                                Dynamische Sparraten-Anpassung?
+                                                Dynamische Sparrate
                                             </Label>
                                             <ShadcnTooltip>
                                                 <TooltipTrigger>
@@ -662,19 +656,18 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                                 </TooltipTrigger>
                                                 <TooltipContent>
                                                     <p>
-                                                        Erhöhen Sie Ihre Sparrate jährlich um einen
-                                                        festen Prozentsatz.
+                                                        Erhöhen Sie Ihre Sparrate jährlich um einen festen Prozentsatz.
                                                     </p>
                                                 </TooltipContent>
                                             </ShadcnTooltip>
+                                            <Switch
+                                                id="dynamicSavingsAdjustment"
+                                                checked={formData.dynamicSavingsAdjustment}
+                                                onCheckedChange={(checked) =>
+                                                    memoizedHandleInputChange("dynamicSavingsAdjustment", checked)
+                                                }
+                                            />
                                         </div>
-                                        <Switch
-                                            id="dynamicSavingsAdjustment"
-                                            checked={formData.dynamicSavingsAdjustment}
-                                            onCheckedChange={(checked) =>
-                                                memoizedHandleInputChange("dynamicSavingsAdjustment", checked)
-                                            }
-                                        />
                                     </div>
                                 )}
 
@@ -683,19 +676,8 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between">
                                             <Label htmlFor="savingsIncreaseRate">
-                                                Jährliche Steigerung der Sparrate (%)
+                                                Jährliche Steigerung (%)
                                             </Label>
-                                            <ShadcnTooltip>
-                                                <TooltipTrigger>
-                                                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>
-                                                        Der Prozentsatz, um den Ihre Sparrate jedes
-                                                        Jahr erhöht wird.
-                                                    </p>
-                                                </TooltipContent>
-                                            </ShadcnTooltip>
                                         </div>
                                         <Input
                                             id="savingsIncreaseRate"
@@ -715,16 +697,6 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                             <Label htmlFor="desiredRetirementAge">
                                                 Gewünschtes Rentenalter
                                             </Label>
-                                            <ShadcnTooltip>
-                                                <TooltipTrigger>
-                                                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>
-                                                        Das Alter, in dem Sie in Rente gehen möchten.
-                                                    </p>
-                                                </TooltipContent>
-                                            </ShadcnTooltip>
                                         </div>
                                         <Input
                                             id="desiredRetirementAge"
@@ -745,16 +717,8 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between">
                                             <Label htmlFor="desiredNetPayout">
-                                                Gewünschte monatliche Netto-Rente (€)
+                                                Gewünschte mtl. Netto-Rente (€)
                                             </Label>
-                                            <ShadcnTooltip>
-                                                <TooltipTrigger>
-                                                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>Ihre gewünschte monatliche Auszahlung nach Steuern.</p>
-                                                </TooltipContent>
-                                            </ShadcnTooltip>
                                         </div>
                                         <Input
                                             id="desiredNetPayout"
@@ -769,17 +733,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
 
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <Label htmlFor="taxRate">Steuersatz / Auszahlung (%)</Label>
-                                        <ShadcnTooltip>
-                                            <TooltipTrigger>
-                                                <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>
-                                                    Der Steuersatz, der auf die Auszahlung angewendet wird.
-                                                </p>
-                                            </TooltipContent>
-                                        </ShadcnTooltip>
+                                        <Label htmlFor="taxRate">Steuersatz auf Auszahlung (%)</Label>
                                     </div>
                                     <Input
                                         id="taxRate"
@@ -792,88 +746,83 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                 </div>
 
                                 {/* Annuity Type */}
-                                {(isPayoutMode || isAgeMode) && (
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <Label>Entnahme</Label>
-                                            <ShadcnTooltip>
-                                                <TooltipTrigger>
-                                                    <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                                                </TooltipTrigger>
-                                                <TooltipContent>
-                                                    <p>
-                                                        Kapitalverzehr: Das Kapital wird bis zur
-                                                        Lebenserwartung verbraucht.<br />Endlos: Das Kapital
-                                                        bleibt erhalten.
-                                                    </p>
-                                                </TooltipContent>
-                                            </ShadcnTooltip>
-                                        </div>
-                                        <RadioGroup
-                                            value={formData.annuityType}
-                                            onValueChange={(value: AnnuityType) =>
-                                                setFormData((prev) => ({
-                                                    ...prev,
-                                                    annuityType: value,
-                                                }))
-                                            }
-                                            className="flex space-x-4"
-                                        >
-                                            <div className="flex items-center space-x-2">
-                                                <RadioGroupItem
-                                                    value="capital_consumption"
-                                                    id="capital_consumption"
-                                                />
-                                                <Label htmlFor="capital_consumption">
-                                                    Kapitalverzehr
-                                                </Label>
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="endless" id="endless" />
-                                                <Label htmlFor="endless">Endlos</Label>
-                                            </div>
-                                        </RadioGroup>
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <Label>Entnahmeart</Label>
+                                        <ShadcnTooltip>
+                                            <TooltipTrigger>
+                                                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>
+                                                    <b>Kapitalverzehr:</b> Das Kapital wird bis zur Lebenserwartung verbraucht.
+                                                    <br />
+                                                    <b>Ewige Rente:</b> Das reale Kapital bleibt erhalten, nur Zinsen werden entnommen.
+                                                </p>
+                                            </TooltipContent>
+                                        </ShadcnTooltip>
                                     </div>
-                                )}
+                                    <RadioGroup
+                                        value={formData.annuityType}
+                                        onValueChange={(value: AnnuityType) =>
+                                            memoizedHandleInputChange("annuityType", value)
+                                        }
+                                        className="flex space-x-4"
+                                    >
+                                        <div className="flex items-center space-x-2">
+                                            <RadioGroupItem
+                                                value="capital_consumption"
+                                                id="capital_consumption"
+                                            />
+                                            <Label htmlFor="capital_consumption">
+                                                Kapitalverzehr
+                                            </Label>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <RadioGroupItem value="endless" id="endless" />
+                                            <Label htmlFor="endless">Ewige Rente</Label>
+                                        </div>
+                                    </RadioGroup>
+                                </div>
+
 
                                 {/* Life Expectancy - visible for Capital Consumption mode */}
-                                {formData.annuityType === "capital_consumption" &&
-                                    (isPayoutMode || isAgeMode) && (
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <Label htmlFor="lifeExpectancy">
-                                                    Lebenserwartung (Alter)
-                                                </Label>
-                                                <ShadcnTooltip>
-                                                    <TooltipTrigger>
-                                                        <HelpCircle className="h-4 w-4 text-gray-500" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>
-                                                            Das Alter, bis zu dem das Kapital aufgebraucht
-                                                            sein soll.
-                                                        </p>
-                                                    </TooltipContent>
-                                                </ShadcnTooltip>
-                                            </div>
-                                            <Input
-                                                id="lifeExpectancy"
-                                                type="number"
-                                                value={String(formData.lifeExpectancy)}
-                                                onChange={(e) => memoizedHandleInputChange("lifeExpectancy", e.target.value)}
-                                            />
+                                {formData.annuityType === "capital_consumption" && (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label htmlFor="lifeExpectancy">
+                                                Lebenserwartung (Alter)
+                                            </Label>
                                         </div>
-                                    )}
+                                        <Input
+                                            id="lifeExpectancy"
+                                            type="number"
+                                            value={String(formData.lifeExpectancy)}
+                                            onChange={(e) => memoizedHandleInputChange("lifeExpectancy", e.target.value)}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
 
                     {/* Results Panel */}
                     <div className="lg:col-span-2 space-y-6">
+                        {/* Error Display */}
+                        {error && (
+                            <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>Fehler bei der Berechnung</AlertTitle>
+                                <AlertDescription>
+                                    {error}
+                                </AlertDescription>
+                            </Alert>
+                        )}
+
                         {/* Display Result Cards */}
-                        {calculationResult && (
+                        {!error && calculationResult && (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {isPayoutMode && (
+                                {isPayoutMode && 'retirementCapitalReal' in calculationResult && (
                                     <>
                                         <Card className="bg-purple-100 dark:bg-purple-900 border-purple-300 dark:border-purple-700">
                                             <CardHeader>
@@ -889,13 +838,12 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                                     {formatCurrency(calculationResult.retirementCapitalReal!)}
                                                 </div>
                                                 <p className="text-sm text-purple-600 dark:text-purple-400 mt-1">
-                                                    Real (inflationsbereinigt)
+                                                    Real (heutige Kaufkraft)
                                                 </p>
-                                                {/* Show real capital if inflation > 0 */}
-                                                {calculationResult.retirementCapitalReal && formData.inflation > 0 && (
+                                                {formData.inflation > 0 && (
                                                     <div className="mt-2 p-2 bg-purple-50 dark:bg-purple-800/30 rounded">
                                                         <p className="text-xs text-purple-600 dark:text-purple-400">
-                                                            <strong>Nominal (ohne Inflation):</strong><br />
+                                                            <strong>Nominal:</strong>&nbsp;
                                                             {formatCurrency(calculationResult.retirementCapital!)}
                                                         </p>
                                                     </div>
@@ -916,63 +864,55 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                                     {formatCurrency(calculationResult.monthlyPayoutNetto!)}
                                                 </div>
                                                 <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">
-                                                    ({formatCurrency(calculationResult.monthlyPayoutBrutto!)} brutto - inflationsbereinigt)
+                                                    Real (heutige Kaufkraft, Brutto wärens: {formatCurrency(calculationResult.monthlyPayoutBrutto!)})
                                                 </p>
-                                                {/* Show nominal payout for comparison */}
-                                                {calculationResult.monthlyPayoutNettoNominal && (
-                                                    <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-800/30 rounded">
-                                                        <p className="text-xs text-orange-600 dark:text-orange-400">
-                                                            <strong>Zum Vergleich (ohne Inflation):</strong><br />
-                                                            {formatCurrency(calculationResult.monthlyPayoutNettoNominal)} netto
-                                                            <br />
-                                                            ({formatCurrency(calculationResult.monthlyPayoutBruttoNominal)} brutto)
-                                                        </p>
-                                                    </div>
-                                                )}
                                             </CardContent>
                                         </Card>
                                     </>
                                 )}
-                                {isAgeMode && (
+                                {isAgeMode && 'retirementAge' in calculationResult && (
                                     <Card className="bg-blue-100 dark:bg-blue-900 col-span-2 border-blue-300 dark:border-blue-700">
                                         <CardHeader>
-                                            <div className="flex flex-wrap items-center text-blue-700 dark:text-blue-300">
+                                            <div className="flex items-center text-blue-700 dark:text-blue-300">
                                                 <Clock className="mr-2 h-5 w-5" />
-                                                <CardTitle className="text-xl flex-9/12">
+                                                <CardTitle className="text-xl">
                                                     Frühestes Rentenalter
                                                 </CardTitle>
-                                                <CardDescription>
-                                                    Dann reicht das Kapital um monatlich {formatCurrency(formData.desiredNetPayout)} ({formatCurrency(formData.desiredNetPayout * (1 + formData.taxRate / 100))} brutto) zu entnehmen
-                                                </CardDescription>
                                             </div>
+                                            <CardDescription className="text-blue-600 dark:text-blue-400">
+                                                Um Ihre gewünschte Rente von {formatCurrency(formData.desiredNetPayout)} netto zu erhalten.
+                                            </CardDescription>
                                         </CardHeader>
                                         <CardContent>
                                             <div className="text-4xl font-bold text-blue-800 dark:text-blue-200">
                                                 {calculationResult.retirementAge} Jahre
                                             </div>
                                             <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
-                                                Erforderliches Kapital: {formatCurrency(calculationResult.requiredCapital!)}
+                                                Benötigtes reales Kapital: {formatCurrency(calculationResult.requiredCapital!)}
                                             </p>
                                         </CardContent>
                                     </Card>
                                 )}
-                                {isSavingsMode && (
+                                {isSavingsMode && 'requiredMonthlySavingsRate' in calculationResult && (
                                     <Card className="bg-green-100 dark:bg-green-900 col-span-2 border-green-300 dark:border-green-700">
                                         <CardHeader>
-                                            <div className="flex flex-wrap items-center text-green-700 dark:text-green-300">
+                                            <div className="flex items-center text-green-700 dark:text-green-300">
                                                 <Euro className="mr-2 h-5 w-5" />
-                                                <CardTitle className="text-xl flex-9/12">
+                                                <CardTitle className="text-xl">
                                                     Notwendige monatliche Sparrate
                                                 </CardTitle>
-                                                <CardDescription>
-                                                    Dann reicht das Kapital ({formatCurrencyPrecise(calculationResult.futureCapital!)}) um monatlich {formatCurrency(formData.desiredNetPayout)} ({formatCurrency(formData.desiredNetPayout * (1 + formData.taxRate / 100))} brutto) zu entnehmen
-                                                </CardDescription>
                                             </div>
+                                             <CardDescription className="text-green-600 dark:text-green-400">
+                                                Um Ihre gewünschte Rente von {formatCurrency(formData.desiredNetPayout)} netto zu erhalten.
+                                            </CardDescription>
                                         </CardHeader>
                                         <CardContent>
                                             <div className="text-4xl font-bold text-green-800 dark:text-green-200">
                                                 {formatCurrency(calculationResult.requiredMonthlySavingsRate!)}
                                             </div>
+                                             <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+                                                Benötigtes nominales Kapital: {formatCurrency(calculationResult.futureCapital!)}
+                                            </p>
                                         </CardContent>
                                     </Card>
                                 )}
@@ -980,24 +920,13 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                         )}
 
                         {/* Chart Toggles */}
-                        {(isPayoutMode || isAgeMode) && (
+                        {(isPayoutMode || isAgeMode) && !error && calculationResult && (
                             <div className="bg-white p-4 rounded-lg shadow-md space-y-4 dark:bg-black">
                                 <h3 className="text-lg font-semibold flex items-center">
                                     <TrendingUp className="mr-2 h-5 w-5" /> Diagramm-Optionen
                                 </h3>
-                                <div className="flex flex-wrap justify-between items-center w-full gap-5">
+                                <div className="flex flex-wrap justify-start items-center w-full gap-x-8 gap-y-4">
                                     <div className="flex gap-2 items-center">
-                                        <Label htmlFor="showNominalCapital">
-                                            Nominales Kapital anzeigen?
-                                        </Label>
-                                        <ShadcnTooltip>
-                                            <TooltipTrigger>
-                                                <HelpCircle className="h-4 w-4 text-gray-500" />
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>Zeigt das Kapital ohne Inflationsbereinigung an.</p>
-                                            </TooltipContent>
-                                        </ShadcnTooltip>
                                         <Switch
                                             id="showNominalCapital"
                                             checked={formData.showNominalCapital}
@@ -1005,19 +934,11 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                                 memoizedHandleInputChange("showNominalCapital", checked)
                                             }
                                         />
+                                        <Label htmlFor="showNominalCapital">
+                                            Nominales Kapital
+                                        </Label>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Label htmlFor="showContributions">
-                                            Kumulierte Einzahlungen anzeigen?
-                                        </Label>
-                                        <ShadcnTooltip>
-                                            <TooltipTrigger>
-                                                <HelpCircle className="h-4 w-4 text-gray-500" />
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>Zeigt die Summe Ihrer eigenen Einzahlungen an.</p>
-                                            </TooltipContent>
-                                        </ShadcnTooltip>
                                         <Switch
                                             id="showContributions"
                                             checked={formData.showContributions}
@@ -1025,32 +946,38 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                                 memoizedHandleInputChange("showContributions", checked)
                                             }
                                         />
+                                        <Label htmlFor="showContributions">
+                                            Einzahlungen
+                                        </Label>
                                     </div>
                                 </div>
                             </div>
                         )}
 
                         {/* Chart for Payout and Age modes */}
-                        {(isPayoutMode || isAgeMode) && calculationResult && (
+                        {(isPayoutMode || isAgeMode) && !error && calculationResult && 'chartData' in calculationResult && (
                             <div className="bg-white p-4 rounded-lg shadow-md dark:bg-slate-800">
                                 <ResponsiveContainer width="100%" height={400}>
                                     <AreaChart
+                                        data={calculationResult.chartData || []}
                                         margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                                     >
-                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <CartesianGrid strokeDasharray="2 2" opacity={0.3} />
                                         <XAxis
+                                            width={"auto"}
                                             dataKey="age"
                                             type="number"
-                                            domain={["dataMin", "dataMax"]}
+                                            domain={['dataMin', 'dataMax']}
                                             allowDecimals={false}
-                                            ticks={[
-                                                ...(calculationResult.savingsPhaseData?.map(d => d.age) || []),
-                                                ...(isPayoutMode ? (calculationResult.payoutPhaseData?.map(d => d.age) || []) : []),
-                                            ].flat().filter(v => v !== undefined)}
+                                            tickCount={15}
+                                            tickFormatter={(value) => value.toString() + "J"}
+                                            // label={{ value: "Alter", position: "insideBottom", offset: -5 }}
                                         />
                                         <YAxis
-                                            width="auto"
-                                            tickFormatter={formatCurrency}
+                                            width={"auto"}
+                                            tickCount={8}
+                                            tickFormatter={(value) => formatCurrency(value)}
+                                            // label={{ value: "Kapital", angle: -90, position: "insideLeft", offset: 10 }}
                                         />
                                         <Tooltip
                                             formatter={(value: number, name: string) => [
@@ -1058,156 +985,26 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                                 name,
                                             ]}
                                         />
-                                        <Legend content={({ payload }) => (
-                                            <ul
-                                                style={{
-                                                    display: "flex",
-                                                    flexWrap: "wrap",
-                                                    justifyContent: "center",
-                                                    columnGap: "32px",
-                                                    rowGap: "12px",
-                                                    listStyle: "none",
-                                                    margin: 0,
-                                                    padding: 0,
-                                                }}
-                                            >
-                                                {payload?.map((entry, index) => {
-                                                    const isNominal = entry.value?.toLowerCase().includes("nominal");
-                                                    const isContributions = entry.value?.toLowerCase().includes("einzahlungen");
-                                                    const color = entry.color;
+                                        <Legend />
 
-                                                    // Only render legend items for visible lines
-                                                    if (
-                                                        (isNominal && !formData.showNominalCapital) ||
-                                                        (isContributions && !formData.showContributions) ||
-                                                        (entry.value?.toLowerCase().includes("real") && formData.inflation === 0) ||
-                                                        (entry.value?.toLowerCase().includes("entnahme-kapital") && !isPayoutMode)
-                                                    ) {
-                                                        return null;
-                                                    }
+                                        {/* Real Capital Areas */}
+                                        <Area type="step" dataKey="Entnahme-Kapital-Real" name="Entnahme-Kapital (Real)" stroke="#a855f7" fill="#a855f7" fillOpacity={0.35} strokeWidth={2} connectNulls />
+                                        <Area type="step" dataKey="Anspar-Kapital-Real" name="Anspar-Kapital (Real)" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.35} strokeWidth={2} connectNulls />
 
-                                                    return (
-                                                        <li
-                                                            key={`legend-${index}`}
-                                                            style={{
-                                                                display: "flex",
-                                                                alignItems: "center",
-                                                                opacity: isNominal ? 0.4 : 1, // Nominal still slightly faded
-                                                            }}
-                                                        >
-                                                            <div
-                                                                style={{
-                                                                    position: "relative",
-                                                                    width: 32,
-                                                                    height: 2,
-                                                                    marginRight: 8,
-                                                                    backgroundColor: "transparent",
-                                                                    borderBottom: isNominal || isContributions
-                                                                        ? `2px dashed ${color}`
-                                                                        : `2px solid ${color}`,
-                                                                }}
-                                                            >
-                                                                <div
-                                                                    style={{
-                                                                        position: "absolute",
-                                                                        top: -2,
-                                                                        left: "50%",
-                                                                        transform: "translateX(-50%)",
-                                                                        width: 6,
-                                                                        height: 6,
-                                                                        backgroundColor: color,
-                                                                        borderRadius: "50%",
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                            <span style={{ fontSize: 12, color }}>{entry.value}</span>
-                                                        </li>
-                                                    );
-                                                })}
-                                            </ul>
-                                        )} />
-                                        {/* Savings Phase Lines */}
+                                        {/* Nominal Capital Areas */}
                                         {formData.showNominalCapital && (
-                                            <Area
-                                                type="step"
-                                                dataKey="Kapital nominal"
-                                                data={calculationResult.savingsPhaseData}
-                                                stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.4} strokeWidth={2} strokeOpacity={0.3}
-                                                name="Anspar-Kapital (nominal)"
-                                            />
-                                        )}
-                                        {formData.inflation > 0 && (
-                                            <Area
-                                                type="step"
-                                                dataKey="Kapital real"
-                                                data={calculationResult.savingsPhaseData}
-                                                stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.4} strokeWidth={2} strokeOpacity={0.3}
-                                                name="Anspar-Kapital (real - mit inflation)"
-                                            />
-                                        )}
-                                        {/* Area for Contributions */}
-                                        {formData.showContributions && (
-                                            <Area
-                                                type="step"
-                                                dataKey="Einzahlungen"
-                                                data={calculationResult.savingsPhaseData}
-                                                stroke="#10b981" fill="#10b981" fillOpacity={0.1} strokeWidth={2} strokeDasharray="5 5"
-                                                name="Kumulierte Einzahlungen"
-                                            />
-                                        )}
-                                        {/* Payout Phase Lines */}
-                                        {isPayoutMode && calculationResult.payoutPhaseData && calculationResult.payoutPhaseData.length > 0 && (
                                             <>
-                                                {formData.showNominalCapital && (
-                                                    <Area
-                                                        type="step"
-                                                        dataKey="Kapital nominal"
-                                                        data={calculationResult.payoutPhaseData}
-                                                        stroke="#9333ea" fill="#9333ea" fillOpacity={0.2} strokeOpacity={0.3}
-                                                        name="Entnahme-Kapital (nominal)"
-                                                    />
-                                                )}
-                                                {formData.inflation > 0 && (
-                                                    <Area
-                                                        type="step"
-                                                        dataKey="Kapital real"
-                                                        data={calculationResult.payoutPhaseData}
-                                                        stroke="#9333ea" fill="#9333ea" fillOpacity={0.2} strokeOpacity={0.3}
-                                                        name="Entnahme-Kapital (real - mit inflation)"
-                                                    />
-                                                )}
+                                                <Area type="step" dataKey="Entnahme-Kapital-Nominal" name="Entnahme-Kapital (Nominal)" stroke="#a855f7" fill="#a855f7" fillOpacity={0.15} strokeWidth={1} strokeDasharray="5 5" connectNulls />
+                                                <Area type="step" dataKey="Anspar-Kapital-Nominal" name="Anspar-Kapital (Nominal)" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.15} strokeWidth={1} strokeDasharray="5 5" connectNulls />
                                             </>
+                                        )}
+
+                                        {/* Contributions Area */}
+                                        {formData.showContributions && (
+                                            <Area type="step" dataKey="Einzahlungen" name="Einzahlungen" stroke="#16a34a" fill="transparent" strokeWidth={2} strokeDasharray="5 5" connectNulls />
                                         )}
                                     </AreaChart>
                                 </ResponsiveContainer>
-                                <Separator className="my-4" />
-                                <div className="text-sm text-gray-500 space-y-2">
-                                    {formData.showNominalCapital && (
-                                        <p>
-                                            <span className="text-blue-600 font-bold">Die blaue Linie</span> zeigt das <b>nominale Kapital</b> in der Ansparphase.
-                                        </p>
-                                    )}
-                                    {formData.inflation > 0 && (
-                                        <p>
-                                            Die hellere blaue Linie zeigt den <b>realen (inflationsbereinigten) Wert</b> des Ansparkapitals.
-                                        </p>
-                                    )}
-                                    {formData.showContributions && (
-                                        <p>
-                                            <span className="text-green-600 font-bold">Die grüne gestrichelte Linie</span> zeigt die <b>kumulierten Einzahlungen</b>, also den Betrag, den Sie über die Jahre selbst angespart haben.
-                                        </p>
-                                    )}
-                                    {isPayoutMode && formData.showNominalCapital && (
-                                        <p>
-                                            <span className="text-purple-600 font-bold">Die violette Linie</span> zeigt das <b>nominale Kapital</b> in der Entnahmephase.
-                                        </p>
-                                    )}
-                                    {isPayoutMode && formData.inflation > 0 && (
-                                        <p>
-                                            Die hellere violette Linie zeigt den <b>realen (inflationsbereinigten) Wert</b> des Entnahmekapitals, der bei Entnahmen immer sinkt.
-                                        </p>
-                                    )}
-                                </div>
                             </div>
                         )}
                     </div>
