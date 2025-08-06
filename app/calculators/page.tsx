@@ -1,5 +1,6 @@
-import { Suspense } from 'react';
-import CalculatorsClient from './CalculatorsClient';
+import { Suspense } from "react";
+
+import CalculatorsClient from "../../components/Calculators/parentPage/CalculatorsClient";
 
 export default function CalculatorsPage() {
     return (

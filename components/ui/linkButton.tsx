@@ -16,11 +16,14 @@ interface LinkButtonProps extends ButtonProps {
   href: string;
   children: ReactNode;
   target?: string;
+  legacyBehavior?:boolean;
+  linkClassName?:string;
+  passHref?:boolean;
 }
 
-export default function LinkButton({ href, children, target, ...props }: LinkButtonProps) {
+export default function LinkButton({ href, children, target, legacyBehavior, passHref, linkClassName, ...props }: LinkButtonProps) {
   return (
-    <Link href={href} passHref legacyBehavior target={target}>
+    <Link href={href} passHref={passHref ?? true} legacyBehavior={legacyBehavior ?? true} target={target} className={linkClassName}>
       <Button {...props}>
         {children}
       </Button>
