@@ -1,8 +1,9 @@
 "use client";
+import { Quote } from "lucide-react";
 import Image from "next/image";
 
 const Footer = () => (
-    <footer className="bg-white dark:bg-card border-t dark:border-border bottom-0 h-fullw-full flex-grow">
+    <footer className="bg-white dark:bg-card border-t dark:border-border bottom-0 h-full w-full flex-grow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="text-center">
                 <div className="flex items-center space-x-2 justify-center mb-4">
@@ -21,8 +22,21 @@ const Footer = () => (
                 <p className="italic text-gray-500 dark:text-muted-foreground mt-2">
                     Wichtiger Hinweis: Dies ist ein unabhängiges Projekt. Wir stehen in keiner direkten Verbindung zur Marke oder den Betreibern von <a href="https://finanzfluss.de" className="text-blue-600 hover:underline">Finanzfluss</a>.
                 </p>
-                <p className="text-gray-500 dark:text-muted-foreground mt-2">
-                    <a href="https://github.com/Tomato6966/finanzielle_bildung" className="text-blue-600 hover:underline">GitHub Repository - Contribute / Share / Like</a>
+                <p className="text-gray-500 dark:text-muted-foreground mt-6">
+                    <a href="https://github.com/Tomato6966/finanzielle_bildung" className="text-blue-500 dark:text-blue-300 text-lg bg-blue-300/30 dark:bg-blue-300/10 hover:bg-purple-300/50 dark:hover:bg-purple-300/20 p-4 rounded-lg hover:underline hover:text-purple-500 dark:hover:text-purple-300">♥️ GitHub Repository - Contribute / Share / Like</a>
+                </p>
+                <div className="text-sm text-gray-400 dark:text-muted-foreground mt-6 mx-auto leading-relaxed border-t-2 pt-2">
+                    <strong className="flex items-center gap-2 w-full justify-center">
+                    <Quote className="w-12 h-12" />
+                        Haftungsausschluss:
+                    </strong>
+                    <blockquote className="relative">
+
+                        <span className="h-full">Die auf dieser Website bereitgestellten Informationen stellen keine Anlageberatung oder Empfehlung zum Kauf oder Verkauf von Finanzinstrumenten dar. Alle Inhalte dienen ausschließlich der allgemeinen Information und ersetzen keine individuelle Beratung durch dafür qualifizierte Personen. Die Nutzung der Inhalte erfolgt auf eigene Verantwortung. Jegliche Haftung für Vermögensschäden, die durch die Nutzung der angebotenen Inhalte entstehen, ist ausgeschlossen.</span>
+                    </blockquote>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-muted-foreground mt-2 italic">
+                    Weitere rechtliche Hinweise findest du in unserem <a href="/disclaimer" className="text-blue-600 hover:underline">Disclaimer</a>.
                 </p>
             </div>
         </div>
