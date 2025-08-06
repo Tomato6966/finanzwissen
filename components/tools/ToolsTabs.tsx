@@ -1,10 +1,6 @@
-import { Download, ExternalLink } from "lucide-react";
 import Image from "next/image";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import LinkButton from "@/components/ui/linkButton";
+import { Card } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
 
 import { ToolCategory } from "./ToolCategories";
@@ -28,7 +24,7 @@ export function ToolsTabContent({ category }: { category: ToolCategory }) {
                                 <video src={item.image} autoPlay muted loop className="w-full h-54 object-cover group-hover:scale-105 transition-transform duration-300 rounded-t-lg" />
                             ) : (
                                 <Image
-                                    src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}${item.image || "/placeholder.svg"}`}
+                                    src={`${item.image || (process.env.NEXT_PUBLIC_BASE_PATH || '' + "/placeholder.svg")}`}
                                     alt={item.title}
                                     width={800}
                                     height={192}
