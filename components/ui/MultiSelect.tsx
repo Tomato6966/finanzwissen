@@ -1,11 +1,11 @@
+import { cva, VariantProps } from "class-variance-authority";
+import { Command as CommandPrimitive } from "cmdk";
+import { Check, X } from "lucide-react"; // Import Check icon
 import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
-import { X, Check } from "lucide-react"; // Import Check icon
 
-import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Command, CommandGroup, CommandItem } from "@/components/ui/command";
-import { Command as CommandPrimitive } from "cmdk";
+import { cn } from "@/lib/utils";
 
 const multiSelectVariants = cva(
   "flex items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
@@ -22,7 +22,7 @@ const multiSelectVariants = cva(
 );
 
 interface MultiSelectProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'>,
     VariantProps<typeof multiSelectVariants> {
   options: {
     label: string;
@@ -34,7 +34,7 @@ interface MultiSelectProps
 }
 
 const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>(
-  ({ options, value, onChange, className, placeholder, ...props }, ref) => {
+  ({ options, value, onChange, className, placeholder, ...props }) => {
     const [open, setOpen] = React.useState(false);
     const commandRef = React.useRef<HTMLDivElement>(null); // Ref for the CommandPrimitive div
 

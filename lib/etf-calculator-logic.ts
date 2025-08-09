@@ -402,7 +402,10 @@ export const calculateProjection = (formData: ETFInvestmentData, stockAllocation
         const etfReturn = rec.historicalReturn ? rec.historicalReturn / 100 :
             (rec.name.toLowerCase().includes('bond') ? 0.02 : 0.07);
         return acc + (rec.weight * etfReturn);
-    }, 0);
+    }, 0) - (includeInflation ? inflationRate : 0);
+
+    // more fancy way of calcuting inflation result, however then the substraction of return needs to be removed. and that can be confusing for the user, why the inflation is not included in the return, therefore we use the "simple approach" which leads to less total value due to accuracy inconsistency
+    const widthInflation = false; // includeInflation;
 
     const projection = (years: number): Projection => {
         let futureValue = startingCapital;
@@ -415,24 +418,31 @@ export const calculateProjection = (formData: ETFInvestmentData, stockAllocation
                 totalInvestment += annualContribution;
             }
 
-            const adjustedValue = includeInflation ?
+            const adjustedValue = widthInflation ?
                 futureValue / Math.pow(1 + inflationRate, i) : futureValue;
+
+            const realContributions = widthInflation ?
+                totalInvestment / Math.pow(1 + inflationRate, i) : totalInvestment;
 
             chartData.push({
                 year: i,
                 value: adjustedValue,
-                contributions: totalInvestment,
-                returns: adjustedValue - totalInvestment
+                contributions: realContributions,
+                returns: adjustedValue - realContributions
             });
         }
 
-        const finalValue = includeInflation ?
+        const finalValue = widthInflation ?
             futureValue / Math.pow(1 + inflationRate, years) : futureValue;
-        const totalProfit = finalValue - totalInvestment;
+
+        const realTotalInvestment = widthInflation ?
+            totalInvestment / Math.pow(1 + inflationRate, years) : totalInvestment;
+
+        const totalProfit = finalValue - realTotalInvestment;
 
         return {
             futureValue: finalValue,
-            totalInvestment,
+            totalInvestment: realTotalInvestment,
             totalProfit,
             chartData
         };

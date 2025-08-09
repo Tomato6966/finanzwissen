@@ -289,23 +289,23 @@ export const ETFInvestmentCalculator: FC<ETFInvestmentCalculatorProps> = ({
                                 <SelectTrigger className="focus:ring-2 focus:ring-blue-500">
                                     <SelectValue placeholder="Wählen Sie Ihre Risikobereitschaft" />
                                 </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="conservative">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                                            <span>Konservativ - Sicherheit steht im Vordergrund</span>
+                                <SelectContent className="w-auto min-w-[280px] max-w-[400px]">
+                                    <SelectItem value="conservative" className="h-auto py-2">
+                                        <div className="flex items-start gap-2 w-full">
+                                            <div className="w-3 h-3 rounded-full bg-green-500 flex-shrink-0 mt-0.5"></div>
+                                            <span className="text-wrap leading-tight text-sm">Konservativ - Sicherheit steht im Vordergrund</span>
                                         </div>
                                     </SelectItem>
-                                    <SelectItem value="moderate">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                                            <span>Moderat - Ausgewogenes Verhältnis</span>
+                                    <SelectItem value="moderate" className="h-auto py-2">
+                                        <div className="flex items-start gap-2 w-full">
+                                            <div className="w-3 h-3 rounded-full bg-yellow-500 flex-shrink-0 mt-0.5"></div>
+                                            <span className="text-wrap leading-tight text-sm">Moderat - Ausgewogenes Verhältnis</span>
                                         </div>
                                     </SelectItem>
-                                    <SelectItem value="aggressive">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                                            <span>Offensiv - Höhere Rendite bei höherem Risiko</span>
+                                    <SelectItem value="aggressive" className="h-auto py-2">
+                                        <div className="flex items-start gap-2 w-full">
+                                            <div className="w-3 h-3 rounded-full bg-red-500 flex-shrink-0 mt-0.5"></div>
+                                            <span className="text-wrap leading-tight text-sm">Offensiv - Höhere Rendite bei höherem Risiko</span>
                                         </div>
                                     </SelectItem>
                                 </SelectContent>
