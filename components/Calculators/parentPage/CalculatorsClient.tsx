@@ -11,10 +11,10 @@ import { TabsContents } from "./CaluclatorsTabs";
 
 import type {
     BudgetAnalysisData, CompoundInterestData, FinancialGoalsData, MonteCarloData, RetirementData,
-    WithDrawalInitialData,
+    WithDrawalInitialData, ETFInvestmentData
 } from "@/lib/calculator-types";
 interface SharedCalculatorState {
-    type: 'compound' | 'withdrawal' | 'retirement' | 'goals' | 'montecarlo' | 'budget-analysis';
+    type: 'compound' | 'withdrawal' | 'retirement' | 'goals' | 'montecarlo' | 'budget-analysis' | 'etf-investment';
     data: unknown;
 }
 
@@ -43,6 +43,10 @@ const TabListRecord = {
         label: "Budgetanalyse",
         icon: PiggyBank,
     },
+    "etf-investment": {
+        label: "ETF Investment",
+        icon: TrendingUp,
+    },
 }
 
 export default function CalculatorsClient() {
@@ -58,6 +62,7 @@ export default function CalculatorsClient() {
     const [initialRetirementData, setInitialRetirementData] = useState<RetirementData | null>(null);
     const [initialMontecarloData, setInitialMontecarloData] = useState<MonteCarloData | null>(null);
     const [initialBudgetAnalysisData, setInitialBudgetAnalysisData] = useState<BudgetAnalysisData | null>(null);
+    const [initialETFInvestmentData, setInitialETFInvestmentData] = useState<ETFInvestmentData | null>(null);
 
     useEffect(() => {
         const handleHashChange = () => {
@@ -106,6 +111,9 @@ export default function CalculatorsClient() {
                         case 'budget-analysis':
                             setInitialBudgetAnalysisData(data as BudgetAnalysisData);
                             break;
+                        case 'etf-investment':
+                            setInitialETFInvestmentData(data as ETFInvestmentData);
+                            break;
                         default:
                             console.warn("Unknown calculator type in shared state:", type);
                     }
@@ -142,7 +150,7 @@ export default function CalculatorsClient() {
                     ))}
                 </TabsList>
 
-                <TabsContents hasSearchParam={hasSearchParam} initialCompoundData={initialCompoundData} initialWithdrawalData={initialWithdrawalData} initialRetirementData={initialRetirementData} initialFinancialGoalsData={initialFinancialGoalsData} initialMontecarloData={initialMontecarloData} initialBudgetAnalysisData={initialBudgetAnalysisData} />
+                <TabsContents hasSearchParam={hasSearchParam} initialCompoundData={initialCompoundData} initialWithdrawalData={initialWithdrawalData} initialRetirementData={initialRetirementData} initialFinancialGoalsData={initialFinancialGoalsData} initialMontecarloData={initialMontecarloData} initialBudgetAnalysisData={initialBudgetAnalysisData} initialETFInvestmentData={initialETFInvestmentData} />
             </Tabs>
         </div>
     );

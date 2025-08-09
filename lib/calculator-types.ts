@@ -139,3 +139,15 @@ export interface BudgetAnalysisData {
     budgetItems: BudgetItem[];
     visualizationType: 'bar' | 'sankey';
 }
+
+export interface ETFInvestmentData {
+    age: number;
+    riskTolerance: 'conservative' | 'moderate' | 'aggressive';
+    investmentHorizon: 'short' | 'medium' | 'normal' | 'long';
+    regions: string[];
+    contributionAmount: number;
+    contributionInterval: 'daily' | 'weekly' | 'bi-weekly' | 'monthly' | 'quarterly' | 'yearly';
+    startingCapital: number;
+    experience: 'beginner' | 'intermediate' | 'expert';
+    includeInflation: boolean;
+}

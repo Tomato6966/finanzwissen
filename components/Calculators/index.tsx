@@ -5,3 +5,4 @@ export * from "./Retirement-calculator";
 export * from "./WithdrawalPlan-calculator";
 export * from "./BudgetAnalysis-calculator";
 export * from "./tools";
+export * from "./ETF-Investment-calculator";

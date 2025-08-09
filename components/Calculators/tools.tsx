@@ -20,5 +20,9 @@ export const handleFormChange = <T,>(setter: React.Dispatch<React.SetStateAction
 };
 
 export const handleSelectChange = <T,>(setter: React.Dispatch<React.SetStateAction<T>>, name: string) => (value: string) => {
+    setter(prev => ({ ...prev, [name]: value }));
+};
+
+export const handleNumberSelectChange = <T,>(setter: React.Dispatch<React.SetStateAction<T>>, name: string) => (value: string) => {
     setter(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
 };
