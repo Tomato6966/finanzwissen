@@ -767,7 +767,7 @@ export const ETFInvestmentCalculator: FC<ETFInvestmentCalculatorProps> = ({
                                                                     onClick={() => window.open(rec.justEtfUrl, "_blank")}
                                                                 >
                                                                     <ExternalLink className="w-4 h-4 mr-2" />
-                                                                    Auf JustETF anzeigen
+                                                                    Auf extraETF.com anzeigen
                                                                 </Button>
                                                             )}
                                                         </CardContent>

@@ -34,18 +34,18 @@ const ETF_DATABASE: Record<string, ETFRecommendation> = {
         isin: 'IE00BK5BQT80',
         description: 'Perfekt für Einsteiger - breite globale Diversifikation',
         ter: 0.22,
-        justEtfUrl: 'https://www.justetf.com/de/etf-profile.html?isin=IE00BK5BQT80',
+        justEtfUrl: 'https://extraetf.com/de/etf-profile/IE00BK5BQT80',
         historicalReturn: 7.8,
         volatility: 15.8
     },
     'MSCI_ACWI_IMI': {
         name: 'MSCI ACWI IMI',
         weight: 0,
-        ticker: 'IMID.SW',
+        ticker: 'SPYI.DE',
         isin: 'IE00B3YLTY66',
         description: 'Alternative zum FTSE_ALL_WORLD nur mit Small-Caps',
-        ter: 0.40,
-        justEtfUrl: 'https://www.justetf.com/de/etf-profile.html?isin=IE00B3YLTY66',
+        ter: 0.17,
+        justEtfUrl: 'https://extraetf.com/de/etf-profile/IE00B3YLTY66',
         historicalReturn: 7.6,
         volatility: 16.1
     },
@@ -56,7 +56,7 @@ const ETF_DATABASE: Record<string, ETFRecommendation> = {
         isin: 'IE00B6R52259',
         description: 'Einfache globale Marktabdeckung',
         ter: 0.20,
-        justEtfUrl: 'https://www.justetf.com/de/etf-profile.html?isin=IE00B6R52259',
+        justEtfUrl: 'https://extraetf.com/de/etf-profile/IE00B6R52259',
         historicalReturn: 7.4,
         volatility: 15.7
     },
@@ -69,7 +69,7 @@ const ETF_DATABASE: Record<string, ETFRecommendation> = {
         isin: 'IE00B4L5Y983',
         description: 'Entwickelte Märkte weltweit',
         ter: 0.20,
-        justEtfUrl: 'https://www.justetf.com/de/etf-profile.html?isin=IE00B4L5Y983',
+        justEtfUrl: 'https://extraetf.com/de/etf-profile/IE00B4L5Y983',
         historicalReturn: 7.5,
         volatility: 15.2
     },
@@ -80,7 +80,7 @@ const ETF_DATABASE: Record<string, ETFRecommendation> = {
         isin: 'IE00B4L5YC18',
         description: 'Schwellenländer für zusätzliche Diversifikation',
         ter: 0.18,
-        justEtfUrl: 'https://www.justetf.com/de/etf-profile.html?isin=IE00B4L5YC18',
+        justEtfUrl: 'https://extraetf.com/de/etf-profile/IE00B4L5YC18',
         historicalReturn: 5.8,
         volatility: 21.5
     },
@@ -91,7 +91,7 @@ const ETF_DATABASE: Record<string, ETFRecommendation> = {
         isin: 'IE00B60SX394',
         description: 'Breite europäische Marktabdeckung',
         ter: 0.07,
-        justEtfUrl: 'https://www.justetf.com/de/etf-profile.html?isin=IE00B60SX394',
+        justEtfUrl: 'https://extraetf.com/de/etf-profile/IE00B60SX394',
         historicalReturn: 6.9,
         volatility: 16.8
     },
@@ -104,7 +104,7 @@ const ETF_DATABASE: Record<string, ETFRecommendation> = {
         isin: 'IE00B3XXRP09',
         description: 'US Large-Cap Aktien - für Fortgeschrittene',
         ter: 0.07,
-        justEtfUrl: 'https://www.justetf.com/de/etf-profile.html?isin=IE00B3XXRP09',
+        justEtfUrl: 'https://extraetf.com/de/etf-profile/IE00B3XXRP09',
         historicalReturn: 8.1,
         volatility: 16.8
     },
@@ -115,7 +115,7 @@ const ETF_DATABASE: Record<string, ETFRecommendation> = {
         isin: 'IE0032077012',
         description: 'US Tech-Aktien - nur für Experten empfohlen',
         ter: 0.20,
-        justEtfUrl: 'https://www.justetf.com/de/etf-profile.html?isin=IE0032077012',
+        justEtfUrl: 'https://extraetf.com/de/etf-profile/IE0032077012',
         historicalReturn: 9.2,
         volatility: 22.1
     },
@@ -143,7 +143,7 @@ const ETF_DATABASE: Record<string, ETFRecommendation> = {
         isin: 'IE00B3DKXQ41',
         description: 'Globale Anleihen für Stabilität',
         ter: 0.10,
-        justEtfUrl: 'https://www.justetf.com/de/etf-profile.html?isin=IE00B3DKXQ41',
+        justEtfUrl: 'https://extraetf.com/de/etf-profile/IE00B3DKXQ41',
         historicalReturn: 2.1,
         volatility: 4.2
     },
@@ -154,7 +154,7 @@ const ETF_DATABASE: Record<string, ETFRecommendation> = {
         isin: 'IE00B4WXJG34',
         description: 'Sichere europäische Staatsanleihen',
         ter: 0.07,
-        justEtfUrl: 'https://www.justetf.com/de/etf-profile.html?isin=IE00B4WXJG34',
+        justEtfUrl: 'https://extraetf.com/de/etf-profile/IE00B4WXJG34',
         historicalReturn: 1.8,
         volatility: 3.8
     }
