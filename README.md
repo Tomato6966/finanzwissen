@@ -17,7 +17,7 @@ Diese App wurde mit **HTML**, **CSS** und **JavaScript** entwickelt. Sie läuft 
 
 Besuchen Sie einfach die Website, um sofort mit dem Lernen zu beginnen. Es ist keine Registrierung oder Anmeldung erforderlich.
 
-1.  Öffnen Sie die App in Ihrem Browser: `https://tomato6966.github.io/finanzielle_bildung/`
+1.  Öffnen Sie die App in Ihrem Browser: `https://tomato6966.github.io/finanzwissen/`
 2.  Wählen Sie eine Lektion aus dem Menü.
 3.  Durchlaufen Sie die Inhalte und machen Sie am Ende den Test.
 

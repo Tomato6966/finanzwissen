@@ -20,7 +20,7 @@
     ],
     "paths": {
       "@/*": ["./*"],
-      // finanzielle_bildung\components\Tabs\subPages\Calculators
+      // finanzwissen\components\Tabs\subPages\Calculators
       "@/Calculators/*": ["./components/Calculators/*"]
     }
   },

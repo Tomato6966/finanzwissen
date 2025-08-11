@@ -1,6 +1,6 @@
 const isGithubPages = process.env.NODE_ENV === 'production';
 
-const basePath = isGithubPages ? '/finanzielle_bildung' : ''
+const basePath = isGithubPages ? '/finanzwissen' : ''
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

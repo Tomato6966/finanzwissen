@@ -40,7 +40,7 @@ const Footer = () => (
                     Wichtiger Hinweis: Dies ist ein unabhängiges Projekt. Wir stehen in keiner direkten Verbindung zur Marke oder den Betreibern von <a href="https://finanzfluss.de" className="text-blue-600 hover:underline">Finanzfluss</a>.
                 </p>
                 <p className="text-gray-500 dark:text-muted-foreground mt-6">
-                    <a target="_blank" href="https://github.com/Tomato6966/finanzielle_bildung" className="text-blue-500 dark:text-blue-300 text-lg bg-blue-300/30 dark:bg-blue-300/10 hover:bg-purple-300/50 dark:hover:bg-purple-300/20 p-4 rounded-lg hover:underline hover:text-purple-500 dark:hover:text-purple-300">♥️ GitHub Repository - Contribute / Share / Like</a>
+                    <a target="_blank" href="https://github.com/Tomato6966/finanzwissen" className="text-blue-500 dark:text-blue-300 text-lg bg-blue-300/30 dark:bg-blue-300/10 hover:bg-purple-300/50 dark:hover:bg-purple-300/20 p-4 rounded-lg hover:underline hover:text-purple-500 dark:hover:text-purple-300">♥️ GitHub Repository - Contribute / Share / Like</a>
                 </p>
                 <div className="text-sm text-gray-400 dark:text-muted-foreground mt-6 mx-auto leading-relaxed border-t-2 pt-2">
                     <strong className="flex items-center gap-2 w-full justify-center">
