@@ -115,7 +115,9 @@ const formatDateToISO = (date: Date, lessThenADay: boolean = false) => lessThenA
 
 const isProd = process.env.NEXT_PUBLIC_USE_PROXYURL === "true";
 
-const CORS_PROXY = 'https://corsproxy.io/?url=';
+//https://thingproxy.freeboard.io/fetch/{url}
+//https://corsproxy.io/?url={url}
+const CORS_PROXY = 'https://thingproxy.freeboard.io/fetch/';
 const YAHOO_API = 'https://query1.finance.yahoo.com';
 const API_BASE =  isProd ? `${CORS_PROXY}${encodeURIComponent(YAHOO_API)}` : YAHOO_API;
 
