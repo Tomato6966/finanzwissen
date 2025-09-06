@@ -116,6 +116,12 @@ export const TOOL_CATEGORIES: ToolCategory[] = [
         icon: PieChart,
         items: [
             {
+                title: "FIRE - Simulator",
+                description: "COMMUNITY-MADE : Fire (Financial Independence, Retire Early) Simulation - Wann kannst du in Rente gehen? (Anhand von: Performance, Sparrate, Ausgaben, Inflation, Alter, und von allem mehrere verschiedene Einstellungsmöglichkeiten)",
+                image: "https://i.imgur.com/db7MIBi.png",
+                link: { href: "https://wealthcalc.netlify.app/", isExternal: true }
+            },
+            {
                 title: "FI Simulator (Monte Carlo Simulation)",
                 description: "Kostenloses Tool zur Analyse der Diversifikation und Risikostruktur Ihres Portfolios.",
                 image: "https://i.imgur.com/SadhYY0.png",
