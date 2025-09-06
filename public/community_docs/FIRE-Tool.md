@@ -6,7 +6,7 @@
 
 Ein Community Mitglied von der FinanzFluss Community hat ein interessantes Tool gebaut!
 
-![](https://imgur.com/db7MIBi)
+![](https://i.imgur.com/db7MIBi.png)
 
 Ein umfassender Rechner für die finanzielle Unabhängigkeit, der dir hilft, deine Sparziele zu definieren und den Weg zur finanziellen Freiheit zu planen und zu visualisieren.
 
