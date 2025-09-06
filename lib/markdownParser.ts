@@ -40,7 +40,8 @@ export const parseMarkdown = (markdown: string): string => {
   html = html.replace(/`(.*?)`/g, '<code>$1</code>');
 
   // Images - ADD THIS LINE
-  html = html.replace(/!\[([^\]]+)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" loading="lazy">');
+  // ![](https://i.imgur.com/db7MIBi.png)
+  html = html.replace(/!\[([^\]]+)?\]\(([^)]+)\)/g, '<img src="$2" alt="$1" loading="lazy">');
 
   // Links
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
