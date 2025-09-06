@@ -2,9 +2,9 @@
 
 # FIRE | Vermögensaufbaurechner
 
-## Übersicht
-
 Ein Community Mitglied von der FinanzFluss Community hat ein interessantes Tool gebaut!
+
+## Übersicht
 
 ![](https://i.imgur.com/db7MIBi.png)
 
