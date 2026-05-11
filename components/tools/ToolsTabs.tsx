@@ -37,23 +37,23 @@ export function ToolsTabContent({ category }: { category: ToolCategory }) {
                                 />
                             )}
                             {/* Display category as a badge if needed, or other specific badges */}
-                            <Badge className="absolute top-3 left-3 bg-white/90 text-gray-900 dark:text-card-foreground dark:bg-card rounded-md">{category.title}</Badge>
+                            <Badge className="absolute top-3 left-3 bg-card/90 text-card-foreground rounded-md">{category.title}</Badge>
                             {item.link.href && item.link.isExternal && (
-                                <Badge className="absolute top-3 right-3 bg-blue-600 text-white rounded-md">External-Tool</Badge>
+                                <Badge className="absolute top-3 right-3 bg-primary text-primary-foreground rounded-md">External-Tool</Badge>
                             )}
                             {item.link.href && !item.link.isExternal && (
-                                <Badge className="absolute top-3 right-3 bg-green-600 text-white rounded-md">Internal-Tool</Badge>
+                                <Badge className="absolute top-3 right-3 bg-emerald-600 text-white rounded-md">Internal-Tool</Badge>
                             )}
                             {item.link.href && !item.link.isExternal && "download" in item.link && item.link.download === true && (
-                                <Badge className="absolute top-3 right-3 bg-purple-600 text-white rounded-md">File-Download</Badge>
+                                <Badge className="absolute top-3 right-3 bg-violet-600 text-white rounded-md">File-Download</Badge>
                             )}
                         </div>
 
                         <CardHeader className="pb-3">
-                            <CardTitle className="text-lg text-gray-900 dark:text-card-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                            <CardTitle className="text-lg text-card-foreground group-hover:text-primary transition-colors">
                                 {item.title}
                             </CardTitle>
-                            <CardDescription className="text-gray-600 dark:text-muted-foreground line-clamp-2">{item.description}</CardDescription>
+                            <CardDescription className="text-muted-foreground line-clamp-2">{item.description}</CardDescription>
                         </CardHeader>
 
                         <CardContent className="pt-0 flex justify-end">
@@ -65,7 +65,7 @@ export function ToolsTabContent({ category }: { category: ToolCategory }) {
                                     Herunterladen
                                 </Button>
                             ) : (
-                                <LinkButton href={item.link.href} target={item.link.isExternal ? "_blank" : "_self"} linkClassName="w-full" legacyBehavior={false} rel={item.link.isExternal ? "noopener noreferrer" : ""} size="lg" className="w-full text-xl text-white">
+                                <LinkButton href={item.link.href} target={item.link.isExternal ? "_blank" : "_self"} linkClassName="w-full" legacyBehavior={false} rel={item.link.isExternal ? "noopener noreferrer" : ""} size="lg" className="w-full text-xl">
                                     <ExternalLink className="w-4 h-4 ml-2" />
                                     Tool öffnen
                                 </LinkButton>

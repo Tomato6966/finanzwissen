@@ -85,7 +85,7 @@ const CommunityContent = () => {
   if (loading) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500 dark:text-muted-foreground">
+        <p className="text-muted-foreground">
           Loading files...
         </p>
       </div>
@@ -95,7 +95,7 @@ const CommunityContent = () => {
   if (error) {
     return (
       <div className="text-center py-8">
-        <p className="text-red-500 dark:text-red-400">
+        <p className="text-destructive">
           Error: {error}
         </p>
       </div>
@@ -105,10 +105,10 @@ const CommunityContent = () => {
   return (
     <div className="space-y-6 min-h-[calc(100vh-25vh)]">
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-foreground mb-4">
+        <h1 className="text-4xl font-bold text-foreground mb-4">
           Community Knowledge Base
         </h1>
-        <p className="text-lg text-gray-600 dark:text-muted-foreground max-w-3xl mx-auto">
+        <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
           Explore and contribute to our community-driven financial education resources.
         </p>
       </div>
@@ -133,7 +133,7 @@ const CommunityContent = () => {
 
       {filteredFiles.length === 0 && (
         <div className="text-center py-8">
-          <p className="text-gray-500 dark:text-muted-foreground">
+          <p className="text-muted-foreground">
             No files found matching your search.
           </p>
         </div>
@@ -142,10 +142,10 @@ const CommunityContent = () => {
       {/* Modal */}
       {slug && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-card rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                <p className="font-bold text-gray-900 dark:text-foreground">{modalContent?.id || "loading.md ..."}</p>
+                <p className="font-bold text-foreground">{modalContent?.id || "loading.md ..."}</p>
                 <div className="flex flex-wrap items-center justify-end gap-4">
                     <Button onClick={handleShare} variant="default" className="flex items-center gap-2">
                         {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
@@ -161,7 +161,7 @@ const CommunityContent = () => {
 
               {modalLoading && (
                 <div className="text-center py-8">
-                  <p className="text-gray-500 dark:text-muted-foreground">
+                  <p className="text-muted-foreground">
                     Loading content...
                   </p>
                 </div>
@@ -169,7 +169,7 @@ const CommunityContent = () => {
 
               {modalError && (
                 <div className="text-center py-8">
-                  <p className="text-red-500 dark:text-red-400">
+                  <p className="text-destructive">
                     {modalError}
                   </p>
                 </div>
@@ -180,7 +180,7 @@ const CommunityContent = () => {
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
-                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-muted-foreground">
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           {modalContent.author && (
                             <span>By {modalContent.author}</span>
                           )}
@@ -211,7 +211,7 @@ const CommunityContent = () => {
 // Loading fallback component
 const CommunityLoading = () => (
   <div className="text-center py-8">
-    <p className="text-gray-500 dark:text-muted-foreground">
+    <p className="text-muted-foreground">
       Loading community content...
     </p>
   </div>

@@ -7,6 +7,7 @@ import { PropsWithChildren } from "react";
 
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import MouseGlow from "@/components/MouseGlow";
 import PageRouter from "@/Context/PageContext";
 
 const geistSans = Geist({
@@ -75,10 +76,11 @@ export default function RootLayout({
   children,
 }: PropsWithChildren) {
   return (
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground min-h-screen relative`}
       >
+        <MouseGlow />
         <PageRouter>
             <Header />
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

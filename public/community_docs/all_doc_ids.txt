@@ -1,3 +1,13 @@
+FIRE-Tool.md
 budgeting-tips.md
+depotkosten-ter.md
+immobilien-assetklasse.md
 investment-basics.md
+rebalancing-strategien.md
 retirement-planning.md
+scams-erkennen.md
+sequenzrisiko.md
+steuerliche-grundlagen.md
+thesaurierend-vs-ausschuettend.md
+verhaltensökonomik.md
+versicherungen-check.md

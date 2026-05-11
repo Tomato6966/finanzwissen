@@ -22,9 +22,6 @@ export default function PageRouter({
     const [mounted, setMounted] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(false);
 
-    const toggleDarkMode = () => {
-        setIsDarkMode(!isDarkMode);
-    };
 
     // Handle hydration - only run after component mounts
     useEffect(() => {
@@ -42,6 +39,10 @@ export default function PageRouter({
         }
     }, []);
 
+    const toggleDarkMode = () => {
+        setIsDarkMode((prev) => !prev);
+    };
+
     // Save to localStorage when isDarkMode changes
     useEffect(() => {
         if (mounted) {
@@ -53,29 +54,17 @@ export default function PageRouter({
         }
     }, [isDarkMode, mounted]);
 
-    // Apply dark mode classes after hydration
+    // Apply dark mode class after hydration
     useEffect(() => {
         if (mounted) {
-            if (isDarkMode) {
-                document.documentElement.classList.add("dark");
-            } else {
-                document.documentElement.classList.remove("dark");
-            }
+            document.documentElement.classList.toggle("dark", isDarkMode);
         }
     }, [isDarkMode, mounted]);
 
     // Always render with the same initial state to prevent hydration mismatch
     return (
-        <div
-            className={`h-full transition-colors duration-300 ${
-                mounted && isDarkMode
-                    ? "dark bg-gray-900"
-                    : "bg-gradient-to-br from-blue-50 to-indigo-100"
-            }`}
-        >
-            <PageContext.Provider value={{ isDarkMode: mounted ? isDarkMode : false, toggleDarkMode }}>
-                {children}
-            </PageContext.Provider>
-        </div>
+        <PageContext.Provider value={{ isDarkMode: mounted ? isDarkMode : false, toggleDarkMode }}>
+            {children}
+        </PageContext.Provider>
     );
 }

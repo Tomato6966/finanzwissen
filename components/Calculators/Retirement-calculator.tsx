@@ -24,7 +24,9 @@ import { Switch } from "@/components/ui/switch";
 import {
 	Tooltip as ShadcnTooltip, TooltipContent, TooltipProvider, TooltipTrigger
 } from "@/components/ui/tooltip";
+import { defaultAdvancedSavingsPeriods, getAnnualSavingsForYear } from "@/lib/savings-plan";
 
+import { AdvancedSavingsPlanInput } from "./AdvancedSavingsPlanInput";
 import { formatCurrency } from "./tools";
 
 import type { AnnuityType, CalculationType, FormData, RetirementCalculatorProps } from "../../lib/calculator-types";
@@ -49,6 +51,8 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
         savingsIncreaseRate: 2,
         showNominalCapital: true,
         showContributions: true,
+        useAdvancedSavingsPlan: false,
+        advancedSavingsPeriods: defaultAdvancedSavingsPeriods(37),
     });
     const [shareMessage, setShareMessage] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -86,32 +90,11 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                 savingsIncreaseRate: 2,
                 showNominalCapital: true,
                 showContributions: true,
+                useAdvancedSavingsPlan: false,
+                advancedSavingsPeriods: defaultAdvancedSavingsPeriods(37),
             });
         }
     }, [initialData]);
-
-    // Calculate annual savings based on interval
-    const getAnnualSavings = (
-        rate: number,
-        interval: FormData["savingsInterval"]
-    ) => {
-        switch (interval) {
-            case "daily":
-                return rate * 365;
-            case "weekly":
-                return rate * 52;
-            case "bi_weekly":
-                return rate * 26;
-            case "monthly":
-                return rate * 12;
-            case "quarterly":
-                return rate * 4;
-            case "yearly":
-                return rate;
-            default:
-                return 0;
-        }
-    };
 
     // Main calculation logic
     const calculationResult = useMemo(() => {
@@ -130,6 +113,8 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
             lifeExpectancy,
             dynamicSavingsAdjustment,
             savingsIncreaseRate,
+            useAdvancedSavingsPlan,
+            advancedSavingsPeriods = defaultAdvancedSavingsPeriods(desiredRetirementAge - currentAge),
         } = formData;
 
         // --- Input Validation ---
@@ -145,6 +130,10 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
             setError("Negative Werte sind für die meisten Felder nicht zulässig.");
             return null;
         }
+        if (useAdvancedSavingsPlan && advancedSavingsPeriods.some((period) => period.startYear < 0 || period.endYear < period.startYear || period.monthlyAmount < 0)) {
+            setError("Bitte pruefen Sie die erweiterten Sparphasen.");
+            return null;
+        }
 
 
         const rateOfReturn = rawYield / 100;
@@ -152,24 +141,26 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
         const taxFactor = 1 - taxRate / 100;
         const realRateOfReturn = (1 + rateOfReturn) / (1 + inflationRate) - 1;
 
-        const currentAnnualSavings = getAnnualSavings(savingsRate, savingsInterval);
-
         // --- Shared Savings Phase Logic ---
         const calculateSavingsPhase = (endAge: number) => {
             let accumulatedCapital = currentCapital;
             let cumulativeContributions = currentCapital;
             const savingsData = [];
             let cumulativeInflationFactor = 1;
-            let dynamicAnnualSavings = getAnnualSavings(savingsRate, savingsInterval);
-
             for (let age = currentAge; age <= endAge; age++) {
                 const yearIndex = age - currentAge;
                 if (yearIndex > 0) {
-                    if (dynamicSavingsAdjustment && savingsIncreaseRate > 0) {
-                        dynamicAnnualSavings *= (1 + savingsIncreaseRate / 100);
-                    }
-                    accumulatedCapital = accumulatedCapital * (1 + rateOfReturn) + dynamicAnnualSavings;
-                    cumulativeContributions += dynamicAnnualSavings;
+                    const annualSavings = getAnnualSavingsForYear({
+                        yearIndex: yearIndex - 1,
+                        baseRate: savingsRate,
+                        interval: savingsInterval,
+                        useAdvancedPlan: useAdvancedSavingsPlan,
+                        advancedPeriods: advancedSavingsPeriods,
+                        dynamicSavingsAdjustment,
+                        savingsIncreaseRate,
+                    });
+                    accumulatedCapital = accumulatedCapital * (1 + rateOfReturn) + annualSavings;
+                    cumulativeContributions += annualSavings;
                 }
                 cumulativeInflationFactor *= (1 + inflationRate);
                 savingsData.push({
@@ -299,7 +290,6 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
             let retirementAge = currentAge;
             let accumulatedNominalCapital = currentCapital;
             let accumulatedRealCapital = currentCapital;
-            let dynamicAnnualSavings = currentAnnualSavings;
             let cumulativeContributions = currentCapital;
             const savingsPhaseDataSim = [];
 
@@ -310,12 +300,18 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                     return null;
                 }
 
-                if (dynamicSavingsAdjustment && savingsIncreaseRate > 0) {
-                    dynamicAnnualSavings *= (1 + savingsIncreaseRate / 100);
-                }
+                const annualSavings = getAnnualSavingsForYear({
+                    yearIndex: retirementAge - currentAge - 1,
+                    baseRate: savingsRate,
+                    interval: savingsInterval,
+                    useAdvancedPlan: useAdvancedSavingsPlan,
+                    advancedPeriods: advancedSavingsPeriods,
+                    dynamicSavingsAdjustment,
+                    savingsIncreaseRate,
+                });
 
-                accumulatedNominalCapital = accumulatedNominalCapital * (1 + rateOfReturn) + dynamicAnnualSavings;
-                cumulativeContributions += dynamicAnnualSavings;
+                accumulatedNominalCapital = accumulatedNominalCapital * (1 + rateOfReturn) + annualSavings;
+                cumulativeContributions += annualSavings;
                 const inflationFactor = Math.pow(1 + inflationRate, retirementAge - currentAge);
                 accumulatedRealCapital = accumulatedNominalCapital / inflationFactor;
 
@@ -396,7 +392,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
         return null;
     }, [formData, calculationType]);
 
-    const memoizedHandleInputChange = useCallback((field: keyof FormData, value: string | number | boolean) => {
+    const memoizedHandleInputChange = useCallback((field: keyof FormData, value: string | number | boolean | FormData["advancedSavingsPeriods"]) => {
         setFormData((prev) => ({
             ...prev,
             [field]: typeof value === "string" && !["savingsInterval", "annuityType"].includes(field) ? parseFloat(value) || 0 : value,
@@ -590,8 +586,17 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                     />
                                 </div>
 
-                                {/* Monthly Savings Rate - visible only for Payout and Age modes */}
                                 {!isSavingsMode && (
+                                    <AdvancedSavingsPlanInput
+                                        enabled={!!formData.useAdvancedSavingsPlan}
+                                        onEnabledChange={(checked) => memoizedHandleInputChange("useAdvancedSavingsPlan", checked)}
+                                        periods={formData.advancedSavingsPeriods || defaultAdvancedSavingsPeriods(formData.desiredRetirementAge - formData.currentAge)}
+                                        onPeriodsChange={(periods) => memoizedHandleInputChange("advancedSavingsPeriods", periods)}
+                                    />
+                                )}
+
+                                {/* Monthly Savings Rate - visible only for Payout and Age modes */}
+                                {!isSavingsMode && !formData.useAdvancedSavingsPlan && (
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between">
                                             <Label htmlFor="savingsRate">
@@ -618,7 +623,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                 )}
 
                                 {/* Savings Interval - visible only for Payout and Age modes */}
-                                {!isSavingsMode && (
+                                {!isSavingsMode && !formData.useAdvancedSavingsPlan && (
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between">
                                             <Label htmlFor="savingsInterval">
@@ -644,7 +649,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                 )}
 
                                 {/* Dynamic Savings Adjustment Switch */}
-                                {showDynamicSavingsSection && (
+                                {showDynamicSavingsSection && !formData.useAdvancedSavingsPlan && (
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between pt-2">
                                             <Label htmlFor="dynamicSavingsAdjustment">
@@ -672,7 +677,7 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                 )}
 
                                 {/* Savings Increase Rate - visible if dynamic adjustment is on */}
-                                {showDynamicSavingsSection && formData.dynamicSavingsAdjustment && (
+                                {showDynamicSavingsSection && !formData.useAdvancedSavingsPlan && formData.dynamicSavingsAdjustment && (
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between">
                                             <Label htmlFor="savingsIncreaseRate">

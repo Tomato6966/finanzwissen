@@ -23,7 +23,7 @@ const MarkdownFileCard = ({
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between -mt-3">
           <div className="flex items-center gap-2">
-            <p className="text-sm text-gray-300 dark:text-gray-700 italic">
+            <p className="text-sm text-muted-foreground italic">
               @{author}
             </p>
           </div>
@@ -34,7 +34,7 @@ const MarkdownFileCard = ({
         </div>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-gray-600 dark:text-muted-foreground mb-4 line-clamp-3">
+        <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
           {preview}
         </p>
         <LinkButton

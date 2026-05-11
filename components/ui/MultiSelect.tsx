@@ -33,8 +33,8 @@ interface MultiSelectProps
   placeholder?: string;
 }
 
-const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>(
-  ({ options, value, onChange, className, placeholder, ...props }) => {
+const MultiSelect = React.forwardRef<HTMLDivElement, MultiSelectProps>(
+  ({ options, value, onChange, className, placeholder, variant, ...props }, ref) => {
     const [open, setOpen] = React.useState(false);
     const commandRef = React.useRef<HTMLDivElement>(null); // Ref for the CommandPrimitive div
 
@@ -72,8 +72,9 @@ const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>(
       }} ref={commandRef}> {/* Attach ref here */}
         <div className="relative">
           <div
+            ref={ref}
             className={cn(
-              multiSelectVariants({ variant: props.variant }),
+              multiSelectVariants({ variant }),
               "cursor-pointer",
               className
             )}

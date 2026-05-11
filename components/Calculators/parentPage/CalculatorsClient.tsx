@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart2, PiggyBank, TrendingDown, TrendingUp, TrendingUpDown } from "lucide-react";
+import { Banknote, BarChart2, Flame, Home, PiggyBank, ShieldCheck, TrendingDown, TrendingUp, TrendingUpDown, UsersRound, WandSparkles } from "lucide-react";
 import LZString from "lz-string";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -11,10 +11,11 @@ import { TabsContents } from "./CaluclatorsTabs";
 
 import type {
     BudgetAnalysisData, CompoundInterestData, FinancialGoalsData, MonteCarloData, RetirementData,
-    WithDrawalInitialData, ETFInvestmentData
+    WithDrawalInitialData, ETFInvestmentData, FIRETimelineData, FinanzWizardData, SocietyComparisonData,
+    EmergencyFundData, PensionGapData, InflationData, LoanData, BuyOrRentData
 } from "@/lib/calculator-types";
 interface SharedCalculatorState {
-    type: 'compound' | 'withdrawal' | 'retirement' | 'goals' | 'montecarlo' | 'budget-analysis' | 'etf-investment';
+    type: 'compound' | 'withdrawal' | 'retirement' | 'goals' | 'montecarlo' | 'budget-analysis' | 'etf-investment' | 'fire-timeline' | 'finanzwizard' | 'society-comparison' | 'emergency-fund' | 'pension-gap' | 'inflation' | 'loan' | 'buy-or-rent';
     data: unknown;
 }
 
@@ -47,6 +48,38 @@ const TabListRecord = {
         label: "ETF Investment",
         icon: TrendingUp,
     },
+    "fire-timeline": {
+        label: "FIRE Timeline",
+        icon: Flame,
+    },
+    finanzwizard: {
+        label: "FinanzWizard",
+        icon: WandSparkles,
+    },
+    "society-comparison": {
+        label: "Vergleich",
+        icon: UsersRound,
+    },
+    "emergency-fund": {
+        label: "Notgroschen",
+        icon: ShieldCheck,
+    },
+    "pension-gap": {
+        label: "Rentenlücke",
+        icon: TrendingDown,
+    },
+    "inflation": {
+        label: "Inflation",
+        icon: TrendingDown,
+    },
+    "loan": {
+        label: "Kredit",
+        icon: Banknote,
+    },
+    "buy-or-rent": {
+        label: "Kaufen / Mieten",
+        icon: Home,
+    },
 }
 
 export default function CalculatorsClient() {
@@ -63,6 +96,14 @@ export default function CalculatorsClient() {
     const [initialMontecarloData, setInitialMontecarloData] = useState<MonteCarloData | null>(null);
     const [initialBudgetAnalysisData, setInitialBudgetAnalysisData] = useState<BudgetAnalysisData | null>(null);
     const [initialETFInvestmentData, setInitialETFInvestmentData] = useState<ETFInvestmentData | null>(null);
+    const [initialFIRETimelineData, setInitialFIRETimelineData] = useState<FIRETimelineData | null>(null);
+    const [initialFinanzWizardData, setInitialFinanzWizardData] = useState<FinanzWizardData | null>(null);
+    const [initialSocietyComparisonData, setInitialSocietyComparisonData] = useState<SocietyComparisonData | null>(null);
+    const [initialEmergencyFundData, setInitialEmergencyFundData] = useState<EmergencyFundData | null>(null);
+    const [initialPensionGapData, setInitialPensionGapData] = useState<PensionGapData | null>(null);
+    const [initialInflationData, setInitialInflationData] = useState<InflationData | null>(null);
+    const [initialLoanData, setInitialLoanData] = useState<LoanData | null>(null);
+    const [initialBuyOrRentData, setInitialBuyOrRentData] = useState<BuyOrRentData | null>(null);
 
     useEffect(() => {
         const handleHashChange = () => {
@@ -114,6 +155,30 @@ export default function CalculatorsClient() {
                         case 'etf-investment':
                             setInitialETFInvestmentData(data as ETFInvestmentData);
                             break;
+                        case 'fire-timeline':
+                            setInitialFIRETimelineData(data as FIRETimelineData);
+                            break;
+                        case 'finanzwizard':
+                            setInitialFinanzWizardData(data as FinanzWizardData);
+                            break;
+                        case 'society-comparison':
+                            setInitialSocietyComparisonData(data as SocietyComparisonData);
+                            break;
+                        case 'emergency-fund':
+                            setInitialEmergencyFundData(data as EmergencyFundData);
+                            break;
+                        case 'pension-gap':
+                            setInitialPensionGapData(data as PensionGapData);
+                            break;
+                        case 'inflation':
+                            setInitialInflationData(data as InflationData);
+                            break;
+                        case 'loan':
+                            setInitialLoanData(data as LoanData);
+                            break;
+                        case 'buy-or-rent':
+                            setInitialBuyOrRentData(data as BuyOrRentData);
+                            break;
                         default:
                             console.warn("Unknown calculator type in shared state:", type);
                     }
@@ -133,24 +198,24 @@ export default function CalculatorsClient() {
     };
 
     return (
-        <div className="p-4 md:p-8 bg-gray-50 font-sans rounded-md dark:bg-gray-800">
+        <div className="p-4 md:p-8 bg-background font-sans rounded-md">
             <div className="text-center mb-12 max-w-4xl mx-auto">
-                <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-foreground mb-4">Finanzrechner</h1>
-                <p className="text-lg text-gray-600 dark:text-muted-foreground">
+                <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Finanzrechner</h1>
+                <p className="text-lg text-muted-foreground">
                     Planen Sie Ihre finanzielle Zukunft mit unseren interaktiven Rechnern – vom Zinseszins bis zur Monte-Carlo-Simulation.
                 </p>
             </div>
 
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full max-w-6xl mx-auto">
-                <TabsList className="flex flex-wrap justify-center w-full gap-2 h-auto p-2 bg-slate-300 dark:bg-black">
+                <TabsList className="flex flex-wrap justify-center w-full gap-2 h-auto p-2 bg-muted">
                     {Object.entries(TabListRecord).map(([key, value]) => (
-                        <TabsTrigger key={key} value={key} className="flex-1 min-w-[20%] bg-primary/10 text-white data-[state=active]:bg-primary data-[state=active]:text-white dark:text-muted-foreground">
+                        <TabsTrigger key={key} value={key} className="flex-1 min-w-[20%] bg-primary/10 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                             <value.icon /> {value.label}
                         </TabsTrigger>
                     ))}
                 </TabsList>
 
-                <TabsContents hasSearchParam={hasSearchParam} initialCompoundData={initialCompoundData} initialWithdrawalData={initialWithdrawalData} initialRetirementData={initialRetirementData} initialFinancialGoalsData={initialFinancialGoalsData} initialMontecarloData={initialMontecarloData} initialBudgetAnalysisData={initialBudgetAnalysisData} initialETFInvestmentData={initialETFInvestmentData} />
+                <TabsContents hasSearchParam={hasSearchParam} initialCompoundData={initialCompoundData} initialWithdrawalData={initialWithdrawalData} initialRetirementData={initialRetirementData} initialFinancialGoalsData={initialFinancialGoalsData} initialMontecarloData={initialMontecarloData} initialBudgetAnalysisData={initialBudgetAnalysisData} initialETFInvestmentData={initialETFInvestmentData} initialFIRETimelineData={initialFIRETimelineData} initialFinanzWizardData={initialFinanzWizardData} initialSocietyComparisonData={initialSocietyComparisonData} initialEmergencyFundData={initialEmergencyFundData} initialPensionGapData={initialPensionGapData} initialInflationData={initialInflationData} initialLoanData={initialLoanData} initialBuyOrRentData={initialBuyOrRentData} />
             </Tabs>
         </div>
     );

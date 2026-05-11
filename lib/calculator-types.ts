@@ -1,3 +1,5 @@
+import type { AdvancedSavingsPeriod } from "./savings-plan";
+
 export interface CompoundInterestData {
     compoundForm: { principal: number; rate: number; time: number; contribution: number; interval: number; };
     useContribution: boolean;
@@ -119,6 +121,8 @@ export interface FormData {
     savingsIncreaseRate: number;
     showNominalCapital: boolean;
     showContributions: boolean;
+    useAdvancedSavingsPlan?: boolean;
+    advancedSavingsPeriods?: AdvancedSavingsPeriod[];
 }
 
 // Props for the component
@@ -150,4 +154,80 @@ export interface ETFInvestmentData {
     startingCapital: number;
     experience: 'beginner' | 'intermediate' | 'expert';
     includeInflation: boolean;
+}
+
+export interface FIRETimelineData {
+    currentAge: number;
+    targetAge: number;
+    pensionAge: number;
+    lifeExpectancy: number;
+    startCapital: number;
+    monthlyExpenses: number;
+    guaranteedIncome: number;
+    statePension: number;
+    expectedReturn: number;
+    inflation: number;
+    withdrawalRate: number;
+    useAdvancedSavingsPlan: boolean;
+    advancedSavingsPeriods: AdvancedSavingsPeriod[];
+}
+
+export interface FinanzWizardData {
+    initialCapital: number;
+    monthlyContribution: number;
+    startDate: string;
+    endDate: string;
+    assets: { symbol: string; weight: number }[];
+}
+
+export interface SocietyComparisonData {
+    region: "AT" | "DE" | "DACH";
+    age: number;
+    netWorth: number;
+    grossAnnualIncome: number;
+}
+
+export interface EmergencyFundData {
+    monthlyFixedCosts: number;
+    monthlyVariableCosts: number;
+    jobSecurityMonths: number;
+    dependents: number;
+    liquidAssets: number;
+}
+
+export interface PensionGapData {
+    currentAge: number;
+    retirementAge: number;
+    currentGrossIncome: number;
+    expectedStatePension: number;
+    desiredNetReplacementRate: number;
+    expectedReturn: number;
+    inflation: number;
+}
+
+export interface InflationData {
+    amount: number;
+    inflationRate: number;
+    years: number;
+}
+
+export interface LoanData {
+    loanAmount: number;
+    interestRate: number;
+    initialRepaymentRate: number;
+    years: number;
+    compareRefinanceRate: number | null;
+}
+
+export interface BuyOrRentData {
+    purchasePrice: number;
+    downPayment: number;
+    interestRate: number;
+    initialRepaymentRate: number;
+    maintenancePercent: number;
+    nebenkostenPercent: number;
+    monthlyRent: number;
+    rentIncreasePercent: number;
+    investmentReturn: number;
+    years: number;
 }

@@ -6,10 +6,10 @@ export default function DisclaimerPage() {
     return (
         <div className="space-y-8">
             <div className="text-center mb-12">
-                <h2 className="text-4xl font-bold text-gray-900 dark:text-foreground mb-4">
+                <h2 className="text-4xl font-bold text-foreground mb-4">
                     Rechtlicher Hinweis (Disclaimer)
                 </h2>
-                <p className="text-xl text-gray-600 dark:text-muted-foreground max-w-3xl mx-auto">
+                <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
                     Transparenz und Verantwortung: Was du über die Nutzung dieser Website wissen solltest.
                 </p>
             </div>

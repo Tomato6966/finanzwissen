@@ -6,8 +6,8 @@ export default function MindSetPage() {
     return <div className="space-y-8">
     <div className="text-center mb-12">
         <span className="bg-red-500 text-white"> TO BE FILLED ?!? </span>
-        <h2 className="text-4xl font-bold text-gray-900 dark:text-foreground mb-4">Mindset & Überblick</h2>
-        <p className="text-xl text-gray-600 dark:text-muted-foreground max-w-3xl mx-auto">
+        <h2 className="text-4xl font-bold text-foreground mb-4">Mindset & Überblick</h2>
+        <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Der erste Schritt zu finanzieller Freiheit beginnt mit dem richtigen Mindset und einem klaren Überblick
             über Ihre finanzielle Situation.
         </p>
@@ -48,7 +48,7 @@ export default function MindSetPage() {
                 <div className="space-y-4">
                     <div>
                         <h4 className="font-semibold text-green-600 mb-2">Reich sein:</h4>
-                        <ul className="text-sm text-gray-700 space-y-1">
+                        <ul className="text-sm text-muted-foreground space-y-1">
                             <li>• Hohe Sparquote</li>
                             <li>• Investitionen in Vermögenswerte</li>
                             <li>• Langfristige Planung</li>
@@ -57,7 +57,7 @@ export default function MindSetPage() {
                     </div>
                     <div>
                         <h4 className="font-semibold text-red-600 mb-2">Reich wirken:</h4>
-                        <ul className="text-sm text-gray-700 space-y-1">
+                        <ul className="text-sm text-muted-foreground space-y-1">
                             <li>• Hohe Ausgaben für Status</li>
                             <li>• Schulden für Luxusgüter</li>
                             <li>• Kurzfristiges Denken</li>

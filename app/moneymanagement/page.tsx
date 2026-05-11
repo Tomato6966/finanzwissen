@@ -5,15 +5,15 @@ export default function HouseHoldPage() {
     return <div className="space-y-8">
         <span className="bg-red-500 text-white"> TO BE FILLED ?!? </span>
         <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-foreground mb-4">Haushalt & Überblick schaffen</h2>
-            <p className="text-xl text-gray-600 dark:text-muted-foreground max-w-3xl mx-auto">
+            <h2 className="text-4xl font-bold text-foreground mb-4">Haushalt & Überblick schaffen</h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
                 Verschaffen Sie sich einen klaren Überblick über Ihre Finanzen und schaffen Sie die Grundlage für
                 finanzielle Stabilität.
             </p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
-            <Card className="hover:shadow-lg transition-shadow dark:bg-card dark:border-border">
+            <Card className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                     <CardTitle className="text-blue-600">Einnahmen/Ausgaben tracken</CardTitle>
                     <CardDescription>Behalten Sie den Überblick über Ihr Geld</CardDescription>
@@ -39,7 +39,7 @@ export default function HouseHoldPage() {
                 </CardContent>
             </Card>
 
-            <Card className="hover:shadow-lg transition-shadow dark:bg-card dark:border-border">
+            <Card className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                     <CardTitle className="text-green-600">Fixkosten identifizieren</CardTitle>
                     <CardDescription>Regelmäßige Ausgaben im Blick behalten</CardDescription>
@@ -110,13 +110,13 @@ export default function HouseHoldPage() {
         </div>
 
         <div className="text-center mb-12">
-                <h2 className="text-4xl font-bold text-gray-900 dark:text-foreground mb-4">Ziele & Prioritäten setzen</h2>
-                <p className="text-xl text-gray-600 dark:text-muted-foreground max-w-3xl mx-auto">
+                <h2 className="text-4xl font-bold text-foreground mb-4">Ziele & Prioritäten setzen</h2>
+                <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
                     Definieren Sie klare finanzielle Ziele und erstellen Sie einen Plan zu deren Erreichung.
                 </p>
             </div>
 
-            <Card className="hover:shadow-lg transition-shadow mb-8 dark:bg-card dark:border-border">
+            <Card className="hover:shadow-lg transition-shadow mb-8">
                 <CardHeader>
                     <CardTitle className="text-blue-600">SMART Ziele formulieren</CardTitle>
                     <CardDescription>Machen Sie Ihre finanziellen Ziele konkret und erreichbar</CardDescription>
@@ -153,7 +153,7 @@ export default function HouseHoldPage() {
             </Card>
 
             <div className="grid lg:grid-cols-3 gap-8">
-                <Card className="hover:shadow-lg transition-shadow dark:bg-card dark:border-border">
+                <Card className="hover:shadow-lg transition-shadow">
                     <CardHeader>
                         <CardTitle className="text-green-600">Kurzfristige Ziele</CardTitle>
                         <CardDescription>0-2 Jahre</CardDescription>
@@ -176,7 +176,7 @@ export default function HouseHoldPage() {
                     </CardContent>
                 </Card>
 
-                <Card className="hover:shadow-lg transition-shadow dark:bg-card dark:border-border">
+                <Card className="hover:shadow-lg transition-shadow">
                     <CardHeader>
                         <CardTitle className="text-blue-600">Mittelfristige Ziele</CardTitle>
                         <CardDescription>2-10 Jahre</CardDescription>
@@ -199,7 +199,7 @@ export default function HouseHoldPage() {
                     </CardContent>
                 </Card>
 
-                <Card className="hover:shadow-lg transition-shadow dark:bg-card dark:border-border">
+                <Card className="hover:shadow-lg transition-shadow">
                     <CardHeader>
                         <CardTitle className="text-purple-600">Langfristige Ziele</CardTitle>
                         <CardDescription>10+ Jahre</CardDescription>
@@ -223,7 +223,7 @@ export default function HouseHoldPage() {
                 </Card>
             </div>
 
-            <Card className="hover:shadow-lg transition-shadow dark:bg-card dark:border-border">
+            <Card className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                     <CardTitle className="text-orange-600">Beispiel: SMART Ziel formulieren</CardTitle>
                 </CardHeader>
