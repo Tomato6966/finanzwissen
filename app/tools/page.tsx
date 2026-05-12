@@ -13,7 +13,9 @@ export default function ToolsPage() {
     const router = useRouter();
     const pathname = usePathname();
     const [activeTab, setActiveTab] = useState("portfolio-trackers");
-    const [tabListExpanded, setTabListExpanded] = useState(false);
+    const [tabListExpanded, setTabListExpanded] = useState(
+        typeof window !== "undefined" ? window.innerWidth >= 1024 : false
+    );
 
     // Effect to read the URL hash on component mount and set the active tab
     useEffect(() => {

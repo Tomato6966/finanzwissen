@@ -90,6 +90,10 @@ export default function CalculatorsClient() {
 
     const [activeTab, setActiveTab] = useState("retirement");
     const [tabListExpanded, setTabListExpanded] = useState(false);
+
+    useEffect(() => {
+        if (window.innerWidth >= 1024) setTabListExpanded(true);
+    }, []);
     const [initialCompoundData, setInitialCompoundData] = useState<CompoundInterestData | null>(null);
     const [initialFinancialGoalsData, setInitialFinancialGoalsData] = useState<FinancialGoalsData | null>(null);
     const [initialWithdrawalData, setInitialWithdrawalData] = useState<WithDrawalInitialData["initialData"] | null>(null);

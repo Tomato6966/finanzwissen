@@ -62,7 +62,7 @@ export function AdvancedSavingsPlanInput({
                             <div key={period.id} className="rounded-md border bg-background p-3">
                                 <div className="grid grid-cols-2 gap-2">
                                     <div>
-                                        <Label htmlFor={`savings-start-${period.id}`}>Von Jahr</Label>
+                                        <Label htmlFor={`savings-start-${period.id}`}>Von Alter</Label>
                                         <Input
                                             id={`savings-start-${period.id}`}
                                             min={0}
@@ -72,7 +72,7 @@ export function AdvancedSavingsPlanInput({
                                         />
                                     </div>
                                     <div>
-                                        <Label htmlFor={`savings-end-${period.id}`}>Bis Jahr</Label>
+                                        <Label htmlFor={`savings-end-${period.id}`}>Bis Alter</Label>
                                         <Input
                                             id={`savings-end-${period.id}`}
                                             min={period.startYear}

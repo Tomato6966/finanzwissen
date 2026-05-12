@@ -158,7 +158,6 @@ export interface ETFInvestmentData {
 
 export interface FIRETimelineData {
     currentAge: number;
-    targetAge: number;
     pensionAge: number;
     lifeExpectancy: number;
     startCapital: number;
@@ -169,6 +168,7 @@ export interface FIRETimelineData {
     inflation: number;
     withdrawalRate: number;
     taxRate: number;
+    monthlySavings: number;
     useAdvancedSavingsPlan: boolean;
     advancedSavingsPeriods: AdvancedSavingsPeriod[];
 }

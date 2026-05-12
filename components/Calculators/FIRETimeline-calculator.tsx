@@ -4,7 +4,7 @@ import { Flame, Info, Share2, Target } from "lucide-react";
 import LZString from "lz-string";
 import { useCallback, useMemo, useState } from "react";
 import {
-    Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis
+    Area, AreaChart, CartesianGrid, Legend, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis
 } from "recharts";
 
 import { Button } from "@/components/ui/button";
@@ -28,10 +28,10 @@ export function FIRETimelineCalculator({ initialData }: FIRETimelineCalculatorPr
     const [shareMessage, setShareMessage] = useState<string | null>(null);
     const [formData, setFormData] = useState<FIRETimelineData>(initialData || {
         currentAge: 30,
-        targetAge: 55,
         pensionAge: 67,
         lifeExpectancy: 90,
         startCapital: 50000,
+        monthlySavings: 500,
         monthlyExpenses: 2500,
         guaranteedIncome: 0,
         statePension: 1200,
@@ -71,6 +71,9 @@ export function FIRETimelineCalculator({ initialData }: FIRETimelineCalculatorPr
         let coastAge: number | null = null;
         let fullFireAge: number | null = null;
         let cumulativeSavings = formData.startCapital;
+        let coastStartCapital: number | null = null;
+        let coastStartYear: number | null = null;
+        let coastProjectionValue: number | null = null;
 
         const chartData = [];
 
@@ -78,7 +81,7 @@ export function FIRETimelineCalculator({ initialData }: FIRETimelineCalculatorPr
             const age = formData.currentAge + year;
             const inflationFactor = Math.pow(1 + inflationRate, year);
             const realCapital = capital / inflationFactor;
-            const requiredNow = age >= formData.pensionAge ? requiredCapitalAfterPension : requiredCapitalBeforePension;
+            const requiredNow = requiredCapitalBeforePension;
             const monthlyPortfolioIncome = (realCapital * withdrawalRate) / 12;
             const guaranteedMonthly = guaranteedIncomeNetto + (age >= formData.pensionAge ? formData.statePension : 0);
 
@@ -86,24 +89,35 @@ export function FIRETimelineCalculator({ initialData }: FIRETimelineCalculatorPr
                 fullFireAge = age;
             }
 
-            const yearsToTarget = Math.max(0, formData.targetAge - age);
+            const yearsToTarget = Math.max(0, formData.pensionAge - age);
             const coastCapitalAtTarget = realCapital * Math.pow(1 + realReturn, yearsToTarget);
-            const targetRequirement = formData.targetAge >= formData.pensionAge ? requiredCapitalAfterPension : requiredCapitalBeforePension;
+            const targetRequirement = requiredCapitalBeforePension;
             if (coastAge === null && coastCapitalAtTarget >= targetRequirement) {
                 coastAge = age;
+                coastStartCapital = capital;
+                coastStartYear = year;
+                coastProjectionValue = realCapital;
             }
+
+            if (coastStartYear !== null && year > coastStartYear) {
+                coastProjectionValue = coastProjectionValue! * (1 + realReturn);
+            }
+
+            const coastSchwelle = requiredCapitalBeforePension / Math.pow(1 + realReturn, Math.max(1, formData.pensionAge - age));
 
             chartData.push({
                 age,
                 "Depot real": realCapital,
                 "FIRE-Ziel real": requiredNow,
+                "Coast-Schwelle": coastSchwelle,
+                "Coast-Verlauf": coastProjectionValue,
                 "Einzahlungen": cumulativeSavings,
                 "Portfolio-Entnahme mtl.": monthlyPortfolioIncome,
             });
 
             const annualSavings = getAnnualSavingsForYear({
                 yearIndex: year,
-                baseRate: 0,
+                baseRate: formData.monthlySavings,
                 interval: "monthly",
                 useAdvancedPlan: formData.useAdvancedSavingsPlan,
                 advancedPeriods: formData.advancedSavingsPeriods,
@@ -112,11 +126,15 @@ export function FIRETimelineCalculator({ initialData }: FIRETimelineCalculatorPr
             capital = capital * (1 + nominalReturn) + annualSavings;
         }
 
+        const yearsToCoastTarget = Math.max(1, formData.pensionAge - formData.currentAge);
+        const coastTargetCapital = requiredCapitalBeforePension / Math.pow(1 + realReturn, yearsToCoastTarget);
+
         return {
             coastAge,
             fullFireAge,
             requiredCapitalBeforePension,
             requiredCapitalAfterPension,
+            coastTargetCapital,
             chartData,
         };
     }, [formData]);
@@ -174,7 +192,6 @@ export function FIRETimelineCalculator({ initialData }: FIRETimelineCalculatorPr
                     </h3>
                     <div className="grid grid-cols-2 gap-3">
                         {numberInput("currentAge", "Alter")}
-                        {numberInput("targetAge", "Zielalter")}
                         {numberInput("pensionAge", "Pension/Rente ab")}
                         {numberInput("lifeExpectancy", "Planung bis")}
                         {numberInput("startCapital", "Startkapital Euro (NETTO)")}
@@ -186,6 +203,7 @@ export function FIRETimelineCalculator({ initialData }: FIRETimelineCalculatorPr
                         {numberInput("withdrawalRate", "Entnahmerate %", 0.1)}
                         {numberInput("taxRate", "Steuersatz %", 0.1)}
                     </div>
+                    {!formData.useAdvancedSavingsPlan && numberInput("monthlySavings", "Monatliche Sparrate")}
                     <AdvancedSavingsPlanInput
                         enabled={formData.useAdvancedSavingsPlan}
                         onEnabledChange={(enabled) => updateField("useAdvancedSavingsPlan", enabled)}
@@ -199,11 +217,14 @@ export function FIRETimelineCalculator({ initialData }: FIRETimelineCalculatorPr
                         <Card className="border-cyan-600/30 bg-cyan-600/10 text-card-foreground">
                             <CardHeader>
                                 <CardTitle>Coast FIRE</CardTitle>
-                                <CardDescription className="text-cyan-700">Ab hier kann das Depot bis zum Zielalter theoretisch alleine weiterwachsen.</CardDescription>
+                                <CardDescription className="text-cyan-700">Ab hier kann das Depot bis zum Rentenalter theoretisch alleine weiterwachsen.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-4xl font-bold text-cyan-600">
                                     {result.coastAge ? `${result.coastAge} Jahre` : "Nicht erreicht"}
+                                </div>
+                                <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                                    <div>Nötig mit {formData.currentAge}: <span className="font-semibold text-cyan-700">{formatCurrency(result.coastTargetCapital)}</span></div>
                                 </div>
                             </CardContent>
                         </Card>
@@ -216,19 +237,26 @@ export function FIRETimelineCalculator({ initialData }: FIRETimelineCalculatorPr
                                 <div className="text-4xl font-bold text-emerald-600">
                                     {result.fullFireAge ? `${result.fullFireAge} Jahre` : "Nicht erreicht"}
                                 </div>
+                                <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                                    <div>Kapitalbedarf (vor Rente): <span className="font-semibold text-emerald-700">{formatCurrency(result.requiredCapitalBeforePension)}</span></div>
+                                    <div>Kapitalbedarf (ab Rente): <span className="font-semibold text-emerald-700">{formatCurrency(result.requiredCapitalAfterPension)}</span></div>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
                     <div className="rounded-lg border border-border bg-background p-4 text-foreground">
                         <ResponsiveContainer width="100%" height={430}>
-                            <AreaChart data={result.chartData}>
+                            <AreaChart data={result.chartData} margin={{ top: 40, right: 40, left: 0, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" opacity={0.25} />
                                 <XAxis dataKey="age" tickFormatter={(value) => `${value}J`} />
-                                <YAxis tickFormatter={(value) => formatCurrency(Number(value))} width={90} />
+                                <YAxis tickFormatter={(value) => formatCurrency(Number(value))} width={100} />
                                 <Tooltip formatter={(value, name) => [formatCurrency(value as number), name as string]} />
                                 <Legend />
+                                <Line type="monotone" dataKey="Coast-Schwelle" stroke="#0891b2" strokeDasharray="6 3" dot={false} strokeWidth={2} name="Coast-Schwelle (nötig)" />
+                                <Line type="monotone" dataKey="Coast-Verlauf" stroke="#06b6d4" strokeDasharray="3 3" dot={false} strokeWidth={2} name="Coast-Verlauf (ohne Einzahlungen)" />
                                 <Area type="monotone" dataKey="FIRE-Ziel real" stroke="#f97316" fill="#fed7aa" fillOpacity={0.4} />
                                 <Area type="monotone" dataKey="Depot real" stroke="#06b6d4" fill="#67e8f9" fillOpacity={0.45} />
+                                {result.coastAge && <ReferenceLine x={result.coastAge} stroke="#0891b2" strokeWidth={2} label={{ value: "⚓ Coast FIRE", position: "insideTopRight", fill: "#0891b2", fontSize: 13 }} />}
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
