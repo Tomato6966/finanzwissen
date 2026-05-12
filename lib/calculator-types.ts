@@ -168,6 +168,7 @@ export interface FIRETimelineData {
     expectedReturn: number;
     inflation: number;
     withdrawalRate: number;
+    taxRate: number;
     useAdvancedSavingsPlan: boolean;
     advancedSavingsPeriods: AdvancedSavingsPeriod[];
 }

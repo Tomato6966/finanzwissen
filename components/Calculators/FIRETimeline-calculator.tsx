@@ -38,6 +38,7 @@ export function FIRETimelineCalculator({ initialData }: FIRETimelineCalculatorPr
         expectedReturn: 7,
         inflation: 2.5,
         withdrawalRate: 3.5,
+        taxRate: 35,
         useAdvancedSavingsPlan: true,
         advancedSavingsPeriods: [
             { id: 1, startYear: 0, endYear: 4, monthlyAmount: 2000 },
@@ -56,9 +57,13 @@ export function FIRETimelineCalculator({ initialData }: FIRETimelineCalculatorPr
         const realReturn = (1 + nominalReturn) / (1 + inflationRate) - 1;
         const withdrawalRate = Math.max(0.1, formData.withdrawalRate) / 100;
         const horizon = Math.max(1, formData.lifeExpectancy - formData.currentAge);
+        const taxRate = Math.max(0, Math.min(100, formData.taxRate)) / 100;
 
-        const targetAnnualNeedBeforePension = Math.max(0, (formData.monthlyExpenses - formData.guaranteedIncome) * 12);
-        const targetAnnualNeedAfterPension = Math.max(0, (formData.monthlyExpenses - formData.guaranteedIncome - formData.statePension) * 12);
+        // Convert guaranteedIncome from BRUTTO to NETTO
+        const guaranteedIncomeNetto = formData.guaranteedIncome * (1 - taxRate);
+
+        const targetAnnualNeedBeforePension = Math.max(0, (formData.monthlyExpenses - guaranteedIncomeNetto) * 12);
+        const targetAnnualNeedAfterPension = Math.max(0, (formData.monthlyExpenses - guaranteedIncomeNetto - formData.statePension) * 12);
         const requiredCapitalBeforePension = targetAnnualNeedBeforePension / withdrawalRate;
         const requiredCapitalAfterPension = targetAnnualNeedAfterPension / withdrawalRate;
 
@@ -75,7 +80,7 @@ export function FIRETimelineCalculator({ initialData }: FIRETimelineCalculatorPr
             const realCapital = capital / inflationFactor;
             const requiredNow = age >= formData.pensionAge ? requiredCapitalAfterPension : requiredCapitalBeforePension;
             const monthlyPortfolioIncome = (realCapital * withdrawalRate) / 12;
-            const guaranteedMonthly = formData.guaranteedIncome + (age >= formData.pensionAge ? formData.statePension : 0);
+            const guaranteedMonthly = guaranteedIncomeNetto + (age >= formData.pensionAge ? formData.statePension : 0);
 
             if (fullFireAge === null && monthlyPortfolioIncome + guaranteedMonthly >= formData.monthlyExpenses) {
                 fullFireAge = age;
@@ -172,13 +177,14 @@ export function FIRETimelineCalculator({ initialData }: FIRETimelineCalculatorPr
                         {numberInput("targetAge", "Zielalter")}
                         {numberInput("pensionAge", "Pension/Rente ab")}
                         {numberInput("lifeExpectancy", "Planung bis")}
-                        {numberInput("startCapital", "Startkapital Euro")}
-                        {numberInput("monthlyExpenses", "Monatsbedarf Euro")}
-                        {numberInput("guaranteedIncome", "Garantiertes Einkommen mtl.")}
-                        {numberInput("statePension", "Staatliche Pension/Rente mtl.")}
+                        {numberInput("startCapital", "Startkapital Euro (NETTO)")}
+                        {numberInput("monthlyExpenses", "Monatsbedarf Euro (NETTO)")}
+                        {numberInput("guaranteedIncome", "Garantiertes Einkommen mtl. (BRUTTO)")}
+                        {numberInput("statePension", "Staatliche Pension/Rente mtl. (NETTO)")}
                         {numberInput("expectedReturn", "Rendite p.a. %", 0.1)}
                         {numberInput("inflation", "Inflation %", 0.1)}
                         {numberInput("withdrawalRate", "Entnahmerate %", 0.1)}
+                        {numberInput("taxRate", "Steuersatz %", 0.1)}
                     </div>
                     <AdvancedSavingsPlanInput
                         enabled={formData.useAdvancedSavingsPlan}
