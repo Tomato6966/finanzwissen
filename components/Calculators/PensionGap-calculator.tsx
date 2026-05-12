@@ -76,6 +76,7 @@ export function PensionGapCalculator({ initialData }: PensionGapCalculatorProps)
                 <CardTitle className="flex items-center gap-2">
                     <TrendingDown className="h-6 w-6 text-primary" />
                     Rentenlücken-Rechner
+                    <span className="ml-auto text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-md">Rente / Pension</span>
                 </CardTitle>
                 <CardDescription>
                     Sieh, wie viel gesetzliche Rente du erwirtschaften kannst und welche Lücke du privat schließen musst — mit monatlichem Sparplan.
@@ -102,6 +103,7 @@ export function PensionGapCalculator({ initialData }: PensionGapCalculatorProps)
                     <div className="space-y-2">
                         <Label>Gewünschte Netto-Ersatzrate (%)</Label>
                         <Input type="number" value={form.desiredNetReplacementRate} onChange={e => update("desiredNetReplacementRate", Number(e.target.value))} />
+                        <p className="text-xs text-muted-foreground">Wie viel % deines aktuellen Nettoeinkommens du im Alter haben möchtest. Üblich: 70–80 %.</p>
                     </div>
                     <div className="space-y-2">
                         <Label>Erwartete Rendite (% p.a.)</Label>
@@ -128,18 +130,21 @@ export function PensionGapCalculator({ initialData }: PensionGapCalculatorProps)
                     </div>
                 </div>
 
-                <div className="group relative overflow-hidden rounded-xl border border-border/50 bg-muted/30 transition-all duration-300 ease-out hover:scale-[1.01] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/10 hover:border-primary/30 p-4 h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <div className="group relative overflow-hidden rounded-xl border border-border/50 bg-muted/30 transition-all duration-300 ease-out hover:scale-[1.01] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/10 hover:border-primary/30 p-4 h-96">
+                    <p className="text-xs text-muted-foreground mb-2 text-center">
+                        X-Achse: Alter (Jahre) &nbsp;|&nbsp; Y-Achse: Jährlicher Betrag (€) &nbsp;|&nbsp; Jeder Balken = Vermögensentwicklung zu diesem Alter
+                    </p>
+                    <ResponsiveContainer width="100%" height="90%">
+                        <BarChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="age" />
-                            <YAxis />
+                            <XAxis dataKey="age" label={{ value: "Alter", position: "insideBottomRight", offset: -5 }} />
+                            <YAxis label={{ value: "€ pro Jahr", angle: -90, position: "insideLeft" }} />
                             <Tooltip formatter={(value) => `${Number(value).toLocaleString("de-DE")} €` as any} />
                             <Legend />
                             <ReferenceLine y={form.expectedStatePension * 12} label="Gesetzliche Rente p.a." stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-                            <Bar dataKey="Gesetzliche Rente" fill="hsl(var(--muted-foreground))" />
-                            <Bar dataKey="Private Lücke" fill="hsl(var(--destructive))" />
-                            <Bar dataKey="Aufgebautes Vermögen" fill="hsl(var(--primary))" />
+                            <Bar dataKey="Gesetzliche Rente" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="Private Lücke" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="Aufgebautes Vermögen" fill="#22c55e" radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>

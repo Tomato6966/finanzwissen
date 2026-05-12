@@ -4,7 +4,7 @@ import { AlertCircle, Calendar, Target, Trash } from "lucide-react";
 import LZString from "lz-string";
 import React, { FC, useCallback, useEffect, useMemo, useState } from "react";
 import {
-	Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis
+	Area, AreaChart, CartesianGrid, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis
 } from "recharts";
 
 import { Button } from "@/components/ui/button";
@@ -270,6 +270,11 @@ export const FinancialGoalsCalculator: FC<FinancialGoalsCalculatorProps> = ({
                         </div>
                         <ResponsiveContainer width="100%" height={500}>
                             <AreaChart data={goalData.timeline}>
+                                <defs>
+                                    <filter id="bubble-glow" x="-50%" y="-50%" width="200%" height="200%">
+                                        <feDropShadow dx={0} dy={2} stdDeviation={4} floodColor="#15803d" floodOpacity={0.35} />
+                                    </filter>
+                                </defs>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis
                                     dataKey="month"
@@ -323,6 +328,28 @@ export const FinancialGoalsCalculator: FC<FinancialGoalsCalculatorProps> = ({
                                             }}
                                         />
                                     ))}
+                                {showGoalLines &&
+                                    goalData.reached.map((r) => {
+                                        const point = goalData.timeline[r.months];
+                                        return (
+                                            <ReferenceDot
+                                                key={`bubble-${r.id}`}
+                                                x={r.months}
+                                                y={point?.balance ?? r.value}
+                                                r={10}
+                                                fill="#22c55e"
+                                                stroke="#15803d"
+                                                strokeWidth={2.5}
+                                                shape={(props: { cx: number; cy: number }) => (
+                                                    <g>
+                                                        <circle cx={props.cx} cy={props.cy} r={18} fill="#22c55e" opacity={0.15} />
+                                                        <circle cx={props.cx} cy={props.cy} r={10} fill="#22c55e" stroke="#15803d" strokeWidth={2.5} filter="url(#bubble-glow)" />
+                                                        <circle cx={props.cx - 3} cy={props.cy - 3} r={3} fill="white" opacity={0.85} />
+                                                    </g>
+                                                )}
+                                            />
+                                        );
+                                    })}
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>

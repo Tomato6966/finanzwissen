@@ -210,6 +210,10 @@ export interface InflationData {
     amount: number;
     inflationRate: number;
     years: number;
+    useHistorical?: boolean;
+    region?: "AT" | "EZ" | "DE" | "US";
+    fromYear?: number;
+    toYear?: number;
 }
 
 export interface LoanData {

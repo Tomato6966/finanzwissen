@@ -49,7 +49,7 @@ export const TOOL_CATEGORIES: ToolCategory[] = [
             },
             {
                 title: "Simply Wall.st",
-                description: "Umfassende Finanz-App für Budgetierung und Vermögensübersicht.",
+                description: "Umfassende Finanz-App für Aktienanalysen, Bewertungen und Portfolio-Übersicht. Gratis Fundamentalanalyse mit visuellen Kennzahlen.",
                 image: "https://simplywall.st/static/videos/simplywall-portfolio-feature.mp4",
                 link: { href: "https://www.simplywall.st/", isExternal: true },
             }
@@ -122,6 +122,12 @@ export const TOOL_CATEGORIES: ToolCategory[] = [
                 link: { href: "https://wealthcalc.netlify.app/", isExternal: true }
             },
             {
+                title: "Curvo (Backtest)",
+                description: "Backtesting-Tool für ETFs und Aktien mit historischen Daten und Portfolio-Analyse.",
+                image: (process.env.NEXT_PUBLIC_BASE_PATH || "") + "/placeholder.svg",
+                link: { href: "https://curvo.eu/backtest/en", isExternal: true },
+            },
+            {
                 title: "FI Simulator (Monte Carlo Simulation)",
                 description: "Kostenloses Tool zur Analyse der Diversifikation und Risikostruktur Ihres Portfolios.",
                 image: "https://i.imgur.com/SadhYY0.png",
@@ -170,6 +176,12 @@ export const TOOL_CATEGORIES: ToolCategory[] = [
                 description: "Leistungsstarke Charting-Plattform für technische Analysen.",
                 image: "https://i.imgur.com/E0DdLEN.png",
                 link: { href: "https://www.tradingview.com/", isExternal: true },
+            },
+            {
+                title: "TradingTerminal",
+                description: "Täglicher Marktüberblick mit Echtzeit-Daten, Screenern und Marktstimmungs-Analysen.",
+                image: "https://i.imgur.com/E0DdLEN.png",
+                link: { href: "https://tradingterminal.com/", isExternal: true },
             },
             {
                 title: "stock3",

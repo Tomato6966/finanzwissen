@@ -115,12 +115,34 @@ const formatDateToISO = (date: Date, lessThenADay: boolean = false) => lessThenA
 
 const isProd = process.env.NEXT_PUBLIC_USE_PROXYURL === "true";
 
-//https://thingproxy.freeboard.io/fetch/{url}
-//https://api.allorigins.win/raw?url={url}
-//https://corsproxy.io/?url={url}
-const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+const CORS_PROXIES = [
+    'https://corsproxy.io/?url=',
+    'https://api.allorigins.win/raw?url=',
+];
 const YAHOO_API = 'https://query1.finance.yahoo.com';
-const API_BASE =  isProd ? `${CORS_PROXY}${encodeURIComponent(YAHOO_API)}` : YAHOO_API;
+
+const fetchYahoo = async (path: string, params: URLSearchParams): Promise<Response> => {
+    const urlStr = `${YAHOO_API}${path}?${params.toString()}`;
+
+    if (!isProd) {
+        return fetch(urlStr);
+    }
+
+    const allOrigins = CORS_PROXIES.map(p => `${p}${encodeURIComponent(urlStr)}`);
+    allOrigins.push(urlStr);
+
+    for (const url of allOrigins) {
+        try {
+            const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+            if (res.ok) return res;
+            console.warn(`Yahoo proxy returned ${res.status}, trying next: ${url.slice(0, 80)}...`);
+        } catch (e) {
+            console.warn(`Yahoo proxy failed, trying next: ${url.slice(0, 80)}...`, e);
+        }
+    }
+
+    throw new Error('All Yahoo Finance proxies failed');
+};
 
 export const EQUITY_TYPES = {
     all: "etf,equity,mutualfund,index,currency,cryptocurrency,future",
@@ -136,7 +158,6 @@ export const EQUITY_TYPES = {
 
 export const searchAssets = async (query: string, equityType: string): Promise<Asset[]> => {
     try {
-        // Log input parameters for debugging
         const params = new URLSearchParams({
             query,
             lang: 'en-US',
@@ -144,9 +165,7 @@ export const searchAssets = async (query: string, equityType: string): Promise<A
             longName: 'true',
         });
 
-        const url = `${API_BASE}/v1/finance/lookup${!isProd ? encodeURIComponent(`?${params}`) : `?${params}`}`;
-
-        const response = await fetch(url);
+        const response = await fetchYahoo('/v1/finance/lookup', params);
         if (!response.ok) {
             console.error(`Network error: ${response.status} ${response.statusText}`);
             throw new Error('Network response was not ok');
@@ -202,12 +221,16 @@ export const getHistoricalData = async (symbol: string, startDate: Date, endDate
             interval: interval,
         });
 
-        const url = `${API_BASE}/v8/finance/chart/${symbol}${!isProd ? encodeURIComponent(`?${params}`) : `?${params}`}`;
-        const response = await fetch(url);
+        const response = await fetchYahoo(`/v8/finance/chart/${symbol}`, params);
         if (!response.ok) throw new Error(`Network response was not ok (${response.status} - ${response.statusText} - ${await response.text().catch(() => 'No text')})`);
 
         const data = await response.json();
-        const { timestamp = [], indicators, meta } = data.chart.result[0] as YahooChartResult;
+        const result = data?.chart?.result?.[0] as YahooChartResult | undefined;
+        if (!result) {
+            console.error(`No chart data returned for ${symbol}`, data);
+            return { historicalData: new Map<string, number>(), longName: '' };
+        }
+        const { timestamp = [], indicators, meta } = result;
         const quotes = indicators.quote[0];
         const lessThenADay = ["60m", "1h", "90m", "45m", "30m", "15m", "5m", "2m", "1m"].includes(interval);
         return {
