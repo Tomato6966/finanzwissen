@@ -1,5 +1,5 @@
 "use client";
-import { Calculator, Home, TrendingUp } from "lucide-react";
+import { BarChart3, Calculator, Home, TrendingUp } from "lucide-react";
 
 import { useGetActiveTab } from "../utils/PathUtils";
 // import { Button } from "./ui/button"; // No longer directly using Button here
@@ -39,6 +39,10 @@ export const NavigationMenu = ({ mobile = false }: NavigationMenuProps) => {
         <LinkButton href="/calculators" variant={activeTab === "calculators" ? "default" : "ghost"} className="justify-start">
             <Calculator className="w-4 h-4 mr-2" />
             Rechner
+        </LinkButton>
+        <LinkButton href="/community" variant={activeTab === "community" ? "default" : "ghost"} className="justify-start">
+            <BarChart3 className="w-4 h-4 mr-2" />
+            Community
         </LinkButton>
     </nav>
 }

@@ -128,6 +128,12 @@ export const TOOL_CATEGORIES: ToolCategory[] = [
                 link: { href: "https://curvo.eu/backtest/en", isExternal: true },
             },
             {
+                title: "AV-Simulation (Community Made)",
+                description: "COMMUNITY-MADE : Simulation zur Entscheidungshilfe zwischen Altersvorsorgedepot (AV-Depot) und ETF-Sparplan unter Berücksichtigung aller Renteneinnahmen und Steuern.",
+                image: (process.env.NEXT_PUBLIC_BASE_PATH || "") + "/placeholder.svg",
+                link: { href: "https://www.pav-simulation.de/", isExternal: true },
+            },
+            {
                 title: "FI Simulator (Monte Carlo Simulation)",
                 description: "Kostenloses Tool zur Analyse der Diversifikation und Risikostruktur Ihres Portfolios.",
                 image: "https://i.imgur.com/SadhYY0.png",

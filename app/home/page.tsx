@@ -335,10 +335,20 @@ export default function HomePage() {
             </div>
           </div>
           <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-border/50 bg-card/70 backdrop-blur-md p-5 shadow-xl transition-all duration-300 ease-out hover:scale-[1.01] hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/30">
+            <div
+              className="pointer-events-none absolute inset-0 opacity-10"
+              aria-hidden="true"
+              style={{
+                backgroundImage: `url(${process.env.NEXT_PUBLIC_BASE_PATH || ''}/images/finanzwissen_community.png)`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+              }}
+            />
             <div className="grid gap-4 sm:grid-cols-[120px_1fr]">
               <div className="flex items-center justify-center rounded-xl border border-border/40 bg-muted/20 p-4 transition-all duration-300 ease-out hover:scale-105 hover:border-primary/30 hover:bg-muted/30">
                 <Image
-                  src="/images/finanzwissen_community.png"
+                  src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/images/finanzwissen_community.png`}
                   alt="FinanzWissen Community"
                   width={96}
                   height={96}
@@ -569,10 +579,10 @@ export default function HomePage() {
                 </LinkButton>
                 <LinkButton
                   href="/community"
-                  variant="outline"
-                  className="border-border bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground"
+                  variant="default"
+                  className="bg-primary text-primary-foreground shadow-lg hover:shadow-xl hover:bg-primary/90 transition-all duration-200 px-6"
                 >
-                  <BarChart3 className="mr-2 h-4 w-4" />
+                  <BarChart3 className="mr-2 h-5 w-5" />
                   Community-Wissen
                 </LinkButton>
               </div>
