@@ -391,7 +391,7 @@ export function MontecarloSimulation({ initialData }: MonteCarloSimulationProps)
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis width="auto" dataKey="x" type="number" domain={[0, monteCarloForm.time]} unit=" J" />
                             <YAxis width="auto" tickFormatter={(val: number) => formatCurrency(val)} domain={['dataMin', 'dataMax']} />
-                            <Tooltip formatter={(value: number) => formatCurrencyPrecise(value)} />
+                            <Tooltip formatter={(value) => formatCurrencyPrecise(value as number)} />
                             {/* Render only the selected paths */}
                             {monteCarloResults.paths.map((path, i) => (
                                 <Line

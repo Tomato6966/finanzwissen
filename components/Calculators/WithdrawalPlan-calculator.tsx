@@ -233,7 +233,7 @@ export const WithdrawalPlanCalculator: FC<WithDrawalInitialData> = ({
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="year" unit=" J" />
                                 <YAxis tickFormatter={(val: number) => formatCurrency(val)} width={"auto"} />
-                                <Tooltip formatter={(value: number) => formatCurrencyPrecise(value)} />
+                                <Tooltip formatter={(value) => formatCurrencyPrecise(value as number)} />
                                 <Area type="monotone" dataKey="balance" stroke="#ef4444" fill="#fecaca" name="Restkapital" />
                             </AreaChart>
                         </ResponsiveContainer>

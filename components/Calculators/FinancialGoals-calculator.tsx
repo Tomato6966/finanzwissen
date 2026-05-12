@@ -288,8 +288,8 @@ export const FinancialGoalsCalculator: FC<FinancialGoalsCalculatorProps> = ({
                                     label={{ value: 'Vermögen (€)', angle: -90, position: 'insideLeft', offset: 10 }}
                                 />
                                 <Tooltip
-                                    formatter={(value: number) => formatCurrencyPrecise(value)}
-                                    labelFormatter={(label: number) => `Monat ${label} (${(label / 12).toFixed(1)} Jahre)`}
+                                    formatter={(value) => formatCurrencyPrecise(value as number)}
+                                    labelFormatter={(label) => `Monat ${label} (${(Number(label) / 12).toFixed(1)} Jahre)`}
                                 />
                                 <Area
                                     type="monotone"
@@ -340,11 +340,11 @@ export const FinancialGoalsCalculator: FC<FinancialGoalsCalculatorProps> = ({
                                                 fill="#22c55e"
                                                 stroke="#15803d"
                                                 strokeWidth={2.5}
-                                                shape={(props: { cx: number; cy: number }) => (
+                                                shape={(props) => (
                                                     <g>
                                                         <circle cx={props.cx} cy={props.cy} r={18} fill="#22c55e" opacity={0.15} />
                                                         <circle cx={props.cx} cy={props.cy} r={10} fill="#22c55e" stroke="#15803d" strokeWidth={2.5} filter="url(#bubble-glow)" />
-                                                        <circle cx={props.cx - 3} cy={props.cy - 3} r={3} fill="white" opacity={0.85} />
+                                                        <circle cx={(props.cx ?? 0) - 3} cy={(props.cy ?? 0) - 3} r={3} fill="white" opacity={0.85} />
                                                     </g>
                                                 )}
                                             />

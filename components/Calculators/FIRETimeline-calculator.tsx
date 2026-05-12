@@ -225,7 +225,7 @@ export function FIRETimelineCalculator({ initialData }: FIRETimelineCalculatorPr
                                 <CartesianGrid strokeDasharray="3 3" opacity={0.25} />
                                 <XAxis dataKey="age" tickFormatter={(value) => `${value}J`} />
                                 <YAxis tickFormatter={(value) => formatCurrency(Number(value))} width={90} />
-                                <Tooltip formatter={(value: number, name: string) => [formatCurrency(value), name]} />
+                                <Tooltip formatter={(value, name) => [formatCurrency(value as number), name as string]} />
                                 <Legend />
                                 <Area type="monotone" dataKey="FIRE-Ziel real" stroke="#f97316" fill="#fed7aa" fillOpacity={0.4} />
                                 <Area type="monotone" dataKey="Depot real" stroke="#06b6d4" fill="#67e8f9" fillOpacity={0.45} />

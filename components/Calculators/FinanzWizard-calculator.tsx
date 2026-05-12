@@ -262,7 +262,7 @@ export function FinanzWizardCalculator({ initialData }: FinanzWizardCalculatorPr
                                 <CartesianGrid strokeDasharray="3 3" opacity={0.25} />
                                 <XAxis dataKey="date" minTickGap={36} />
                                 <YAxis tickFormatter={(value) => formatCurrency(Number(value))} width={90} />
-                                <Tooltip formatter={(value: number, name: string) => [formatCurrency(value), name]} />
+                                <Tooltip formatter={(value, name) => [formatCurrency(value as number), name as string]} />
                                 <Legend />
                                 <Area type="monotone" dataKey="contributions" name="Einzahlungen" stroke="#64748b" fill="#cbd5e1" fillOpacity={0.45} />
                                 <Area type="monotone" dataKey="portfolio" name="Portfolio" stroke="#0891b2" fill="#67e8f9" fillOpacity={0.5} />

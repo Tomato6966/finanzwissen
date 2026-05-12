@@ -411,7 +411,7 @@ export const CompoundInterestCalculator: FC<CompoundInterestCalculatorProps> = (
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="year" unit=" J" />
                                 <YAxis tickFormatter={(val: number) => formatCurrency(val)} width={"auto"} />
-                                <Tooltip formatter={(value: number, name: string) => [`${formatCurrencyPrecise(value)}`, name]} />
+                                <Tooltip formatter={(value, name) => [`${formatCurrencyPrecise(value as number)}`, name as string]} />
                                 {showRange && <Area type="monotone" dataKey="maxReal" stackId="2" stroke="#4ade80" fill="#4ade80" name="Best-Case (Real)" />}
                                 <Area type="monotone" dataKey="real" stackId="1" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.4} name="Erwartet (Real)" />
                                 {showRange && <Area type="monotone" dataKey="minReal" stackId="3" stroke="#f87171" fill="#f9c1c1" name="Worst-Case (Real)" />}

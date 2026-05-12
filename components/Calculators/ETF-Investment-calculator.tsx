@@ -643,11 +643,11 @@ export const ETFInvestmentCalculator: FC<ETFInvestmentCalculatorProps> = ({
                                                                 width={80}
                                                             />
                                                             <Tooltip
-                                                                formatter={(value: number, name: string) => [
-                                                                    formatCurrency(value),
-                                                                    name === "value" ? "Gesamtwert" :
-                                                                    name === "contributions" ? "Eingezahlt" : "Gewinne"
-                                                                ]}
+formatter={(value, name) => [
+                                                                        formatCurrency(value as number),
+                                                                        name === "value" ? "Gesamtwert" :
+                                                                        name === "contributions" ? "Eingezahlt" : "Gewinne"
+                                                                    ]}
                                                                 labelFormatter={(label) => `Jahr ${label}`}
                                                             />
                                                             <Area

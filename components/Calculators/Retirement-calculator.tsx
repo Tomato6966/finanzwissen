@@ -985,9 +985,9 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                             // label={{ value: "Kapital", angle: -90, position: "insideLeft", offset: 10 }}
                                         />
                                         <Tooltip
-                                            formatter={(value: number, name: string) => [
-                                                formatCurrency(value),
-                                                name,
+                                            formatter={(value, name) => [
+                                                formatCurrency(value as number),
+                                                name as string,
                                             ]}
                                         />
                                         <Legend />
