@@ -296,25 +296,25 @@ export default function HomePage() {
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] via-transparent to-blue-500/[0.03]" />
-        <div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
+        <div className="relative mx-auto grid max-w-7xl gap-6 sm:gap-8 px-4 py-10 sm:py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
           <div className="flex flex-col justify-center">
             <div className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-sm text-primary">
               <Sparkles className="h-4 w-4" />
               FinanzWissen Cockpit
             </div>
-            <h1 className="max-w-4xl text-4xl font-bold leading-tight md:text-6xl">
+            <h1 className="max-w-4xl text-3xl sm:text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">
               Finanzielle Entscheidungen{" "}
               <span className="bg-gradient-to-r from-primary via-blue-500 to-purple-600 bg-clip-text text-transparent">
                 klarer, schneller und messbarer
               </span>{" "}
               treffen.
             </h1>
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
+            <p className="mt-4 sm:mt-5 max-w-2xl text-base sm:text-lg leading-7 sm:leading-8 text-muted-foreground">
               Rechner, Tools, Infografiken und Basiswissen – alles an einem Ort.
               Starte mit der Vorsorgeplanung, entdecke nützliche Tools und baue
               dein Finanzwissen Schritt für Schritt auf.
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
+            <div className="mt-5 sm:mt-7 flex flex-wrap gap-2 sm:gap-3">
               <LinkButton
                 href="/calculators#retirement"
                 size="lg"
@@ -334,7 +334,7 @@ export default function HomePage() {
               </LinkButton>
             </div>
           </div>
-          <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-border/50 bg-card/70 backdrop-blur-md p-5 shadow-xl transition-all duration-300 ease-out hover:scale-[1.01] hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/30">
+          <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-border/50 bg-card/70 backdrop-blur-md p-4 sm:p-5 shadow-xl transition-all duration-300 ease-out hover:scale-[1.01] hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/30">
             <div
               className="pointer-events-none absolute inset-0 opacity-10"
               aria-hidden="true"
@@ -359,7 +359,7 @@ export default function HomePage() {
                 <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary">
                   Live Modules
                 </p>
-                <h2 className="mt-1.5 text-xl font-semibold">
+                <h2 className="mt-1.5 text-lg sm:text-xl font-semibold">
                   Rechner zuerst, Theorie griffbereit.
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
@@ -402,23 +402,23 @@ export default function HomePage() {
 
       {/* CALCULATOR DOCK */}
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="mb-5 flex items-center justify-between gap-4">
+        <div className="mb-5 flex items-start sm:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <h2 className="text-2xl font-bold">Rechner Direktzugriff</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-xl sm:text-2xl font-bold">Rechner Direktzugriff</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Die wichtigsten Rechner für deine Finanzplanung – ohne Umweg.
             </p>
           </div>
           <LinkButton
             href="/calculators"
             variant="outline"
-            className="hidden border-border bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground sm:inline-flex"
+            className="hidden border-border bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground sm:inline-flex shrink-0"
           >
             Alle Rechner
             <ArrowRight className="ml-2 h-4 w-4" />
           </LinkButton>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {calculatorDock.map((item) => (
             <Card
               key={item.title}
@@ -450,10 +450,10 @@ export default function HomePage() {
       {/* TOOLS & RESSOURCEN */}
       <section className="border-y border-border/50 bg-muted/20 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="mb-6 flex items-center justify-between gap-4">
+          <div className="mb-6 flex items-start sm:items-center justify-between gap-3 sm:gap-4">
             <div>
-              <h2 className="text-2xl font-bold">Tools & Ressourcen</h2>
-              <p className="text-sm text-muted-foreground">
+              <h2 className="text-xl sm:text-2xl font-bold">Tools & Ressourcen</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Handverlesene externe Tools für Portfolio-Tracking, Broker-Vergleiche,
                 Budget-Management und Finanzanalyse.
               </p>
@@ -461,7 +461,7 @@ export default function HomePage() {
             <LinkButton
               href="/tools"
               variant="outline"
-              className="hidden border-border bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground sm:inline-flex"
+              className="hidden border-border bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground sm:inline-flex shrink-0"
             >
               Alle Tools
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -517,10 +517,10 @@ export default function HomePage() {
       {/* LERNEN & VERSTEHEN */}
       <section className="border-y border-border/50 bg-muted/20 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="grid gap-6 sm:gap-8 lg:grid-cols-[0.9fr_1.1fr]">
             <div>
-              <h2 className="text-2xl font-bold">Infografik: Vermögen bauen</h2>
-              <p className="mt-2 text-muted-foreground">
+              <h2 className="text-xl sm:text-2xl font-bold">Infografik: Vermögen bauen</h2>
+              <p className="mt-2 text-sm sm:text-base text-muted-foreground">
                 Eine kurze, direkt nutzbare Reihenfolge statt langer Theorie.
               </p>
               <div className="mt-5 grid gap-3">
@@ -547,8 +547,8 @@ export default function HomePage() {
 
             <div>
               <div className="mb-5 flex items-center gap-3">
-                <BookOpen className="h-6 w-6 text-primary" />
-                <h2 className="text-2xl font-bold">Basis-Knowhow</h2>
+                <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
+                <h2 className="text-xl sm:text-2xl font-bold">Basis-Knowhow</h2>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 {knowledgeCards.map((item) => (

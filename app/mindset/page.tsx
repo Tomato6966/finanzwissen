@@ -258,7 +258,7 @@ export default function MindSetPage() {
   return (
     <div className="space-y-16 pb-16">
       {/* HERO */}
-      <section className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-amber-500/5 via-transparent to-purple-500/5 p-8 md:p-12">
+      <section className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-amber-500/5 via-transparent to-purple-500/5 p-5 sm:p-8 md:p-12">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent pointer-events-none" />
         <div className="relative">
           <Badge variant="outline" className="mb-4 border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
@@ -396,7 +396,7 @@ export default function MindSetPage() {
       </section>
 
       {/* MINDSET-SHIFTS */}
-      <section className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-amber-500/5 via-purple-500/5 to-blue-500/5 p-8 md:p-12">
+      <section className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-amber-500/5 via-purple-500/5 to-blue-500/5 p-5 sm:p-8 md:p-12">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-500/10 via-transparent to-transparent pointer-events-none" />
         <div className="relative">
           <div className="mb-8 text-center">
@@ -477,7 +477,7 @@ export default function MindSetPage() {
       </section>
 
       {/* STRATEGIEN */}
-      <section className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-emerald-500/5 via-transparent to-blue-500/5 p-8 md:p-12">
+      <section className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-emerald-500/5 via-transparent to-blue-500/5 p-5 sm:p-8 md:p-12">
         <div className="relative">
           <div className="mb-8 text-center">
             <Badge variant="outline" className="mb-2 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
@@ -564,7 +564,7 @@ export default function MindSetPage() {
       </section>
 
       {/* CTA */}
-      <section className="rounded-2xl border border-border/40 bg-gradient-to-br from-primary/5 via-purple-500/5 to-amber-500/5 p-8 md:p-12">
+      <section className="rounded-2xl border border-border/40 bg-gradient-to-br from-primary/5 via-purple-500/5 to-amber-500/5 p-5 sm:p-8 md:p-12">
         <div className="text-center">
           <h2 className="text-3xl font-bold">Bereit für den nächsten Schritt?</h2>
           <p className="mt-2 text-muted-foreground max-w-xl mx-auto">

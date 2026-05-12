@@ -92,10 +92,10 @@ export default function MoneyManagementPage() {
                         <Wallet className="w-14 h-14 text-primary" />
                     </div>
                 </div>
-                <h2 className="text-5xl font-bold text-foreground mb-4 tracking-tight">
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-4 tracking-tight">
                     Geldmanagement
                 </h2>
-                <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
                     Die Kontrolle über deine Finanzen zu &uuml;bernehmen ist der erste Schritt zu
                     finanzieller Freiheit. Hier lernst du, wie du ein Budget erstellst, Kosten
                     optimierst und deine Sparziele erreichst.
@@ -104,8 +104,8 @@ export default function MoneyManagementPage() {
 
             {/* Tabs */}
             <Tabs defaultValue="haushalt" className="w-full">
-                <div className="flex justify-center mb-10">
-                    <TabsList className="grid w-full max-w-2xl grid-cols-3">
+                <div className="flex justify-center mb-6 sm:mb-10">
+                    <TabsList className="flex sm:grid w-full max-w-2xl sm:grid-cols-3 gap-1">
                         <TabsTrigger value="haushalt">
                             <BookOpen className="w-4 h-4 mr-2" />
                             Haushalt

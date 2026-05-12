@@ -12,7 +12,7 @@ const Footer = () => (
                 width={350}
                 height={350}
                 style={{ borderRadius: "25%", opacity: 0.1 }}
-                className="absolute top-0 mt-8 left-0 object-cover -rotate-6"
+                className="absolute top-0 mt-8 left-0 object-cover -rotate-6 hidden md:block"
             />
             <Image
                 src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/images/finanzwissen_community.png`}
@@ -20,7 +20,7 @@ const Footer = () => (
                 width={350}
                 height={350}
                 style={{ borderRadius: "25%", opacity: 0.1 }}
-                className="absolute top-0 mt-8 right-0 object-cover rotate-6"
+                className="absolute top-0 mt-8 right-0 object-cover rotate-6 hidden md:block"
             />
             <div className="text-center">
                 <div className="flex items-center space-x-2 justify-center mb-4">

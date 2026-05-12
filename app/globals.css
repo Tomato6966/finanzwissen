@@ -115,11 +115,107 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    /* Prevent iOS text size adjust on orientation change */
+    -webkit-text-size-adjust: 100%;
+  }
+  html {
+    overflow-x: hidden;
+    scroll-behavior: smooth;
   }
   body {
     @apply bg-background text-foreground;
+    overflow-wrap: anywhere;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.3s ease, color 0.3s ease;
   }
+}
+
+/* Safe-area padding support */
+@supports (padding: env(safe-area-inset-left)) {
+  .safe-padding {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+/* Fluid heading scaling for mobile */
+@media (max-width: 639px) {
+  h1, .text-4xl, .text-5xl, .text-6xl {
+    word-break: break-word;
+  }
+  .text-5xl {
+    font-size: clamp(2rem, 8vw, 3rem) !important;
+  }
+  .text-4xl {
+    font-size: clamp(1.75rem, 6.5vw, 2.5rem) !important;
+  }
+  .text-3xl {
+    font-size: clamp(1.4rem, 5vw, 1.875rem) !important;
+  }
+  .text-2xl {
+    font-size: clamp(1.2rem, 4vw, 1.5rem) !important;
+  }
+  .text-lg {
+    font-size: 1rem !important;
+  }
+  .text-xl {
+    font-size: 1.1rem !important;
+  }
+}
+
+/* Disable mouse glow on touch devices — performance & no visual benefit */
+@media (hover: none) and (pointer: coarse) {
+  .mouse-glow {
+    display: none !important;
+  }
+}
+
+/* Touch-friendly tap targets on devices that need it */
+@media (pointer: coarse) {
+  button:not(.no-touch-min),
+  [role="button"]:not(.no-touch-min),
+  a:not(.no-touch-min) {
+    min-height: 44px;
+  }
+}
+
+/* Narrow foldable / very small phones */
+@media (max-width: 360px) {
+  .px-4 {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  .px-6 {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+}
+
+/* Prevent images / pre / code from overflowing */
+img, video, iframe, embed, object {
+  max-width: 100%;
+  height: auto;
+}
+pre, code, .markdown-content pre {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Hide scrollbar for horizontally scrolling tab bars */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 
 /* Markdown Content Styles */
@@ -177,4 +273,10 @@
 
 .markdown-content blockquote {
   @apply border-l-4 border-primary pl-4 italic text-muted-foreground;
+}
+
+.markdown-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
 }

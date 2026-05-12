@@ -144,15 +144,15 @@ const CommunityContent = () => {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-card rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                <p className="font-bold text-foreground">{modalContent?.id || "loading.md ..."}</p>
-                <div className="flex flex-wrap items-center justify-end gap-4">
-                    <Button onClick={handleShare} variant="default" className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-6">
+                <p className="font-bold text-foreground text-sm sm:text-base">{modalContent?.id || "loading.md ..."}</p>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
+                    <Button onClick={handleShare} variant="default" className="flex items-center gap-2 flex-1 sm:flex-initial justify-center">
                         {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
                         {copied ? 'Copied!' : 'Share'}
                     </Button>
-                    <Button onClick={closeModal} variant="outline" className="flex items-center gap-2">
-                        <X className="h-2 w-2" />
+                    <Button onClick={closeModal} variant="outline" className="flex items-center gap-2 flex-1 sm:flex-initial justify-center">
+                        <X className="h-3 w-3 sm:h-2 sm:w-2" />
                         Back to Files
                     </Button>
                 </div>

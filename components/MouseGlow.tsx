@@ -41,7 +41,7 @@ export default function MouseGlow() {
         <div
             ref={glowRef}
             aria-hidden="true"
-            className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
+            className="pointer-events-none fixed inset-0 -z-10 overflow-hidden mouse-glow"
             style={{
                 ["--glow-x" as string]: "50%",
                 ["--glow-y" as string]: "50%",

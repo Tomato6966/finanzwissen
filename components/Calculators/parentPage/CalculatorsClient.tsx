@@ -1,6 +1,6 @@
 'use client';
 
-import { Banknote, BarChart2, Flame, Home, PiggyBank, ShieldCheck, TrendingDown, TrendingUp, TrendingUpDown, UsersRound, WandSparkles } from "lucide-react";
+import { Banknote, BarChart2, ChevronDown, ChevronUp, Flame, Home, PiggyBank, ShieldCheck, TrendingDown, TrendingUp, TrendingUpDown, UsersRound, WandSparkles } from "lucide-react";
 import LZString from "lz-string";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -89,6 +89,7 @@ export default function CalculatorsClient() {
     const hasSearchParam = !!searchParams.get('share');
 
     const [activeTab, setActiveTab] = useState("retirement");
+    const [tabListExpanded, setTabListExpanded] = useState(false);
     const [initialCompoundData, setInitialCompoundData] = useState<CompoundInterestData | null>(null);
     const [initialFinancialGoalsData, setInitialFinancialGoalsData] = useState<FinancialGoalsData | null>(null);
     const [initialWithdrawalData, setInitialWithdrawalData] = useState<WithDrawalInitialData["initialData"] | null>(null);
@@ -194,26 +195,60 @@ export default function CalculatorsClient() {
 
     const handleTabChange = (value: string) => {
         setActiveTab(value);
+        setTabListExpanded(false);
         router.push(`${pathname}#${value}`, { scroll: false });
     };
 
     return (
-        <div className="p-4 md:p-8 bg-background font-sans rounded-md">
-            <div className="text-center mb-12 max-w-4xl mx-auto">
-                <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Finanzrechner</h1>
-                <p className="text-lg text-muted-foreground">
+        <div className="p-3 sm:p-4 md:p-8 bg-background font-sans rounded-md">
+            <div className="text-center mb-8 sm:mb-12 max-w-4xl mx-auto">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-3 sm:mb-4">Finanzrechner</h1>
+                <p className="text-sm sm:text-base md:text-lg text-muted-foreground">
                     Planen Sie Ihre finanzielle Zukunft mit unseren interaktiven Rechnern – vom Zinseszins bis zur Monte-Carlo-Simulation.
                 </p>
             </div>
 
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full max-w-6xl mx-auto">
-                <TabsList className="flex flex-wrap justify-center w-full gap-2 h-auto p-2 bg-muted">
-                    {Object.entries(TabListRecord).map(([key, value]) => (
-                        <TabsTrigger key={key} value={key} className="flex-1 min-w-[20%] bg-primary/10 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                            <value.icon /> {value.label}
-                        </TabsTrigger>
-                    ))}
-                </TabsList>
+                {/* Collapsed: active tab pill + expand button */}
+                {!tabListExpanded && (
+                    <div className="flex items-center justify-center gap-2 mb-4">
+                        <div className="bg-primary/10 text-primary border border-primary/30 rounded-lg px-4 py-2 text-sm font-medium flex items-center gap-2">
+                            {(() => {
+                                const Tab = TabListRecord[activeTab as keyof typeof TabListRecord];
+                                return Tab ? <><Tab.icon className="h-4 w-4" /> {Tab.label}</> : null;
+                            })()}
+                        </div>
+                        <button
+                            onClick={() => setTabListExpanded(true)}
+                            className="bg-muted hover:bg-accent text-muted-foreground hover:text-accent-foreground rounded-lg px-3 py-2 text-sm font-medium transition-colors flex items-center gap-1"
+                            aria-label="Alle Rechner anzeigen"
+                        >
+                            <ChevronDown className="h-4 w-4" />
+                        </button>
+                    </div>
+                )}
+                {/* Expanded: grid of all tabs */}
+                {tabListExpanded && (
+                    <div className="mb-4">
+                        <div className="flex items-center justify-center gap-2 mb-3">
+                            <span className="text-sm font-medium text-muted-foreground">Rechner wählen</span>
+                            <button
+                                onClick={() => setTabListExpanded(false)}
+                                className="bg-muted hover:bg-accent text-muted-foreground hover:text-accent-foreground rounded-lg px-3 py-1.5 text-xs font-medium transition-colors flex items-center gap-1"
+                                aria-label="Rechnerauswahl einklappen"
+                            >
+                                <ChevronUp className="h-3.5 w-3.5" />
+                            </button>
+                        </div>
+                        <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 w-full h-auto p-2 bg-muted">
+                            {Object.entries(TabListRecord).map(([key, value]) => (
+                                <TabsTrigger key={key} value={key} className="bg-primary/10 text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-3 py-2 justify-center text-center whitespace-normal leading-tight">
+                                    <value.icon className="h-4 w-4 shrink-0" /> <span>{value.label}</span>
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                    </div>
+                )}
 
                 <TabsContents hasSearchParam={hasSearchParam} initialCompoundData={initialCompoundData} initialWithdrawalData={initialWithdrawalData} initialRetirementData={initialRetirementData} initialFinancialGoalsData={initialFinancialGoalsData} initialMontecarloData={initialMontecarloData} initialBudgetAnalysisData={initialBudgetAnalysisData} initialETFInvestmentData={initialETFInvestmentData} initialFIRETimelineData={initialFIRETimelineData} initialFinanzWizardData={initialFinanzWizardData} initialSocietyComparisonData={initialSocietyComparisonData} initialEmergencyFundData={initialEmergencyFundData} initialPensionGapData={initialPensionGapData} initialInflationData={initialInflationData} initialLoanData={initialLoanData} initialBuyOrRentData={initialBuyOrRentData} />
             </Tabs>
