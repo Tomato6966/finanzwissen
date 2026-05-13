@@ -1,6 +1,6 @@
 
 import {
-	Banknote, BarChart3, BookOpen, Calculator, FileText, Lightbulb, PieChart, TrendingUp
+    Banknote, BarChart3, BookOpen, Calculator, FileText, Lightbulb, PieChart, TrendingUp
 } from "lucide-react";
 
 export type ToolCategory = {
@@ -120,6 +120,12 @@ export const TOOL_CATEGORIES: ToolCategory[] = [
                 description: "COMMUNITY-MADE : Fire (Financial Independence, Retire Early) Simulation - Wann kannst du in Rente gehen? (Anhand von: Performance, Sparrate, Ausgaben, Inflation, Alter, und von allem mehrere verschiedene Einstellungsmöglichkeiten)",
                 image: "https://i.imgur.com/db7MIBi.png",
                 link: { href: "https://wealthcalc.netlify.app/", isExternal: true }
+            },
+            {
+                title: "Fire-Lotse",
+                description: "Berechne FU-Quote, Lean FIRE, Fat FIRE und Coast FIRE – kostenlos, lokal und ohne Registrierung. Dein persönlicher FIRE-Planer für Deutschland.",
+                image: (process.env.NEXT_PUBLIC_BASE_PATH || "") + "/images/FireLotse.png",
+                link: { href: "https://fire-lotse.de/", isExternal: true }
             },
             {
                 title: "Curvo (Backtest)",

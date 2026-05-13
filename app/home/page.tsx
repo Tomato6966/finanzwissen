@@ -84,6 +84,16 @@ const featuredTools = [
     href: "https://wealthcalc.netlify.app/",
   },
   {
+    title: "Fire-Lotse",
+    description: "Berechne FU-Quote, Lean FIRE, Fat FIRE und Coast FIRE – kostenlos, lokal und ohne Registrierung.",
+    category: "FIRE-Planer",
+    accent: "text-orange-600",
+    bgAccent: "bg-orange-600/10",
+    borderAccent: "hover:border-orange-500/30",
+    icon: Flame,
+    href: "https://fire-lotse.de/",
+  },
+  {
     title: "TradingView",
     description: "Charting-Plattform für technische Analysen",
     category: "Analyse",
