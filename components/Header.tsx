@@ -1,5 +1,5 @@
 "use client";
-import { Menu, Moon, Sun, X } from "lucide-react";
+import { Maximize2, Menu, Minimize2, Moon, Sun, X } from "lucide-react";
 import Image from "next/image";
 import { useContext } from "react";
 
@@ -13,12 +13,12 @@ import LinkButton from "./ui/linkButton";
 
 export default function Header() {
     const [activeTab] = useGetActiveTab();
-    const { isDarkMode, toggleDarkMode } = useContext(PageContext)
+    const { isDarkMode, toggleDarkMode, isWideMode, toggleWideMode } = useContext(PageContext);
 
     return <header className="bg-background/80 backdrop-blur-md border-b border-border/60 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className={`mx-auto px-4 sm:px-6 lg:px-8 transition-all duration-300 ${isWideMode ? "w-full max-w-[108rem]" : "max-w-7xl"}`}>
             <div className="flex items-center justify-between h-14 md:h-16">
-                <LinkButton href="/" className="flex items-center gap-2 text-xl sm:text-2xl shrink-0" variant={!activeTab ? "secondary" : "ghost"}>
+                <LinkButton href="/" className="flex items-center gap-2 text-xl sm:text-2xl shrink-0 hover:bg-transparent" variant="ghost">
                     <Image
                         className="w-7 h-7 sm:w-8 sm:h-8"
                         src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/images/finanzwissen.png`}
@@ -36,7 +36,18 @@ export default function Header() {
                     <Button
                         variant="outline"
                         size="icon"
+                        onClick={() => toggleWideMode()}
+                        title={isWideMode ? "Standard-Breite" : "Erweiterte Breite (Full-Width)"}
+                        className="hidden md:flex shrink-0 text-muted-foreground hover:text-foreground"
+                    >
+                        {isWideMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                    </Button>
+
+                    <Button
+                        variant="outline"
+                        size="icon"
                         onClick={() => toggleDarkMode()}
+                        title={isDarkMode ? "Helles Design" : "Dunkles Design"}
                         className="hidden md:flex shrink-0"
                     >
                         {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -68,7 +79,14 @@ export default function Header() {
                         <div className="flex-1 overflow-y-auto px-2">
                             <NavigationMenu mobile />
                         </div>
-                        <div className="border-t border-border/60 pt-4 px-4 pb-2">
+                        <div className="border-t border-border/60 pt-4 px-4 pb-2 space-y-2">
+                            <button
+                                onClick={() => toggleWideMode()}
+                                className="flex items-center justify-center gap-2 w-full rounded-lg bg-muted hover:bg-accent text-muted-foreground hover:text-accent-foreground px-4 py-2.5 text-sm font-medium transition-colors"
+                            >
+                                {isWideMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                                {isWideMode ? "Standard-Breite" : "Erweiterte Breite"}
+                            </button>
                             <button
                                 onClick={() => toggleDarkMode()}
                                 className="flex items-center justify-center gap-2 w-full rounded-lg bg-muted hover:bg-accent text-muted-foreground hover:text-accent-foreground px-4 py-2.5 text-sm font-medium transition-colors"

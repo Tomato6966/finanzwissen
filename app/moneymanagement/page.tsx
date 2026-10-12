@@ -11,6 +11,7 @@ import {
     Flame,
     Home,
     Lightbulb,
+    PieChart,
     PiggyBank,
     Sparkles,
     Target,
@@ -19,6 +20,8 @@ import {
     Wallet,
     Zap,
 } from "lucide-react";
+
+import SankeyBudgetCalculator from "@/components/Calculators/SankeyBudget-calculator";
 
 const StepCard = ({
     number,
@@ -103,12 +106,16 @@ export default function MoneyManagementPage() {
             </div>
 
             {/* Tabs */}
-            <Tabs defaultValue="haushalt" className="w-full">
+            <Tabs defaultValue="rechner" className="w-full">
                 <div className="flex justify-center mb-6 sm:mb-10">
-                    <TabsList className="flex sm:grid w-full max-w-2xl sm:grid-cols-3 gap-1">
+                    <TabsList className="flex flex-wrap sm:grid w-full max-w-3xl sm:grid-cols-4 gap-1">
+                        <TabsTrigger value="rechner">
+                            <PieChart className="w-4 h-4 mr-2 text-primary" />
+                            Budget-Rechner (Sankey)
+                        </TabsTrigger>
                         <TabsTrigger value="haushalt">
                             <BookOpen className="w-4 h-4 mr-2" />
-                            Haushalt
+                            Haushalt &amp; Basics
                         </TabsTrigger>
                         <TabsTrigger value="fire">
                             <Flame className="w-4 h-4 mr-2" />
@@ -121,8 +128,26 @@ export default function MoneyManagementPage() {
                     </TabsList>
                 </div>
 
+                {/* ==================== TAB 0: SANKEY BUDGET RECHNER ==================== */}
+                <TabsContent value="rechner" className="space-y-8">
+                    <SankeyBudgetCalculator />
+                </TabsContent>
+
                 {/* ==================== TAB 1: HAUSHALT ==================== */}
                 <TabsContent value="haushalt" className="space-y-8">
+                    {/* Quick Link to Sankey Calculator */}
+                    <div className="flex items-center justify-between p-4 rounded-xl border border-primary/30 bg-primary/5">
+                        <div className="flex items-center gap-3">
+                            <PieChart className="w-5 h-5 text-primary shrink-0" />
+                            <div>
+                                <h4 className="text-sm font-semibold text-foreground">Eigenen Cashflow visualisieren?</h4>
+                                <p className="text-xs text-muted-foreground">
+                                    Nutze unseren interaktiven Sankey-Budgetplaner mit Speicherfunktion im Tab &quot;Budget-Rechner (Sankey)&quot;.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader>
                             <div className="flex items-center gap-3">

@@ -123,8 +123,10 @@
     scroll-behavior: smooth;
   }
   body {
-    @apply bg-background text-foreground;
-    overflow-wrap: anywhere;
+    @apply bg-background text-foreground font-sans;
+    font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    overflow-wrap: break-word;
+    letter-spacing: -0.011em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.3s ease, color 0.3s ease;

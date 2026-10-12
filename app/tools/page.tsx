@@ -13,12 +13,14 @@ export default function ToolsPage() {
     const router = useRouter();
     const pathname = usePathname();
     const [activeTab, setActiveTab] = useState("portfolio-trackers");
-    const [tabListExpanded, setTabListExpanded] = useState(
-        typeof window !== "undefined" ? window.innerWidth >= 1024 : false
-    );
+    const [tabListExpanded, setTabListExpanded] = useState(false);
 
-    // Effect to read the URL hash on component mount and set the active tab
+    // Effect to handle client-side responsiveness and read URL hash
     useEffect(() => {
+        if (window.innerWidth >= 1024) {
+            setTabListExpanded(true);
+        }
+
         if (typeof window !== "undefined") {
             const hash = window.location.hash.substring(1); // Remove '#'
             const foundCategory = TOOL_CATEGORIES.find(cat => cat.id === hash);

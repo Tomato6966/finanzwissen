@@ -118,22 +118,31 @@ const isProd = process.env.NEXT_PUBLIC_USE_PROXYURL === "true";
 const CORS_PROXIES = [
     'https://corsproxy.io/?url=',
     'https://api.allorigins.win/raw?url=',
+    'https://thingproxy.freeboard.io/fetch/',
 ];
 const YAHOO_API = 'https://query1.finance.yahoo.com';
 
 const fetchYahoo = async (path: string, params: URLSearchParams): Promise<Response> => {
     const urlStr = `${YAHOO_API}${path}?${params.toString()}`;
 
+    // Try direct fetch first (works locally and in many client setups)
+    try {
+        const directRes = await fetch(urlStr, { signal: AbortSignal.timeout(6000) });
+        if (directRes.ok) return directRes;
+    } catch {
+        // Continue to proxies
+    }
+
     if (!isProd) {
-        return fetch(urlStr);
+        // Fallback dummy response if direct fetch fails in dev
+        return new Response(JSON.stringify({ chart: { result: [] } }), { status: 503 });
     }
 
     const allOrigins = CORS_PROXIES.map(p => `${p}${encodeURIComponent(urlStr)}`);
-    allOrigins.push(urlStr);
 
     for (const url of allOrigins) {
         try {
-            const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+            const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
             if (res.ok) return res;
             console.warn(`Yahoo proxy returned ${res.status}, trying next: ${url.slice(0, 80)}...`);
         } catch (e) {
@@ -141,7 +150,11 @@ const fetchYahoo = async (path: string, params: URLSearchParams): Promise<Respon
         }
     }
 
-    throw new Error('All Yahoo Finance proxies failed');
+    // Return friendly error Response instead of unhandled fatal exception
+    return new Response(JSON.stringify({ error: 'All Yahoo Finance proxies failed', chart: { result: null } }), {
+        status: 503,
+        statusText: 'All Yahoo Finance proxies failed'
+    });
 };
 
 export const EQUITY_TYPES = {

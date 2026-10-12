@@ -7,11 +7,12 @@ import { useEffect, useRef, useState } from "react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useShareCalculator } from "@/lib/useShareCalculator";
-
+import { CalculatorBanner } from "./CalculatorBanner";
+import { CalculatorHeader } from "./CalculatorHeader";
 import { Switch } from "../../components/ui/switch";
 
 interface BudgetAnalysisData {
@@ -386,33 +387,31 @@ export function BudgetAnalysis({ initialData }: BudgetAnalysisProps) {
     }, [visualizationType, budgetItems, totalIncome, remainingBudget]);
 
 
+    const validationError = remainingBudget < 0
+        ? `Ihre monatlichen Ausgaben übersteigen Ihr Einkommen um ${Math.abs(remainingBudget).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}.`
+        : null;
+
     return (
-        <Card className="w-full max-w-6xl shadow-xl rounded-lg overflow-hidden py-0 dark:bg-card">
-            <CardHeader className="bg-primary text-primary-foreground p-6 rounded-t-lg flex flex-row items-center justify-between">
-                <div>
-                    <CardTitle className="text-3xl font-bold flex items-center gap-4">
-                        <TrendingUp /> Budgetanalyse
-                    </CardTitle>
-                    <CardDescription className="text-primary-foreground opacity-90 text-sm mt-2">
-                        Analysieren Sie Ihr Budget mit KI-Unterstützung und erhalten Sie personalisierte Verbesserungsvorschläge.
-                    </CardDescription>
-                </div>
-                <Button onClick={handleShare} className="ml-4" variant="secondary">
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Share Config
-                </Button>
-            </CardHeader>
-            <CardContent className="flex flex-wrap space-y-4 pb-6">
-                <div className="grid md:grid-cols-2 gap-4 w-full">
-                    <Card className="hover:shadow-lg transition-shadow dark:bg-gray-800 dark:border-gray-700">
-                        <CardHeader>
-                            <CardTitle className="flex items-center text-gray-900 dark:text-gray-50">
-                                <Upload className="w-5 h-5 mr-2" />
+        <Card className="w-full shadow-xl rounded-2xl overflow-hidden py-0 border-border/70 dark:bg-card/90 backdrop-blur-md">
+            <CalculatorHeader
+                title="Budgetanalyse"
+                description="Analysieren Sie Ihr Budget mit interaktiver Visualisierung und vergleichen Sie Ihre Ausgabenstrukturen."
+                icon={TrendingUp}
+                badge="Alltag & Haushalt"
+                onShare={handleShare}
+            />
+
+            <div className="p-6 sm:p-7 space-y-6">
+                <div className="grid md:grid-cols-2 gap-6 w-full">
+                    <Card className="rounded-xl border border-border/60 bg-card/60 dark:bg-card/30 backdrop-blur-xs">
+                        <CardHeader className="pb-3 border-b border-border/40">
+                            <CardTitle className="flex items-center text-base font-semibold text-foreground">
+                                <Upload className="w-4 h-4 mr-2 text-primary" />
                                 Budget eingeben
                             </CardTitle>
-                            <CardDescription className="dark:text-gray-400">Geben Sie Ihre monatlichen Einnahmen und Ausgaben ein</CardDescription>
+                            <CardDescription className="text-xs text-muted-foreground">Geben Sie Ihre monatlichen Einnahmen und Ausgaben ein</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-4 pt-4">
                             {budgetItems.map((item) => (
                                 <div key={item.id} className="flex items-end space-x-2">
                                     <div className="flex-grow">
@@ -482,7 +481,14 @@ export function BudgetAnalysis({ initialData }: BudgetAnalysisProps) {
                                 <Label htmlFor="sankey-switch" className="dark:text-gray-400">Sankey-Diagramm</Label>
                             </div>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="space-y-4">
+                            {validationError && (
+                                <CalculatorBanner
+                                    type="warning"
+                                    title="Budget-Defizit"
+                                    message={validationError}
+                                />
+                            )}
                             {totalIncome > 0 ? (
                                 <div className="space-y-4">
                                     <div className="text-center mb-4">
@@ -610,14 +616,20 @@ export function BudgetAnalysis({ initialData }: BudgetAnalysisProps) {
                 </Card>
 
                 {/* Tip Alert */}
-                <Alert className="bg-blue-50 dark:bg-blue-900 border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-200">
-                    <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    <AlertDescription>
+                <Alert className="bg-card/40 border-border/50 text-foreground">
+                    <AlertCircle className="h-4 w-4 text-primary" />
+                    <AlertDescription className="text-xs">
                         <strong>Tipp:</strong> Für die beste Analyse sollten Sie Ihre tatsächlichen monatlichen Durchschnittswerte
                         eingeben. Schauen Sie in Ihre Kontoauszüge der letzten 3 Monate für genaue Zahlen.
                     </AlertDescription>
                 </Alert>
-            </CardContent>
+            </div>
+
+            <CardFooter className="px-6 py-4 text-xs text-muted-foreground border-t border-border/40 flex justify-between items-center bg-card/30">
+                <p>
+                    Hinweis: Budgetierungs-Tools unterstützen die Haushaltsführung, ersetzen jedoch keine zertifizierte Schuldner- oder Finanzberatung.
+                </p>
+            </CardFooter>
         </Card>
     );
 }

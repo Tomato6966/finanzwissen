@@ -24,10 +24,13 @@ import { Switch } from "@/components/ui/switch";
 import {
 	Tooltip as ShadcnTooltip, TooltipContent, TooltipProvider, TooltipTrigger
 } from "@/components/ui/tooltip";
+import { copyShareUrlToClipboard, getShareUrl } from "@/lib/share-utils";
 import { defaultAdvancedSavingsPeriods, getAnnualSavingsForYear } from "@/lib/savings-plan";
 
 import { AdvancedSavingsPlanInput } from "./AdvancedSavingsPlanInput";
 import { formatCurrency } from "./tools";
+import { CalculatorBanner } from "./CalculatorBanner";
+import { CalculatorHeader } from "./CalculatorHeader";
 
 import type { AnnuityType, CalculationType, FormData, RetirementCalculatorProps } from "../../lib/calculator-types";
 
@@ -400,29 +403,16 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
     }, []);
 
     // Handle share config button click
-    const handleShareConfig = () => {
+    const handleShareConfig = async () => {
         const serialized = serializeState();
-        const shareUrl = `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ''}/calculators?share=${serialized}`;
-        try {
-            navigator.clipboard.writeText(shareUrl).then(() => {
-                setShareMessage("Link kopiert!");
-                setTimeout(() => setShareMessage(null), 3000);
-            }).catch(() => {
-                // Fallback for older browsers or non-secure contexts
-                const textarea = document.createElement('textarea');
-                textarea.value = shareUrl;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                setShareMessage("Link kopiert!");
-                setTimeout(() => setShareMessage(null), 3000);
-            });
-        } catch (err) {
-            console.error('Failed to copy text: ', err);
+        const shareUrl = getShareUrl('retirement', serialized);
+        const copied = await copyShareUrlToClipboard(shareUrl);
+        if (copied) {
+            setShareMessage("Link kopiert!");
+        } else {
             setShareMessage("Kopieren fehlgeschlagen!");
-            setTimeout(() => setShareMessage(null), 3000);
         }
+        setTimeout(() => setShareMessage(null), 3000);
     };
 
 
@@ -435,24 +425,20 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
 
     return (
         <TooltipProvider>
-            <Card className="w-full max-w-6xl shadow-xl rounded-lg overflow-hidden py-0 dark:bg-card">
-                <CardHeader className="bg-primary text-primary-foreground p-6 rounded-t-lg flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle className="text-3xl font-bold flex items-center">
-                            <Calculator className="mr-3 h-8 w-8" /> Vorsorgerechner
-                        </CardTitle>
-                        <CardDescription className="text-primary-foreground opacity-90 text-sm mt-2">
-                            Planen Sie Ihre Anspar- und Entnahmephase. Finden Sie Ihr optimales
-                            Rentenalter oder die nötige Sparrate.
-                        </CardDescription>
-                    </div>
-                    <Button onClick={handleShareConfig} className="ml-4" variant="secondary">
-                        {shareMessage || "Share Config"}
-                    </Button>
-                </CardHeader>
-                <CardContent className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Input Panel */}
-                    <div className="lg:col-span-1 space-y-6">
+            <Card className="w-full shadow-xl rounded-2xl overflow-hidden py-0 border-border/70 dark:bg-card/90 backdrop-blur-md">
+                <CalculatorHeader
+                    title="Vorsorgerechner"
+                    description="Planen Sie Ihre Anspar- und Entnahmephase. Finden Sie Ihr optimales Rentenalter oder die nötige Sparrate."
+                    icon={Calculator}
+                    badge="Empfohlen"
+                    shareMessage={shareMessage}
+                    onShare={handleShareConfig}
+                />
+
+                <div className="p-6 sm:p-7 space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Input Panel */}
+                        <div className="lg:col-span-1 space-y-6 rounded-xl border border-border/50 bg-card/50 dark:bg-card/30 p-4 sm:p-5">
                         <div className="space-y-2">
                             <Label htmlFor="calculationType">
                                 <div className="flex items-center">
@@ -461,8 +447,8 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                             </Label>
                             <Select
                                 value={calculationType}
-                                onValueChange={(value: CalculationType) =>
-                                    setCalculationType(value)
+                                onValueChange={(value) =>
+                                    setCalculationType(value as CalculationType)
                                 }
                             >
                                 <SelectTrigger id="calculationType">
@@ -632,8 +618,8 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                                         </div>
                                         <Select
                                             value={formData.savingsInterval}
-                                            onValueChange={(value: FormData["savingsInterval"]) =>
-                                                memoizedHandleInputChange("savingsInterval", value)
+                                            onValueChange={(value) =>
+                                                memoizedHandleInputChange("savingsInterval", value as FormData["savingsInterval"])
                                             }
                                         >
                                             <SelectTrigger id="savingsInterval">
@@ -815,13 +801,11 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                     <div className="lg:col-span-2 space-y-6">
                         {/* Error Display */}
                         {error && (
-                            <Alert variant="destructive">
-                                <AlertTriangle className="h-4 w-4" />
-                                <AlertTitle>Fehler bei der Berechnung</AlertTitle>
-                                <AlertDescription>
-                                    {error}
-                                </AlertDescription>
-                            </Alert>
+                            <CalculatorBanner
+                                type="error"
+                                title="Berechnungsfehler"
+                                message={error}
+                            />
                         )}
 
                         {/* Display Result Cards */}
@@ -1013,13 +997,15 @@ export function RetirementCalculator({ initialData }: RetirementCalculatorProps)
                             </div>
                         )}
                     </div>
-                </CardContent>
-                <CardFooter className="p-6 text-sm text-gray-500 flex justify-between items-center">
-                    <p>
-                        Hinweis: Dies ist ein Modell, keine Garantie. Die tatsächliche Rendite kann von der hier angegebenen Schätzung abweichen.
-                    </p>
-                </CardFooter>
-            </Card>
-        </TooltipProvider>
-    );
+                </div>
+            </div>
+
+            <CardFooter className="px-6 py-4 text-xs text-muted-foreground border-t border-border/40 flex justify-between items-center bg-card/30">
+                <p>
+                    Hinweis: Dies ist ein mathematisches Modell. Reale Renditen und Rentenbeträge hängen von künftigen Markt- und Steuerentwicklungen ab.
+                </p>
+            </CardFooter>
+        </Card>
+    </TooltipProvider>
+);
 }

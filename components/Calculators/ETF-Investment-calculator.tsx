@@ -1,5 +1,5 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 "use client"
+/* eslint-disable react-hooks/exhaustive-deps */
 
 import {
 	BarChart, ChartAreaIcon, ExternalLink, Eye, EyeClosed, Info, PieChart, TrendingUp
@@ -32,6 +32,9 @@ import {
 import { getHistoricalData } from "@/lib/yahoofinanceService";
 
 import { formatCurrency, handleFormChange, handleSelectChange } from "./tools";
+import { copyShareUrlToClipboard, getShareUrl } from "@/lib/share-utils";
+import { CalculatorBanner } from "./CalculatorBanner";
+import { CalculatorHeader } from "./CalculatorHeader";
 
 interface ETFInvestmentCalculatorProps {
     initialData: ETFInvestmentData | null;
@@ -104,19 +107,16 @@ export const ETFInvestmentCalculator: FC<ETFInvestmentCalculatorProps> = ({
     const [showReturnDetails, setShowReturnDetails] = useState<boolean>(false);
     const [showProjection, setShowProjection] = useState<boolean>(false);
 
-    const handleShareConfig = () => {
+    const handleShareConfig = async () => {
         const serialized = serializeState();
-        const shareUrl = `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ""}/calculators?share=${serialized}`;
-        try {
-            navigator.clipboard.writeText(shareUrl).then(() => {
-                setShareMessage("Link kopiert!");
-                setTimeout(() => setShareMessage(null), 3000);
-            });
-        } catch (err) {
-            console.error("Failed to copy text: ", err);
+        const shareUrl = getShareUrl('etf-investment', serialized);
+        const copied = await copyShareUrlToClipboard(shareUrl);
+        if (copied) {
+            setShareMessage("Link kopiert!");
+        } else {
             setShareMessage("Kopieren fehlgeschlagen!");
-            setTimeout(() => setShareMessage(null), 3000);
         }
+        setTimeout(() => setShareMessage(null), 3000);
     };
 
     const serializeState = useCallback(() => {
@@ -236,38 +236,28 @@ export const ETFInvestmentCalculator: FC<ETFInvestmentCalculatorProps> = ({
     }, [initialData]);
 
     return (
-        <Card className="w-full max-w-7xl shadow-2xl rounded-xl overflow-hidden py-0 dark:bg-card bg-white">
-            <CardHeader className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white p-8 rounded-t-xl">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <CardTitle className="text-4xl font-bold flex items-center gap-4 mb-2">
-                            <TrendingUp className="w-10 h-10" />
-                            ETF-Investment-Strategie-Rechner
-                        </CardTitle>
-                        <CardDescription className="text-white/90 text-lg">
-                            Erstellen Sie eine passende ETF-Anlagestrategie basierend auf Ihrem Risikoprofil und Ihren Zielen.
-                        </CardDescription>
-                    </div>
-                    <Button
-                        onClick={handleShareConfig}
-                        className="bg-white/20 hover:bg-white/30 border-white/30 text-white backdrop-blur-sm transition-all duration-200"
-                        variant="outline"
-                    >
-                        {shareMessage || "Konfiguration teilen"}
-                    </Button>
-                </div>
-            </CardHeader>
-            <CardContent className="grid md:grid-cols-3 gap-8 p-8">
-                <Card className="md:col-span-1 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-blue-950 border-blue-200">
-                    <CardHeader>
-                        <CardTitle className="text-xl font-semibold text-blue-700 dark:text-blue-300">
-                            Ihre Angaben
-                        </CardTitle>
-                        <CardDescription>
-                            Geben Sie Ihre persönlichen Daten ein, um eine maßgeschneiderte Strategie zu erhalten.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
+        <Card className="w-full shadow-xl rounded-2xl overflow-hidden py-0 border-border/70 dark:bg-card/90 backdrop-blur-md">
+            <CalculatorHeader
+                title="ETF-Investment-Strategie-Rechner"
+                description="Erstellen Sie eine passende ETF-Anlagestrategie basierend auf Ihrem Risikoprofil und Ihren Zielen."
+                icon={TrendingUp}
+                badge="Populär"
+                shareMessage={shareMessage}
+                onShare={handleShareConfig}
+            />
+
+            <div className="p-6 sm:p-7 space-y-6">
+                <div className="grid md:grid-cols-3 gap-8">
+                    <div className="md:col-span-1 space-y-5 rounded-xl border border-border/50 bg-card/50 dark:bg-card/30 p-4 sm:p-5">
+                        <div className="border-b border-border/40 pb-3">
+                            <h3 className="text-base font-semibold text-foreground">
+                                Ihre Angaben
+                            </h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Passen Sie die Parameter an Ihr persönliches Anlageprofil an.
+                            </p>
+                        </div>
+                        <div className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="age" className="text-sm font-medium">Alter</Label>
                             <Input
@@ -438,10 +428,17 @@ export const ETFInvestmentCalculator: FC<ETFInvestmentCalculatorProps> = ({
                                 />
                             </div>
                         </Card>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
 
                 <div className="md:col-span-2 space-y-6">
+                    {formData.regions.length === 0 && (
+                        <CalculatorBanner
+                            type="warning"
+                            title="Regionen wählen"
+                            message="Bitte wählen Sie mindestens eine Anlage-Region aus, um ETF-Empfehlungen zu berechnen."
+                        />
+                    )}
                     {results && (
                         <div className="space-y-6">
                             {/* Header with Risk Score */}
@@ -873,24 +870,13 @@ formatter={(value, name) => [
                         </div>
                     )}
                 </div>
-            </CardContent>
-            <CardFooter className="p-6 bg-gray-50 dark:bg-gray-900">
-                <Card className="w-full border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
-                            <Info className="w-5 h-5" />
-                            Wichtige Hinweise
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-sm text-amber-800 dark:text-amber-300 space-y-2">
-                        <p>• Die hier dargestellten Empfehlungen sind unverbindlich und stellen keine Finanzberatung dar.</p>
-                        <p>• Die vergangene Performance von Finanzprodukten ist kein Indikator für zukünftige Ergebnisse.</p>
-                        <p>• Diversifikation ist ein wichtiger Grundsatz der Geldanlage. Streuen Sie Ihr investiertes Kapital breit.</p>
-                        <p>• Überprüfen Sie Ihre Anlagestrategie regelmäßig und passen Sie sie bei Bedarf an Ihre Lebensumstände an.</p>
-                        <p>• Häufige Umschichtungen oder Anpassungen der Sparrate können die Rendite beeinflussen.</p>
-                        <p>• Historische Daten werden in Echtzeit von Yahoo Finance abgerufen und können Verzögerungen aufweisen.</p>
-                    </CardContent>
-                </Card>
+            </div>
+            </div>
+
+            <CardFooter className="px-6 py-4 text-xs text-muted-foreground border-t border-border/40 flex justify-between items-center bg-card/30">
+                <p>
+                    Hinweis: Empfehlungen basieren auf historischen Modellen und stellen keine Anlageberatung dar.
+                </p>
             </CardFooter>
         </Card>
     );

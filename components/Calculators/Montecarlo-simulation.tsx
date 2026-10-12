@@ -19,6 +19,9 @@ import {
 } from "@/lib/yahoofinanceService";
 
 import { formatCurrency, formatCurrencyPrecise, formatPercentage } from "./tools";
+import { copyShareUrlToClipboard, getShareUrl } from "@/lib/share-utils";
+import { CalculatorBanner } from "./CalculatorBanner";
+import { CalculatorHeader } from "./CalculatorHeader";
 
 const RISK_FREE_RATE = 2; // Example: 2% risk-free rate for Sharpe Ratio calculation
 const MAX_DISPLAY_PATHS = 15; // Maximum number of paths to display in the chart
@@ -101,30 +104,16 @@ export function MontecarloSimulation({ initialData }: MonteCarloSimulationProps)
 
 
     // Handle share config button click
-    const handleShareConfig = () => {
+    const handleShareConfig = async () => {
         const serialized = serializeState();
-        const shareUrl = `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ''}/calculators?share=${serialized}`;
-        try {
-            document.execCommand('copy'); // Fallback for older browsers
-            navigator.clipboard.writeText(shareUrl).then(() => {
-                setShareMessage("Link kopiert!");
-                setTimeout(() => setShareMessage(null), 3000);
-            }).catch(() => {
-                // Fallback if writeText fails (e.g., not in secure context or permissions)
-                const textarea = document.createElement('textarea');
-                textarea.value = shareUrl;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                setShareMessage("Link kopiert! (Fallback)");
-                setTimeout(() => setShareMessage(null), 3000);
-            });
-        } catch (err) {
-            console.error('Failed to copy text: ', err);
+        const shareUrl = getShareUrl('montecarlo', serialized);
+        const copied = await copyShareUrlToClipboard(shareUrl);
+        if (copied) {
+            setShareMessage("Link kopiert!");
+        } else {
             setShareMessage("Kopieren fehlgeschlagen!");
-            setTimeout(() => setShareMessage(null), 3000);
         }
+        setTimeout(() => setShareMessage(null), 3000);
     };
 
 
@@ -292,31 +281,24 @@ export function MontecarloSimulation({ initialData }: MonteCarloSimulationProps)
     const isWeightValid = totalWeight === 100;
 
     return (
-        <Card className="w-full max-w-6xl shadow-xl rounded-lg overflow-hidden py-0 dark:bg-card">
-            <CardHeader className="bg-primary text-primary-foreground p-6 rounded-t-lg flex flex-row items-center justify-between">
-                <div>
-                    <CardTitle className="text-3xl font-bold flex items-center gap-4">
-                        <BarChart2 /> Monte-Carlo-Simulation für Portfolio
-                    </CardTitle>
-                    <CardDescription className="text-primary-foreground opacity-90 text-sm mt-2">
-                        Simulieren Sie Tausende möglicher Zukünfte für Ihr Investmentportfolio, um die Wahrscheinlichkeiten besser zu verstehen.
-                        <p className="text-xs italic text-primary-foreground opacity-90 mt-2 ml-4">
-                            Hinweis: Die Simulation ist browser optimiert. Eine richtige MC-Simulation braucht 10000-50000 Simulationsiterationen. <br />
-                            Dafür kann man ein dediziertes PYTHON tool auf windows/linux/mac nutzen, hier eine Repository dafür: <a href="https://github.com/Tomato6966/python-monte-carlo-simulation" target="_blank" className="text-orange-300 hover:text-orange-500 opacity-90">python-monte-carlo-simulation</a>
-                        </p>
-                    </CardDescription>
-                </div>
-                <Button onClick={handleShareConfig} className="ml-4" variant="secondary">
-                    {shareMessage || "Share Config"}
-                </Button>
-            </CardHeader>
-            <CardContent className="grid md:grid-cols-3 gap-8">
-                {/* Input Form */}
-                <div className="md:col-span-1 space-y-4">
-                    <div><Label>Anfangskapital (€)</Label><Input min={0} name="principal" type="number" value={monteCarloForm.principal} onChange={handleFormChange} /></div>
-                    <div><Label>Anlagedauer (Jahre)</Label><Input min={0} name="time" type="number" value={monteCarloForm.time} onChange={handleFormChange} /></div>
-                    <div><Label>Monatlicher Sparplan (€)</Label><Input min={0} name="monthlyContribution" type="number" value={monteCarloForm.monthlyContribution} onChange={handleFormChange} /></div>
-                    <div><Label>Anzahl Simulationen</Label><Input max={150} min={MAX_DISPLAY_PATHS} name="simulations" type="number" value={monteCarloForm.simulations} onChange={handleFormChange} /></div>
+        <Card className="w-full shadow-xl rounded-2xl overflow-hidden py-0 border-border/70 dark:bg-card/90 backdrop-blur-md">
+            <CalculatorHeader
+                title="Monte-Carlo-Simulation für Portfolio"
+                description="Simulieren Sie stochastische Pfade für Ihr Investmentportfolio, um Risiken und Renditewahrscheinlichkeiten transparent zu analysieren."
+                icon={BarChart2}
+                badge="Stochastik"
+                shareMessage={shareMessage}
+                onShare={handleShareConfig}
+            />
+
+            <div className="p-6 sm:p-7 space-y-6">
+                <div className="grid md:grid-cols-3 gap-8">
+                    {/* Input Form */}
+                    <div className="md:col-span-1 space-y-4 rounded-xl border border-border/50 bg-card/50 dark:bg-card/30 p-4 sm:p-5">
+                        <div className="space-y-1.5"><Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Anfangskapital (€)</Label><Input min={0} name="principal" type="number" value={monteCarloForm.principal} onChange={handleFormChange} /></div>
+                        <div className="space-y-1.5"><Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Anlagedauer (Jahre)</Label><Input min={0} name="time" type="number" value={monteCarloForm.time} onChange={handleFormChange} /></div>
+                        <div className="space-y-1.5"><Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Monatlicher Sparplan (€)</Label><Input min={0} name="monthlyContribution" type="number" value={monteCarloForm.monthlyContribution} onChange={handleFormChange} /></div>
+                        <div className="space-y-1.5"><Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Anzahl Simulationen</Label><Input max={150} min={MAX_DISPLAY_PATHS} name="simulations" type="number" value={monteCarloForm.simulations} onChange={handleFormChange} /></div>
 
                     <h3 className="text-lg font-semibold mt-6">Portfolio-Zusammensetzung</h3>
                     {monteCarloForm.assets.map((asset, index) => (
@@ -383,7 +365,14 @@ export function MontecarloSimulation({ initialData }: MonteCarloSimulationProps)
                 </div>
 
                 {/* Results & Chart */}
-                <div className="md:col-span-2">
+                <div className="md:col-span-2 space-y-4">
+                    {!isWeightValid && (
+                        <CalculatorBanner
+                            type="warning"
+                            title="Allokation unvollständig"
+                            message={`Die Summe aller Asset-Gewichtungen muss genau 100% betragen (aktuell: ${totalWeight}%).`}
+                        />
+                    )}
                     <h3 className="text-lg font-semibold mb-2">Simulationsergebnisse</h3>
                     <span className="text-xs text-muted-foreground italic">(Es werden nur {MAX_DISPLAY_PATHS} Varianten angezeigt, aus performance gründen)</span>
                     <ResponsiveContainer width="100%" height={300}>
@@ -476,10 +465,12 @@ export function MontecarloSimulation({ initialData }: MonteCarloSimulationProps)
                         </div>
                     )}
                 </div>
-            </CardContent>
-            <CardFooter className="p-6 text-sm text-muted-foreground flex justify-between items-center">
+            </div>
+            </div>
+
+            <CardFooter className="px-6 py-4 text-xs text-muted-foreground border-t border-border/40 flex justify-between items-center bg-card/30">
                 <p>
-                    Hinweis: Dies ist ein Modell, keine Garantie. Die tatsächliche Rendite kann von der hier angegebenen Schätzung abweichen.
+                    Hinweis: Stochastische Pfadsimulation dient zur Risikoanalyse. Tatsächliche Wertentwicklungen unterliegen Marktschwankungen.
                 </p>
             </CardFooter>
         </Card>

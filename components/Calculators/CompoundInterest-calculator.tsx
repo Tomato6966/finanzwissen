@@ -1,9 +1,9 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 "use client"
+/* eslint-disable react-hooks/exhaustive-deps */
 
 import { HelpCircle, TrendingUp } from "lucide-react";
 import LZString from "lz-string";
-import React, { FC, useCallback, useEffect, useState } from "react";
+import React, { FC, useCallback, useEffect, useMemo, useState } from "react";
 import {
 	Area, AreaChart, CartesianGrid, Line, ResponsiveContainer, Tooltip, XAxis, YAxis
 } from "recharts";
@@ -23,6 +23,9 @@ import { CompoundInterestData } from "@/lib/calculator-types";
 import {
 	formatCurrency, formatCurrencyPrecise, handleFormChange, handleSelectChange, TooltipWrapper
 } from "./tools";
+import { copyShareUrlToClipboard, getShareUrl } from "@/lib/share-utils";
+import { CalculatorBanner } from "./CalculatorBanner";
+import { CalculatorHeader } from "./CalculatorHeader";
 
 export interface CompoundDataPoint {
     year: number;
@@ -226,53 +229,44 @@ export const CompoundInterestCalculator: FC<CompoundInterestCalculatorProps> = (
     const memoizedHandleSelectChange = useCallback(handleSelectChange(setCompoundForm, 'interval'), []);
 
     // Handle share config button click
-    const handleShareConfig = () => {
+    const handleShareConfig = async () => {
         const serialized = serializeState();
-        const shareUrl = `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ''}/calculators?share=${serialized}`;
-        try {
-            document.execCommand('copy'); // Fallback for older browsers
-            navigator.clipboard.writeText(shareUrl).then(() => {
-                setShareMessage("Link kopiert!");
-                setTimeout(() => setShareMessage(null), 3000);
-            }).catch(() => {
-                // Fallback if writeText fails (e.g., not in secure context or permissions)
-                const textarea = document.createElement('textarea');
-                textarea.value = shareUrl;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                setShareMessage("Link kopiert! (Fallback)");
-                setTimeout(() => setShareMessage(null), 3000);
-            });
-        } catch (err) {
-            console.error('Failed to copy text: ', err);
+        const shareUrl = getShareUrl('compound', serialized);
+        const copied = await copyShareUrlToClipboard(shareUrl);
+        if (copied) {
+            setShareMessage("Link kopiert!");
+        } else {
             setShareMessage("Kopieren fehlgeschlagen!");
-            setTimeout(() => setShareMessage(null), 3000);
         }
+        setTimeout(() => setShareMessage(null), 3000);
     };
 
+    const validationError = useMemo(() => {
+        if (compoundForm.time <= 0) return "Die Anlagedauer muss mindestens 1 Jahr betragen.";
+        if (compoundForm.principal < 0) return "Das Anfangskapital darf nicht negativ sein.";
+        if (compoundForm.rate < 0) return "Der Zinssatz darf nicht negativ sein.";
+        if (inflationRate > compoundForm.rate) return "Achtung: Die angenommene Inflation ist höher als die Rendite. Ihr reales Vermögen verliert an Kaufkraft.";
+        return null;
+    }, [compoundForm, inflationRate]);
+
     return (
-        <Card className="w-full max-w-6xl shadow-xl rounded-lg overflow-hidden py-0 dark:bg-card">
-            <CardHeader className="bg-primary text-primary-foreground p-6 rounded-t-lg flex flex-row items-center justify-between">
-                <div>
-                    <CardTitle className="text-3xl font-bold flex items-center gap-4">
-                        <TrendingUp /> Zinseszinsrechner
-                    </CardTitle>
-                    <CardDescription className="text-primary-foreground opacity-90 text-sm mt-2">
-                        Visualisieren Sie das Wachstum Ihres Vermögens nominal und real (inflationsbereinigt).
-                    </CardDescription>
-                </div>
-                <Button onClick={handleShareConfig} className="ml-4" variant="secondary">
-                    {shareMessage || "Share Config"}
-                </Button>
-            </CardHeader>
-            <CardContent className="grid md:grid-cols-3 gap-8 pb-6">
-                <div className="md:col-span-1 space-y-4">
-                    <div>
-                        <Label htmlFor="principal">Anfangskapital (€)</Label>
-                        <Input min={0} id="principal" name="principal" type="number" value={compoundForm.principal} onChange={memoizedHandleFormChange} />
-                    </div>
+        <Card className="w-full shadow-xl rounded-2xl overflow-hidden py-0 border-border/70 dark:bg-card/90 backdrop-blur-md">
+            <CalculatorHeader
+                title="Zinseszinsrechner"
+                description="Visualisieren Sie das Wachstum Ihres Vermögens nominal und real (inflationsbereinigt)."
+                icon={TrendingUp}
+                badge="Basis"
+                shareMessage={shareMessage}
+                onShare={handleShareConfig}
+            />
+
+            <div className="p-6 sm:p-7 space-y-6">
+                <div className="grid md:grid-cols-3 gap-8">
+                    <div className="md:col-span-1 space-y-4 rounded-xl border border-border/50 bg-card/50 dark:bg-card/30 p-4 sm:p-5">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="principal" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Anfangskapital (€)</Label>
+                            <Input min={0} id="principal" name="principal" type="number" value={compoundForm.principal} onChange={memoizedHandleFormChange} />
+                        </div>
                     <div className="flex items-center justify-between">
                         <Label htmlFor="useContribution">Sparrate hinzufügen?</Label>
                         <Switch id="useContribution" checked={useContribution} onCheckedChange={setUseContribution} />
@@ -387,47 +381,78 @@ export const CompoundInterestCalculator: FC<CompoundInterestCalculatorProps> = (
                         <Input min={0} id="time" name="time" type="number" value={compoundForm.time} onChange={memoizedHandleFormChange} />
                     </div>
                 </div>
-                <div className="md:col-span-2">
-                    <div className="flex justify-between items-center mb-4">
-                        <h4 className="font-semibold">Prognose (Real): {formatCurrency(compoundData[compoundData.length - 1]?.real || 0)}</h4>
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                                <Label htmlFor="showContributions">Einzahlungen anzeigen</Label>
-                                <Switch id="showContributions" checked={showContributions} onCheckedChange={setShowContributions} />
+                    <div className="md:col-span-2 space-y-4">
+                        {validationError && (
+                            <CalculatorBanner
+                                type={validationError.startsWith("Achtung") ? "warning" : "error"}
+                                message={validationError}
+                            />
+                        )}
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 rounded-xl border border-border/50 bg-card/40 p-4 backdrop-blur-xs">
+                            <div>
+                                <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Prognose (Real)</span>
+                                <h4 className="text-2xl font-extrabold text-foreground">{formatCurrency(compoundData[compoundData.length - 1]?.real || 0)}</h4>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <Label htmlFor="showNominal">Nominal anzeigen</Label>
-                                <Switch id="showNominal" checked={showNominal} onCheckedChange={setShowNominal} />
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Label htmlFor="showRange">Zeige Bereich</Label>
-                                <Switch id="showRange" checked={showRange} onCheckedChange={setShowRange} />
+                            <div className="flex flex-wrap items-center gap-4 text-xs">
+                                <div className="flex items-center gap-2">
+                                    <Switch id="showContributions" checked={showContributions} onCheckedChange={setShowContributions} />
+                                    <Label htmlFor="showContributions" className="text-xs cursor-pointer">Einzahlungen</Label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Switch id="showNominal" checked={showNominal} onCheckedChange={setShowNominal} />
+                                    <Label htmlFor="showNominal" className="text-xs cursor-pointer">Nominal</Label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Switch id="showRange" checked={showRange} onCheckedChange={setShowRange} />
+                                    <Label htmlFor="showRange" className="text-xs cursor-pointer">Bereich</Label>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div className="flex w-full justify-center p-5">
-                        <ResponsiveContainer width="100%" height={500}>
-                            <AreaChart data={compoundData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="year" unit=" J" />
-                                <YAxis tickFormatter={(val: number) => formatCurrency(val)} width={"auto"} />
-                                <Tooltip formatter={(value, name) => [`${formatCurrencyPrecise(value as number)}`, name as string]} />
-                                {showRange && <Area type="monotone" dataKey="maxReal" stackId="2" stroke="#4ade80" fill="#4ade80" name="Best-Case (Real)" />}
-                                <Area type="monotone" dataKey="real" stackId="1" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.4} name="Erwartet (Real)" />
-                                {showRange && <Area type="monotone" dataKey="minReal" stackId="3" stroke="#f87171" fill="#f9c1c1" name="Worst-Case (Real)" />}
-                                {showNominal && <Line type="monotone" dataKey="nominal" stroke="#6b7280" dot={false} name="Nominal" />}
-                                {showContributions && <Line type="monotone" dataKey="contributions" stroke="#8884d8" strokeDasharray="5 5" dot={false} name="Einzahlungen" />}
-                            </AreaChart>
-                        </ResponsiveContainer>
+
+                        <div className="rounded-xl border border-border/60 bg-card/60 dark:bg-card/30 p-4 sm:p-5 backdrop-blur-xs">
+                            <ResponsiveContainer width="100%" height={440}>
+                                <AreaChart data={compoundData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="realGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.45}/>
+                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.02}/>
+                                        </linearGradient>
+                                        <linearGradient id="maxRealGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.25}/>
+                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                                    <XAxis dataKey="year" unit=" J" tickLine={false} axisLine={{ strokeOpacity: 0.2 }} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 11 }} />
+                                    <YAxis tickFormatter={(val: number) => formatCurrency(val)} width={75} tickLine={false} axisLine={{ strokeOpacity: 0.2 }} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 11 }} />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                                            borderColor: 'rgba(255, 255, 255, 0.15)',
+                                            borderRadius: '0.75rem',
+                                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+                                            color: '#fff',
+                                            fontSize: '12px'
+                                        }}
+                                        formatter={(value, name) => [`${formatCurrencyPrecise(value as number)}`, name as string]}
+                                    />
+                                    {showRange && <Area type="monotone" dataKey="maxReal" stroke="#10b981" strokeWidth={1.5} fill="url(#maxRealGradient)" name="Best-Case (Real)" />}
+                                    <Area type="monotone" dataKey="real" stroke="#3b82f6" strokeWidth={2.5} fill="url(#realGradient)" name="Erwartet (Real)" />
+                                    {showRange && <Area type="monotone" dataKey="minReal" stroke="#ef4444" strokeWidth={1.5} strokeDasharray="3 3" fill="transparent" name="Worst-Case (Real)" />}
+                                    {showNominal && <Line type="monotone" dataKey="nominal" stroke="#94a3b8" strokeWidth={1.5} dot={false} name="Nominal" />}
+                                    {showContributions && <Line type="monotone" dataKey="contributions" stroke="#8b5cf6" strokeWidth={1.5} strokeDasharray="4 4" dot={false} name="Einzahlungen" />}
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
                 </div>
-            </CardContent>
-            <CardFooter className="p-6 text-sm text-muted-foreground flex justify-between items-center">
+            </div>
+
+            <CardFooter className="px-6 py-4 text-xs text-muted-foreground border-t border-border/40 flex justify-between items-center bg-card/30">
                 <p>
-                    Hinweis: Dies ist ein Modell, keine Garantie. Die tatsächliche Rendite kann von der hier angegebenen Schätzung abweichen.
+                    Hinweis: Dies ist ein vereinfachtes Modell, keine Anlageberatung. Die tatsächliche Marktrendite kann abweichen.
                 </p>
             </CardFooter>
         </Card>
-
     );
 };

@@ -7,11 +7,15 @@ export type ActiveTabKeys = "home" | "goals" | "moneymanagement" | "mindset" | "
 export interface PageContextType {
     isDarkMode: boolean;
     toggleDarkMode: () => void;
+    isWideMode: boolean;
+    toggleWideMode: () => void;
 };
 
 export const PageContext = createContext<PageContextType>({
     isDarkMode: false,
     toggleDarkMode: () => { },
+    isWideMode: false,
+    toggleWideMode: () => { },
 })
 
 export default function PageRouter({
@@ -21,7 +25,7 @@ export default function PageRouter({
 }>) {
     const [mounted, setMounted] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(false);
-
+    const [isWideMode, setIsWideMode] = useState(false);
 
     // Handle hydration - only run after component mounts
     useEffect(() => {
@@ -37,10 +41,24 @@ export default function PageRouter({
         } catch (error) {
             console.log("Error reading darkMode from localStorage:", error);
         }
+
+        try {
+            const storedWide = localStorage.getItem("wideMode");
+            if (storedWide !== null) {
+                const parsedWide = JSON.parse(storedWide);
+                setIsWideMode(parsedWide);
+            }
+        } catch (error) {
+            console.log("Error reading wideMode from localStorage:", error);
+        }
     }, []);
 
     const toggleDarkMode = () => {
         setIsDarkMode((prev) => !prev);
+    };
+
+    const toggleWideMode = () => {
+        setIsWideMode((prev) => !prev);
     };
 
     // Save to localStorage when isDarkMode changes
@@ -54,6 +72,17 @@ export default function PageRouter({
         }
     }, [isDarkMode, mounted]);
 
+    // Save to localStorage when isWideMode changes
+    useEffect(() => {
+        if (mounted) {
+            try {
+                localStorage.setItem("wideMode", JSON.stringify(isWideMode));
+            } catch (error) {
+                console.log("Error saving wideMode to localStorage:", error);
+            }
+        }
+    }, [isWideMode, mounted]);
+
     // Apply dark mode class after hydration
     useEffect(() => {
         if (mounted) {
@@ -63,7 +92,12 @@ export default function PageRouter({
 
     // Always render with the same initial state to prevent hydration mismatch
     return (
-        <PageContext.Provider value={{ isDarkMode: mounted ? isDarkMode : false, toggleDarkMode }}>
+        <PageContext.Provider value={{
+            isDarkMode: mounted ? isDarkMode : false,
+            toggleDarkMode,
+            isWideMode: mounted ? isWideMode : false,
+            toggleWideMode,
+        }}>
             {children}
         </PageContext.Provider>
     );

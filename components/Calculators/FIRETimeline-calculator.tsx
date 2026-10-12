@@ -1,4 +1,6 @@
 "use client"
+import { CalculatorBanner } from "./CalculatorBanner";
+import { CalculatorHeader } from "./CalculatorHeader";
 
 import { Flame, Info, Share2, Target } from "lucide-react";
 import LZString from "lz-string";
@@ -19,6 +21,7 @@ import { AdvancedSavingsPlanInput } from "./AdvancedSavingsPlanInput";
 import { formatCurrency } from "./tools";
 
 import type { FIRETimelineData } from "@/lib/calculator-types";
+import { copyShareUrlToClipboard, getShareUrl } from "@/lib/share-utils";
 
 interface FIRETimelineCalculatorProps {
     initialData: FIRETimelineData | null;
@@ -144,17 +147,34 @@ export function FIRETimelineCalculator({ initialData }: FIRETimelineCalculatorPr
         return LZString.compressToEncodedURIComponent(JSON.stringify(state));
     }, [formData]);
 
-    const handleShareConfig = () => {
-        const shareUrl = `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ""}/calculators?share=${serializeState()}`;
-        navigator.clipboard?.writeText(shareUrl).then(() => {
+    const handleShareConfig = async () => {
+        const serialized = serializeState();
+        const shareUrl = getShareUrl('fire-timeline', serialized);
+        const copied = await copyShareUrlToClipboard(shareUrl);
+        if (copied) {
             setShareMessage("Link kopiert!");
-            setTimeout(() => setShareMessage(null), 3000);
-        }).catch(() => setShareMessage("Kopieren fehlgeschlagen"));
+        } else {
+            setShareMessage("Kopieren fehlgeschlagen!");
+        }
+        setTimeout(() => setShareMessage(null), 3000);
     };
 
+    const validationError = useMemo(() => {
+        if (formData.currentAge >= formData.pensionAge) {
+            return "Das Rentenalter muss höher als das aktuelle Alter sein.";
+        }
+        if (formData.monthlyExpenses <= 0) {
+            return "Der Monatsbedarf muss größer als 0 € sein.";
+        }
+        if (formData.withdrawalRate <= 0) {
+            return "Die sichere Entnahmerate muss größer als 0% sein.";
+        }
+        return null;
+    }, [formData]);
+
     const numberInput = (field: keyof FIRETimelineData, label: string, step = 1) => (
-        <div className="space-y-2">
-            <Label htmlFor={`fire-${field}`}>{label}</Label>
+        <div className="space-y-1.5">
+            <Label htmlFor={`fire-${field}`} className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</Label>
             <Input
                 id={`fire-${field}`}
                 type="number"
@@ -166,105 +186,153 @@ export function FIRETimelineCalculator({ initialData }: FIRETimelineCalculatorPr
     );
 
     return (
-        <Card className="w-full max-w-7xl overflow-hidden border-border bg-card text-card-foreground shadow-2xl py-0">
-            <CardHeader className="border-b border-border bg-muted p-6">
-                <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-                    <div>
-                        <CardTitle className="flex items-center gap-3 text-3xl">
-                            <Flame className="h-8 w-8 text-cyan-600" />
-                            FIRE Timeline
-                        </CardTitle>
-                        <CardDescription className="mt-2 text-cyan-700">
-                            Coast FIRE und Full FIRE mit Sparphasen, Inflation, Pension/Rente und garantierten Zusatzeinkommen.
-                        </CardDescription>
-                    </div>
-                    <Button onClick={handleShareConfig} variant="secondary">
-                        <Share2 className="mr-2 h-4 w-4" />
-                        {shareMessage || "Konfiguration teilen"}
-                    </Button>
-                </div>
-            </CardHeader>
-            <CardContent className="grid gap-6 p-6 lg:grid-cols-3">
-                <div className="group relative overflow-hidden space-y-4 rounded-lg border border-border bg-muted/30 p-4 transition-all duration-300 ease-out hover:scale-[1.01] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/10 hover:border-primary/30">
-                    <h3 className="flex items-center gap-2 text-lg font-semibold">
-                        <Target className="h-5 w-5 text-cyan-600" />
-                        Eingaben
-                    </h3>
-                    <div className="grid grid-cols-2 gap-3">
-                        {numberInput("currentAge", "Alter")}
-                        {numberInput("pensionAge", "Pension/Rente ab")}
-                        {numberInput("lifeExpectancy", "Planung bis")}
-                        {numberInput("startCapital", "Startkapital Euro (NETTO)")}
-                        {numberInput("monthlyExpenses", "Monatsbedarf Euro (NETTO)")}
-                        {numberInput("guaranteedIncome", "Garantiertes Einkommen mtl. (BRUTTO)")}
-                        {numberInput("statePension", "Staatliche Pension/Rente mtl. (NETTO)")}
-                        {numberInput("expectedReturn", "Rendite p.a. %", 0.1)}
-                        {numberInput("inflation", "Inflation %", 0.1)}
-                        {numberInput("withdrawalRate", "Entnahmerate %", 0.1)}
-                        {numberInput("taxRate", "Steuersatz %", 0.1)}
-                    </div>
-                    {!formData.useAdvancedSavingsPlan && numberInput("monthlySavings", "Monatliche Sparrate")}
-                    <AdvancedSavingsPlanInput
-                        enabled={formData.useAdvancedSavingsPlan}
-                        onEnabledChange={(enabled) => updateField("useAdvancedSavingsPlan", enabled)}
-                        periods={formData.advancedSavingsPeriods || defaultAdvancedSavingsPeriods(30)}
-                        onPeriodsChange={(periods) => updateField("advancedSavingsPeriods", periods)}
-                    />
-                </div>
+        <Card className="w-full shadow-xl rounded-2xl overflow-hidden py-0 border-border/70 dark:bg-card/90 backdrop-blur-md">
+            <CalculatorHeader
+                title="FIRE Timeline Rechner"
+                description="Ermitteln Sie Ihren Weg zur finanziellen Unabhängigkeit und den genauen Zeitpunkt für Coast FIRE und Full FIRE."
+                icon={Flame}
+                badge="Rente & FIRE"
+                shareMessage={shareMessage}
+                onShare={handleShareConfig}
+            />
 
-                <div className="space-y-4 lg:col-span-2">
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <Card className="border-cyan-600/30 bg-cyan-600/10 text-card-foreground">
-                            <CardHeader>
-                                <CardTitle>Coast FIRE</CardTitle>
-                                <CardDescription className="text-cyan-700">Ab hier kann das Depot bis zum Rentenalter theoretisch alleine weiterwachsen.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-4xl font-bold text-cyan-600">
-                                    {result.coastAge ? `${result.coastAge} Jahre` : "Nicht erreicht"}
-                                </div>
-                                <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                                    <div>Nötig mit {formData.currentAge}: <span className="font-semibold text-cyan-700">{formatCurrency(result.coastTargetCapital)}</span></div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                        <Card className="border-emerald-600/30 bg-emerald-600/10 text-card-foreground">
-                            <CardHeader>
-                                <CardTitle>Full FIRE</CardTitle>
-                                <CardDescription className="text-emerald-700">Portfolio-Entnahme plus sichere Einkommen decken den Monatsbedarf.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-4xl font-bold text-emerald-600">
-                                    {result.fullFireAge ? `${result.fullFireAge} Jahre` : "Nicht erreicht"}
-                                </div>
-                                <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                                    <div>Kapitalbedarf (vor Rente): <span className="font-semibold text-emerald-700">{formatCurrency(result.requiredCapitalBeforePension)}</span></div>
-                                    <div>Kapitalbedarf (ab Rente): <span className="font-semibold text-emerald-700">{formatCurrency(result.requiredCapitalAfterPension)}</span></div>
-                                </div>
-                            </CardContent>
-                        </Card>
+            <div className="p-6 sm:p-7 space-y-6">
+                <div className="grid md:grid-cols-3 gap-8">
+                    {/* Picker-Maske (Left Column) */}
+                    <div className="md:col-span-1 space-y-4 rounded-xl border border-border/50 bg-card/50 dark:bg-card/30 p-4 sm:p-5">
+                        <div className="border-b border-border/40 pb-3">
+                            <h3 className="text-base font-semibold text-foreground">
+                                FIRE Parameter
+                            </h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Altersstufen, Vermögen und Monatsbedarf.
+                            </p>
+                        </div>
+
+                        <div className="space-y-3.5">
+                            <div className="grid grid-cols-2 gap-2">
+                                {numberInput("currentAge", "Alter")}
+                                {numberInput("pensionAge", "Rentenalter")}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                {numberInput("startCapital", "Startkapital (€)")}
+                                {numberInput("monthlyExpenses", "Bedarf mtl. (€)")}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                {numberInput("guaranteedIncome", "Garant. Netto (€)")}
+                                {numberInput("statePension", "Rente mtl. (€)")}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/40">
+                                {numberInput("expectedReturn", "Rendite %", 0.1)}
+                                {numberInput("inflation", "Inflation %", 0.1)}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                {numberInput("withdrawalRate", "Entnahme %", 0.1)}
+                                {numberInput("taxRate", "Steuer %", 0.1)}
+                            </div>
+
+                            {!formData.useAdvancedSavingsPlan && numberInput("monthlySavings", "Monatliche Sparrate (€)")}
+
+                            <div className="pt-2 border-t border-border/40">
+                                <AdvancedSavingsPlanInput
+                                    enabled={formData.useAdvancedSavingsPlan}
+                                    onEnabledChange={(enabled) => updateField("useAdvancedSavingsPlan", enabled)}
+                                    periods={formData.advancedSavingsPeriods || defaultAdvancedSavingsPeriods(30)}
+                                    onPeriodsChange={(periods) => updateField("advancedSavingsPeriods", periods)}
+                                />
+                            </div>
+                        </div>
                     </div>
-                    <div className="rounded-lg border border-border bg-background p-4 text-foreground">
-                        <ResponsiveContainer width="100%" height={430}>
-                            <AreaChart data={result.chartData} margin={{ top: 40, right: 40, left: 0, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" opacity={0.25} />
-                                <XAxis dataKey="age" tickFormatter={(value) => `${value}J`} />
-                                <YAxis tickFormatter={(value) => formatCurrency(Number(value))} width={100} />
-                                <Tooltip formatter={(value, name) => [formatCurrency(value as number), name as string]} />
-                                <Legend />
-                                <Line type="monotone" dataKey="Coast-Schwelle" stroke="#0891b2" strokeDasharray="6 3" dot={false} strokeWidth={2} name="Coast-Schwelle (nötig)" />
-                                <Line type="monotone" dataKey="Coast-Verlauf" stroke="#06b6d4" strokeDasharray="3 3" dot={false} strokeWidth={2} name="Coast-Verlauf (ohne Einzahlungen)" />
-                                <Area type="monotone" dataKey="FIRE-Ziel real" stroke="#f97316" fill="#fed7aa" fillOpacity={0.4} />
-                                <Area type="monotone" dataKey="Depot real" stroke="#06b6d4" fill="#67e8f9" fillOpacity={0.45} />
-                                {result.coastAge && <ReferenceLine x={result.coastAge} stroke="#0891b2" strokeWidth={2} label={{ value: "⚓ Coast FIRE", position: "insideTopRight", fill: "#0891b2", fontSize: 13 }} />}
-                            </AreaChart>
-                        </ResponsiveContainer>
+
+                    {/* Visualisierung-Maske (Right Column) */}
+                    <div className="md:col-span-2 space-y-4">
+                        {validationError && (
+                            <CalculatorBanner
+                                type="error"
+                                message={validationError}
+                            />
+                        )}
+
+                        {/* Top KPI Cards */}
+                        <div className="grid sm:grid-cols-2 gap-3">
+                            <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-4 backdrop-blur-xs">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <span className="text-xs uppercase tracking-wider text-cyan-600 dark:text-cyan-400 font-bold">Coast FIRE Erreicht mit</span>
+                                        <h4 className="text-3xl font-black text-cyan-600 dark:text-cyan-400 mt-1">
+                                            {result.coastAge ? `${result.coastAge} Jahren` : "Nicht erreicht"}
+                                        </h4>
+                                    </div>
+                                    <span className="text-xs text-muted-foreground bg-cyan-500/10 px-2 py-0.5 rounded-full font-medium">⚓ Coast</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                    Depot wächst ab hier bis zur Rente eigenständig. Nötig heute: <strong className="text-foreground">{formatCurrency(result.coastTargetCapital)}</strong>
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 backdrop-blur-xs">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <span className="text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-bold">Full FIRE Erreicht mit</span>
+                                        <h4 className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                                            {result.fullFireAge ? `${result.fullFireAge} Jahren` : "Nicht erreicht"}
+                                        </h4>
+                                    </div>
+                                    <span className="text-xs text-muted-foreground bg-emerald-500/10 px-2 py-0.5 rounded-full font-medium">🔥 Full FIRE</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                    Vollständige finanzielle Freiheit. Zielkapital: <strong className="text-foreground">{formatCurrency(result.requiredCapitalBeforePension)}</strong>
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Chart Container */}
+                        <div className="rounded-xl border border-border/60 bg-card/60 dark:bg-card/30 p-4 sm:p-5 backdrop-blur-xs">
+                            <div className="flex justify-between items-center mb-3">
+                                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vermögenspfad (real inflationsbereinigt)</span>
+                                <span className="text-xs text-muted-foreground">Zielentnahme: {formData.withdrawalRate}% p.a.</span>
+                            </div>
+                            <ResponsiveContainer width="100%" height={380}>
+                                <AreaChart data={result.chartData} margin={{ top: 20, right: 20, left: 0, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="depotRealGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4}/>
+                                            <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.02}/>
+                                        </linearGradient>
+                                        <linearGradient id="fireTargetGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#f97316" stopOpacity={0.25}/>
+                                            <stop offset="95%" stopColor="#f97316" stopOpacity={0.02}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                                    <XAxis dataKey="age" tickFormatter={(value) => `${value}J`} stroke="currentColor" className="text-xs opacity-60" />
+                                    <YAxis tickFormatter={(value) => formatCurrency(Number(value))} width={90} stroke="currentColor" className="text-xs opacity-60" />
+                                    <Tooltip
+                                        formatter={(value, name) => [formatCurrency(value as number), name as string]}
+                                        contentStyle={{
+                                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                            borderRadius: '12px',
+                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                            color: '#fff',
+                                            backdropFilter: 'blur(8px)'
+                                        }}
+                                    />
+                                    <Legend wrapperStyle={{ paddingTop: 10 }} />
+                                    <Line type="monotone" dataKey="Coast-Schwelle" stroke="#0891b2" strokeDasharray="5 3" dot={false} strokeWidth={2} name="Coast-Schwelle" />
+                                    <Area type="monotone" dataKey="FIRE-Ziel real" stroke="#f97316" strokeWidth={2} fill="url(#fireTargetGradient)" />
+                                    <Area type="monotone" dataKey="Depot real" stroke="#06b6d4" strokeWidth={2.5} fill="url(#depotRealGradient)" />
+                                    {result.coastAge && <ReferenceLine x={result.coastAge} stroke="#0891b2" strokeWidth={2} label={{ value: "⚓ Coast", position: "insideTopRight", fill: "#0891b2", fontSize: 12 }} />}
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
                 </div>
-            </CardContent>
-            <CardFooter className="border-t border-cyan-400/20 p-5 text-sm text-cyan-100/80">
-                <Info className="mr-2 h-4 w-4" />
-                Modellrechnung in heutiger Kaufkraft. Keine Garantie, keine Finanzberatung.
+            </div>
+
+            <CardFooter className="px-6 py-4 text-xs text-muted-foreground border-t border-border/40 flex justify-between items-center bg-card/30">
+                <p>
+                    Hinweis: Modellrechnung in heutiger Kaufkraft (reale Werte). Die 4%- bzw. Trinity-Studie basiert auf US-Daten und dient als Orientierung.
+                </p>
             </CardFooter>
         </Card>
     );

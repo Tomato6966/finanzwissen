@@ -1,19 +1,24 @@
 "use client";
+import { CalculatorBanner } from "./CalculatorBanner";
+import { CalculatorHeader } from "./CalculatorHeader";
 
-import { TrendingDown } from "lucide-react";
-import React, { useMemo, useState } from "react";
+import { TrendingDown, HelpCircle, Calendar, History, ChevronDown, ChevronUp } from "lucide-react";
+import LZString from "lz-string";
+import React, { useCallback, useMemo, useState } from "react";
 import {
     Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis
 } from "recharts";
 
 import {
-    Card, CardContent, CardDescription, CardHeader, CardTitle
+    Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InflationData } from "@/lib/calculator-types";
+import { copyShareUrlToClipboard, getShareUrl } from "@/lib/share-utils";
+import { formatCurrency, formatCurrencyPrecise } from "./tools";
 
 interface InflationCalculatorProps {
     initialData?: InflationData | null;
@@ -92,7 +97,7 @@ const PERIODS: PeriodAverage[] = [
 ];
 
 export function InflationCalculator({ initialData }: InflationCalculatorProps) {
-    const [form, setForm] = useState<InflationData>({
+    const [form, setForm] = useState<InflationData>(initialData || {
         amount: 100000,
         inflationRate: 2.5,
         years: 30,
@@ -101,6 +106,8 @@ export function InflationCalculator({ initialData }: InflationCalculatorProps) {
         fromYear: 1960,
         toYear: 2025,
     });
+    const [shareMessage, setShareMessage] = useState<string | null>(null);
+    const [showBenchmarkTable, setShowBenchmarkTable] = useState(false);
 
     const regionMeta = REGION_INFO[form.region ?? "AT"];
     const availableYears = useMemo(() => {
@@ -129,187 +136,272 @@ export function InflationCalculator({ initialData }: InflationCalculatorProps) {
             const nominalEquivalent = form.amount * Math.pow(1 + effectiveRate / 100, year);
             data.push({
                 year,
-                "Kaufkraft heutiger Betrag": Math.round(purchasingPower),
+                "Kaufkraft heute": Math.round(purchasingPower),
                 "Nominal benötigt": Math.round(nominalEquivalent),
             });
         }
         return data;
     }, [form.amount, effectiveRate, form.years]);
 
+    const serializeState = useCallback(() => {
+        const state = { type: "inflation", data: form };
+        return LZString.compressToEncodedURIComponent(JSON.stringify(state));
+    }, [form]);
+
+    const handleShareConfig = async () => {
+        const serialized = serializeState();
+        const shareUrl = getShareUrl('inflation', serialized);
+        const copied = await copyShareUrlToClipboard(shareUrl);
+        if (copied) {
+            setShareMessage("Link kopiert!");
+        } else {
+            setShareMessage("Kopieren fehlgeschlagen!");
+        }
+        setTimeout(() => setShareMessage(null), 3000);
+    };
+
     const update = (key: keyof InflationData, value: number | boolean | string) => {
         setForm(prev => ({ ...prev, [key]: value as never }));
     };
 
+    const validationError = useMemo(() => {
+        if (form.amount <= 0) return "Der Betrag muss größer als 0 € sein.";
+        if (form.years <= 0) return "Der Anlagezeitraum muss mindestens 1 Jahr betragen.";
+        if (!form.useHistorical && form.inflationRate < 0) return "Achtung: Negative Inflationsrate (Deflation) gewählt.";
+        return null;
+    }, [form]);
+
     return (
-        <div className="space-y-6 w-full max-w-5xl mx-auto">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <TrendingDown className="h-6 w-6 text-primary" />
-                        Inflations-Kaufkraft-Rechner
-                    </CardTitle>
-                    <CardDescription>
-                        Berechne, wie viel Kaufkraft dein Geld in Zukunft tatsächlich noch hat — und wie viel du nominal brauchst, um den heutigen Wert zu halten.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="flex items-center gap-4 p-3 rounded-lg border bg-muted/20">
-                        <Label htmlFor="use-historical" className="cursor-pointer font-medium">
-                            Benutzerdefinierte Inflationsrate
-                        </Label>
-                        <Switch
-                            id="use-historical"
-                            checked={form.useHistorical}
-                            onCheckedChange={v => update("useHistorical", v)}
-                        />
-                        <Label htmlFor="use-historical" className="cursor-pointer font-medium">
-                            Historischer Durchschnitt
-                        </Label>
-                    </div>
+        <Card className="w-full shadow-xl rounded-2xl overflow-hidden py-0 border-border/70 dark:bg-card/90 backdrop-blur-md">
+            <CalculatorHeader
+                title="Inflations- & Kaufkraftrechner"
+                description="Berechnen Sie den realen Kaufkraftverlust Ihres Vermögens über die Zeit mit historischen oder individuellen Raten."
+                icon={TrendingDown}
+                badge="Alltag & Haushalt"
+                shareMessage={shareMessage}
+                onShare={handleShareConfig}
+            />
 
-                    {form.useHistorical ? (
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                            <div className="space-y-2">
-                                <Label>Betrag heute (€)</Label>
-                                <Input type="number" value={form.amount} onChange={e => update("amount", Number(e.target.value))} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Region</Label>
-                                <Select value={form.region} onValueChange={v => { update("region", v); }}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        {Object.entries(REGION_LABELS).map(([key, label]) => (
-                                            <SelectItem key={key} value={key}>{label}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Von Jahr</Label>
-                                <Select value={String(form.fromYear)} onValueChange={v => update("fromYear", Number(v))}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        {availableYears.filter(y => y < (form.toYear ?? 2025)).map(y => (
-                                            <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Bis Jahr</Label>
-                                <Select value={String(form.toYear)} onValueChange={v => update("toYear", Number(v))}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        {availableYears.filter(y => y > (form.fromYear ?? 1960)).map(y => (
-                                            <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Zeitraum (Jahre)</Label>
-                                <Input type="number" value={form.years} onChange={e => update("years", Number(e.target.value))} />
-                            </div>
+            <div className="p-6 sm:p-7 space-y-6">
+                <div className="grid md:grid-cols-3 gap-8">
+                    {/* Picker-Maske (Left Column) */}
+                    <div className="md:col-span-1 space-y-4 rounded-xl border border-border/50 bg-card/50 dark:bg-card/30 p-4 sm:p-5">
+                        <div className="border-b border-border/40 pb-3">
+                            <h3 className="text-base font-semibold text-foreground">
+                                Berechnungsmodus
+                            </h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Wählen Sie feste Annahmen oder historische Daten.
+                            </p>
                         </div>
-                    ) : (
-                        <div className="grid gap-4 sm:grid-cols-3">
-                            <div className="space-y-2">
-                                <Label>Betrag heute (€)</Label>
-                                <Input type="number" value={form.amount} onChange={e => update("amount", Number(e.target.value))} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Inflationsrate (% p.a.)</Label>
-                                <Input type="number" step="0.1" value={form.inflationRate} onChange={e => update("inflationRate", Number(e.target.value))} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Zeitraum (Jahre)</Label>
-                                <Input type="number" value={form.years} onChange={e => update("years", Number(e.target.value))} />
-                            </div>
-                        </div>
-                    )}
 
-                    {form.useHistorical && avgInflation !== null && (
-                        <div className="text-sm text-center text-muted-foreground bg-primary/5 rounded-lg p-2">
-                            Berechneter Durchschnitt ({form.fromYear}–{form.toYear}): <span className="font-semibold text-foreground">{avgInflation.toFixed(2)}%</span> p.a.
-                            &nbsp;(Quelle: {REGION_INFO[form.region ?? "AT"].source})
+                        <div className="flex items-center justify-between p-2.5 rounded-lg border border-border/60 bg-background/50">
+                            <span className="text-xs font-medium">Historischer Index</span>
+                            <Switch
+                                id="use-historical"
+                                checked={form.useHistorical}
+                                onCheckedChange={v => update("useHistorical", v)}
+                            />
                         </div>
-                    )}
 
-                    <div className="grid gap-4 md:grid-cols-3">
-                        <div className="group relative overflow-hidden rounded-xl border border-border/50 bg-muted/30 transition-all duration-300 ease-out hover:scale-[1.01] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/10 hover:border-primary/30 p-4 text-center">
-                            <div className="text-sm text-muted-foreground">Kaufkraft in {form.years} Jahren</div>
-                            <div className="text-2xl font-bold text-red-600">{result.realPurchasingPower.toLocaleString("de-DE", { maximumFractionDigits: 0 })} €</div>
-                        </div>
-                        <div className="group relative overflow-hidden rounded-xl border border-border/50 bg-muted/30 transition-all duration-300 ease-out hover:scale-[1.01] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/10 hover:border-primary/30 p-4 text-center">
-                            <div className="text-sm text-muted-foreground">Nominal benötigt für gleiche Kaufkraft</div>
-                            <div className="text-2xl font-bold text-primary">{result.nominalNeeded.toLocaleString("de-DE", { maximumFractionDigits: 0 })} €</div>
-                        </div>
-                        <div className="group relative overflow-hidden rounded-xl border border-border/50 bg-muted/30 transition-all duration-300 ease-out hover:scale-[1.01] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/10 hover:border-primary/30 p-4 text-center">
-                            <div className="text-sm text-muted-foreground">Kaufkraftverlust</div>
-                            <div className="text-2xl font-bold text-amber-600">{result.loss.toLocaleString("de-DE", { maximumFractionDigits: 0 })} €</div>
+                        <div className="space-y-3.5">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="amount" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Betrag heute (€)</Label>
+                                <Input min={0} id="amount" type="number" value={form.amount} onChange={e => update("amount", Number(e.target.value))} />
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label htmlFor="years" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Zeitraum (Jahre)</Label>
+                                <Input min={1} max={100} id="years" type="number" value={form.years} onChange={e => update("years", Number(e.target.value))} />
+                            </div>
+
+                            {form.useHistorical ? (
+                                <div className="space-y-3 pt-2 border-t border-border/40">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Region</Label>
+                                        <Select value={form.region} onValueChange={v => update("region", v)}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                {Object.entries(REGION_LABELS).map(([key, label]) => (
+                                                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="space-y-1">
+                                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Von</Label>
+                                            <Select value={String(form.fromYear)} onValueChange={v => update("fromYear", Number(v))}>
+                                                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    {availableYears.filter(y => y < (form.toYear ?? 2025)).map(y => (
+                                                        <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Bis</Label>
+                                            <Select value={String(form.toYear)} onValueChange={v => update("toYear", Number(v))}>
+                                                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    {availableYears.filter(y => y > (form.fromYear ?? 1960)).map(y => (
+                                                        <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+
+                                    {avgInflation !== null && (
+                                        <div className="rounded-lg bg-primary/10 border border-primary/20 p-2.5 text-center text-xs text-primary font-medium">
+                                            Ø {avgInflation.toFixed(2)}% p.a. ({form.fromYear}–{form.toYear})
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="space-y-1.5 pt-2 border-t border-border/40">
+                                    <Label htmlFor="inflationRate" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Angenommene Inflation (% p.a.)</Label>
+                                    <Input min={-5} max={50} id="inflationRate" type="number" step="0.1" value={form.inflationRate} onChange={e => update("inflationRate", Number(e.target.value))} />
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    <div className="group relative overflow-hidden rounded-xl border border-border/50 bg-muted/30 transition-all duration-300 ease-out hover:scale-[1.01] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/10 hover:border-primary/30 p-4 h-80">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="year" />
-                                <YAxis />
-                                <Tooltip formatter={(value) => `${Number(value).toLocaleString("de-DE")} €`} />
-                                <Area type="monotone" dataKey="Kaufkraft heutiger Betrag" stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))" fillOpacity={0.15} />
-                                <Area type="monotone" dataKey="Nominal benötigt" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.15} />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </CardContent>
-            </Card>
+                    {/* Visualisierung-Maske (Right Column) */}
+                    <div className="md:col-span-2 space-y-4">
+                        {validationError && (
+                            <CalculatorBanner
+                                type={validationError.startsWith("Achtung") ? "warning" : "error"}
+                                message={validationError}
+                            />
+                        )}
 
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg">Historische Inflationsraten im Vergleich</CardTitle>
-                    <CardDescription>
-                        Durchschnittliche jährliche Inflationsraten (% p.a.) für verschiedene Zeiträume und Regionen. Daten basieren auf dem Verbraucherpreisindex (CPI/HICP).
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm border-collapse">
-                            <thead>
-                                <tr className="border-b">
-                                    <th className="text-left py-2 pr-4 font-medium">Region</th>
-                                    {PERIODS.map(p => (
-                                        <th key={p.label} className="text-right py-2 px-2 font-medium whitespace-nowrap">{p.label}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {(["AT", "DE", "EZ", "US"] as const).map(region => {
-                                    const data = HISTORICAL_DATA[region];
-                                    const minY = Math.min(...Object.keys(data).map(Number));
-                                    return (
-                                        <tr key={region} className="border-b last:border-0 hover:bg-muted/30">
-                                            <td className="py-2 pr-4 font-medium">{REGION_LABELS[region]}</td>
-                                            {PERIODS.map(p => {
-                                                const avg = p.from >= minY ? computeAverage(data, p.from, p.to) : null;
-                                                return (
-                                                    <td key={p.label} className="text-right py-2 px-2 tabular-nums">
-                                                        {avg !== null ? `${avg.toFixed(1)}%` : "–"}
-                                                    </td>
-                                                );
-                                            })}
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                        {/* Top KPI Cards */}
+                        <div className="grid sm:grid-cols-3 gap-3">
+                            <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 backdrop-blur-xs">
+                                <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Kaufkraft in {form.years} J.</span>
+                                <h4 className="text-2xl font-extrabold text-destructive mt-1">
+                                    {formatCurrency(result.realPurchasingPower)}
+                                </h4>
+                            </div>
+
+                            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 backdrop-blur-xs">
+                                <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Nominal benötigt</span>
+                                <h4 className="text-2xl font-extrabold text-primary mt-1">
+                                    {formatCurrency(result.nominalNeeded)}
+                                </h4>
+                            </div>
+
+                            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 backdrop-blur-xs">
+                                <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Kaufkraftverlust</span>
+                                <h4 className="text-2xl font-extrabold text-amber-500 mt-1">
+                                    -{formatCurrency(result.loss)}
+                                </h4>
+                            </div>
+                        </div>
+
+                        {/* Chart Container */}
+                        <div className="rounded-xl border border-border/60 bg-card/60 dark:bg-card/30 p-4 sm:p-5 backdrop-blur-xs">
+                            <div className="flex justify-between items-center mb-3">
+                                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Kaufkraftentwicklung bei {effectiveRate.toFixed(2)}% p.a.</span>
+                                <span className="text-xs text-muted-foreground">Startwert: {formatCurrency(form.amount)}</span>
+                            </div>
+                            <ResponsiveContainer width="100%" height={320}>
+                                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="inflationLossGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4}/>
+                                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0.02}/>
+                                        </linearGradient>
+                                        <linearGradient id="nominalNeededGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#0284c7" stopOpacity={0.4}/>
+                                            <stop offset="95%" stopColor="#0284c7" stopOpacity={0.02}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                                    <XAxis dataKey="year" tickFormatter={(v: number) => `${v}J`} stroke="currentColor" className="text-xs opacity-60" />
+                                    <YAxis tickFormatter={(v: number) => formatCurrency(v)} width={85} stroke="currentColor" className="text-xs opacity-60" />
+                                    <Tooltip
+                                        formatter={(val) => formatCurrencyPrecise(val as number)}
+                                        labelFormatter={(label) => `Jahr ${label}`}
+                                        contentStyle={{
+                                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                            borderRadius: '12px',
+                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                            color: '#fff',
+                                            backdropFilter: 'blur(8px)'
+                                        }}
+                                    />
+                                    <Area type="monotone" dataKey="Nominal benötigt" stroke="#0284c7" strokeWidth={2} fill="url(#nominalNeededGradient)" />
+                                    <Area type="monotone" dataKey="Kaufkraft heute" stroke="#ef4444" strokeWidth={2} fill="url(#inflationLossGradient)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        {/* Collapsible Benchmark Table */}
+                        <div className="rounded-xl border border-border/50 bg-card/40 overflow-hidden">
+                            <button
+                                type="button"
+                                onClick={() => setShowBenchmarkTable(!showBenchmarkTable)}
+                                className="w-full flex items-center justify-between p-3.5 text-xs font-semibold text-foreground hover:bg-muted/30 transition-colors"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <History className="h-4 w-4 text-primary" />
+                                    <span>Historische Inflationsraten im Vergleich anzeigen</span>
+                                </div>
+                                {showBenchmarkTable ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            </button>
+
+                            {showBenchmarkTable && (
+                                <div className="p-4 border-t border-border/40 space-y-3">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-xs border-collapse">
+                                            <thead>
+                                                <tr className="border-b border-border/40 text-muted-foreground">
+                                                    <th className="text-left py-2 pr-3 font-semibold">Region</th>
+                                                    {PERIODS.map(p => (
+                                                        <th key={p.label} className="text-right py-2 px-2 font-semibold whitespace-nowrap">{p.label}</th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {(["AT", "DE", "EZ", "US"] as const).map(region => {
+                                                    const data = HISTORICAL_DATA[region];
+                                                    const minY = Math.min(...Object.keys(data).map(Number));
+                                                    return (
+                                                        <tr key={region} className="border-b border-border/30 last:border-0 hover:bg-muted/20">
+                                                            <td className="py-2 pr-3 font-medium text-foreground">{REGION_LABELS[region]}</td>
+                                                            {PERIODS.map(p => {
+                                                                const avg = p.from >= minY ? computeAverage(data, p.from, p.to) : null;
+                                                                return (
+                                                                    <td key={p.label} className="text-right py-2 px-2 tabular-nums">
+                                                                        {avg !== null ? `${avg.toFixed(1)}%` : "–"}
+                                                                    </td>
+                                                                );
+                                                            })}
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground">
+                                        Quellen: Statistik Austria, Destatis, EZB / Eurostat, BLS, Weltbank (VPI / HICP).
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-3">
-                        Quellen: Statistik Austria, Destatis, Europäische Zentralbank/Eurostat, U.S. Bureau of Labor Statistics, Weltbank.
-                        Bei der Eurozone beginnen die Daten 1991. Die Werte können aufgrund unterschiedlicher Berechnungsmethoden (CPI vs. HICP) leicht abweichen.
-                    </p>
-                </CardContent>
-            </Card>
-        </div>
+                </div>
+            </div>
+
+            <CardFooter className="px-6 py-4 text-xs text-muted-foreground border-t border-border/40 flex justify-between items-center bg-card/30">
+                <p>
+                    Hinweis: Historische Raten sind keine Garantie für zukünftige Geldentwertung. Renditen oberhalb der Inflationsrate sichern die reale Kaufkraft.
+                </p>
+            </CardFooter>
+        </Card>
     );
 }

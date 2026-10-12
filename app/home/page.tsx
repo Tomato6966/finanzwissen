@@ -302,11 +302,11 @@ const infographicCards = [
 
 export default function HomePage() {
   return (
-    <div className="-mx-4 -my-8 min-h-screen bg-background text-foreground sm:-mx-6 lg:-mx-8">
+    <div className="space-y-12 sm:space-y-16">
       {/* HERO */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] via-transparent to-blue-500/[0.03]" />
-        <div className="relative mx-auto grid max-w-7xl gap-6 sm:gap-8 px-4 py-10 sm:py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8">
+      <section className="relative overflow-hidden rounded-2xl border border-border/40 bg-card/40 backdrop-blur-md p-6 sm:p-10 lg:p-12 shadow-sm">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.04] via-transparent to-blue-500/[0.04] pointer-events-none" />
+        <div className="relative mx-auto grid gap-8 lg:grid-cols-[1.05fr_0.95fr] items-center">
           <div className="flex flex-col justify-center">
             <div className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-sm text-primary">
               <Sparkles className="h-4 w-4" />
@@ -345,16 +345,6 @@ export default function HomePage() {
             </div>
           </div>
           <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-border/50 bg-card/70 backdrop-blur-md p-4 sm:p-5 shadow-xl transition-all duration-300 ease-out hover:scale-[1.01] hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/30">
-            <div
-              className="pointer-events-none absolute inset-0 opacity-10"
-              aria-hidden="true"
-              style={{
-                backgroundImage: `url(${process.env.NEXT_PUBLIC_BASE_PATH || ''}/images/finanzwissen_community.png)`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                backgroundRepeat: "no-repeat",
-              }}
-            />
             <div className="grid gap-4 sm:grid-cols-[120px_1fr]">
               <div className="flex items-center justify-center rounded-xl border border-border/40 bg-muted/20 p-4 transition-all duration-300 ease-out hover:scale-105 hover:border-primary/30 hover:bg-muted/30">
                 <Image
@@ -411,7 +401,7 @@ export default function HomePage() {
       </section>
 
       {/* CALCULATOR DOCK */}
-      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <section>
         <div className="mb-5 flex items-start sm:items-center justify-between gap-3 sm:gap-4">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold">Rechner Direktzugriff</h2>
@@ -458,76 +448,73 @@ export default function HomePage() {
       </section>
 
       {/* TOOLS & RESSOURCEN */}
-      <section className="border-y border-border/50 bg-muted/20 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="mb-6 flex items-start sm:items-center justify-between gap-3 sm:gap-4">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold">Tools & Ressourcen</h2>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                Handverlesene externe Tools für Portfolio-Tracking, Broker-Vergleiche,
-                Budget-Management und Finanzanalyse.
-              </p>
-            </div>
-            <LinkButton
-              href="/tools"
-              variant="outline"
-              className="hidden border-border bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground sm:inline-flex shrink-0"
-            >
-              Alle Tools
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </LinkButton>
+      <section className="rounded-2xl border border-border/40 bg-card/30 backdrop-blur-sm p-6 sm:p-8">
+        <div className="mb-6 flex items-start sm:items-center justify-between gap-3 sm:gap-4">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold">Tools & Ressourcen</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Handverlesene externe Tools für Portfolio-Tracking, Broker-Vergleiche,
+              Budget-Management und Finanzanalyse.
+            </p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {featuredTools.map((tool) => (
-              <div
-                key={tool.title}
-                className={`group relative flex flex-col overflow-hidden rounded-xl border border-border/40 bg-card/50 backdrop-blur-sm p-4 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/10 ${tool.borderAccent}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${tool.bgAccent} border border-border/40`}>
-                    <tool.icon className={`h-5 w-5 ${tool.accent}`} />
-                  </div>
-                  <h3 className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-                    {tool.title}
-                  </h3>
-                  <span className="inline-flex shrink-0 items-center rounded-full border border-border/30 bg-primary/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                    {tool.category}
-                  </span>
-                  <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+          <LinkButton
+            href="/tools"
+            variant="outline"
+            className="hidden border-border bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground sm:inline-flex shrink-0"
+          >
+            Alle Tools
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </LinkButton>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {featuredTools.map((tool) => (
+            <div
+              key={tool.title}
+              className={`group relative flex flex-col overflow-hidden rounded-xl border border-border/40 bg-card/50 backdrop-blur-sm p-4 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/10 ${tool.borderAccent}`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${tool.bgAccent} border border-border/40`}>
+                  <tool.icon className={`h-5 w-5 ${tool.accent}`} />
                 </div>
-                <p className="mt-1 grow text-xs leading-5 text-muted-foreground line-clamp-2">
-                  {tool.description}
-                </p>
-                <div className="mt-auto pt-3">
-                  <LinkButton
-                    href={tool.href}
-                    target="_blank"
-                    className="w-full justify-between px-5 py-2"
-                  >
-                    Öffnen
-                    <ArrowRight className="h-4 w-4" />
-                  </LinkButton>
-                </div>
+                <h3 className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                  {tool.title}
+                </h3>
+                <span className="inline-flex shrink-0 items-center rounded-full border border-border/30 bg-primary/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                  {tool.category}
+                </span>
+                <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
               </div>
-            ))}
-          </div>
-          <div className="mt-6 text-center sm:hidden">
-            <LinkButton
-              href="/tools"
-              variant="outline"
-              className="border-border bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground"
-            >
-              Alle Tools & Ressourcen
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </LinkButton>
-          </div>
+              <p className="mt-1 grow text-xs leading-5 text-muted-foreground line-clamp-2">
+                {tool.description}
+              </p>
+              <div className="mt-auto pt-3">
+                <LinkButton
+                  href={tool.href}
+                  target="_blank"
+                  className="w-full justify-between px-5 py-2"
+                >
+                  Öffnen
+                  <ArrowRight className="h-4 w-4" />
+                </LinkButton>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6 text-center sm:hidden">
+          <LinkButton
+            href="/tools"
+            variant="outline"
+            className="border-border bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            Alle Tools & Ressourcen
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </LinkButton>
         </div>
       </section>
 
       {/* LERNEN & VERSTEHEN */}
-      <section className="border-y border-border/50 bg-muted/20 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="grid gap-6 sm:gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+      <section className="rounded-2xl border border-border/40 bg-card/30 backdrop-blur-sm p-6 sm:p-8">
+        <div className="grid gap-6 sm:gap-8 lg:grid-cols-[0.9fr_1.1fr]">
             <div>
               <h2 className="text-xl sm:text-2xl font-bold">Infografik: Vermögen bauen</h2>
               <p className="mt-2 text-sm sm:text-base text-muted-foreground">
@@ -598,7 +585,6 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-        </div>
       </section>
     </div>
   );

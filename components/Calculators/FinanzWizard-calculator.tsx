@@ -1,4 +1,6 @@
 "use client"
+import { CalculatorBanner } from "./CalculatorBanner";
+import { CalculatorHeader } from "./CalculatorHeader";
 
 import { BarChart3, Plus, Search, Share2, Trash2, WandSparkles } from "lucide-react";
 import LZString from "lz-string";
@@ -19,6 +21,7 @@ import { formatCurrency } from "./tools";
 
 import type { Asset } from "@/lib/yahoofinanceService";
 import type { FinanzWizardData } from "@/lib/calculator-types";
+import { copyShareUrlToClipboard, getShareUrl } from "@/lib/share-utils";
 
 interface FinanzWizardCalculatorProps {
     initialData: FinanzWizardData | null;
@@ -134,145 +137,266 @@ export function FinanzWizardCalculator({ initialData }: FinanzWizardCalculatorPr
         return LZString.compressToEncodedURIComponent(JSON.stringify(state));
     }, [formData]);
 
-    const handleShareConfig = () => {
-        const shareUrl = `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ""}/calculators?share=${serializeState()}`;
-        navigator.clipboard?.writeText(shareUrl).then(() => {
+    const handleShareConfig = async () => {
+        const serialized = serializeState();
+        const shareUrl = getShareUrl('finanzwizard', serialized);
+        const copied = await copyShareUrlToClipboard(shareUrl);
+        if (copied) {
             setShareMessage("Link kopiert!");
-            setTimeout(() => setShareMessage(null), 3000);
-        }).catch(() => setShareMessage("Kopieren fehlgeschlagen"));
+        } else {
+            setShareMessage("Kopieren fehlgeschlagen!");
+        }
+        setTimeout(() => setShareMessage(null), 3000);
     };
 
     return (
-        <Card className="w-full max-w-7xl overflow-hidden border-border bg-card shadow-2xl py-0">
-            <CardHeader className="bg-muted p-6 text-foreground">
-                <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-                    <div>
-                        <CardTitle className="flex items-center gap-3 text-3xl">
-                            <WandSparkles className="h-8 w-8 text-primary" />
-                            FinanzWizard
-                        </CardTitle>
-                        <CardDescription className="mt-2 text-muted-foreground">
-                            All-in-one Portfolio-Backtest mit Yahoo-Finance-Daten. Läuft clientseitig und nutzt den vorhandenen CORS-Proxy fuer GitHub Pages.
-                        </CardDescription>
-                    </div>
-                    <Button onClick={handleShareConfig} variant="secondary">
-                        <Share2 className="mr-2 h-4 w-4" />
-                        {shareMessage || "Konfiguration teilen"}
-                    </Button>
-                </div>
-            </CardHeader>
-            <CardContent className="grid gap-6 p-6 lg:grid-cols-3">
-                <div className="space-y-5">
-                    <div className="rounded-lg border p-4">
-                        <h3 className="mb-3 flex items-center gap-2 font-semibold">
-                            <Search className="h-5 w-5" />
-                            Ticker suchen
-                        </h3>
-                        <div className="flex gap-2">
-                            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="MSCI World, Apple, S&P 500..." />
-                            <Button onClick={handleSearch} disabled={isLoading}>Suchen</Button>
+        <Card className="w-full shadow-xl rounded-2xl overflow-hidden py-0 border-border/70 dark:bg-card/90 backdrop-blur-md">
+            <CalculatorHeader
+                title="FinanzWizard Simulations-Rechner"
+                description="Ganzheitliche Portfolio-Simulation mit echten historischen Kursdaten aus Yahoo Finance für Backtests und Sparpläne."
+                icon={WandSparkles}
+                badge="Simulationen"
+                shareMessage={shareMessage}
+                onShare={handleShareConfig}
+            />
+
+            <div className="p-6 sm:p-7 space-y-6">
+                <div className="grid md:grid-cols-3 gap-8">
+                    {/* Picker-Maske (Left Column) */}
+                    <div className="md:col-span-1 space-y-4 rounded-xl border border-border/50 bg-card/50 dark:bg-card/30 p-4 sm:p-5">
+                        <div className="border-b border-border/40 pb-3">
+                            <h3 className="text-base font-semibold text-foreground">
+                                Asset-Suche & Allokation
+                            </h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Wählen Sie ETFs/Aktien und bestimmen Sie die Gewichtung.
+                            </p>
                         </div>
-                        <div className="mt-3 space-y-2">
-                            {searchResults.slice(0, 5).map((asset) => (
-                                <Button key={asset.symbol} variant="outline" size="sm" className="mr-2" onClick={() => addAsset(asset.symbol)}>
-                                    <Plus className="mr-1 h-3 w-3" />
-                                    {asset.symbol}
+
+                        {/* Search Box */}
+                        <div className="space-y-2">
+                            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ticker suchen</Label>
+                            <div className="flex gap-2">
+                                <Input
+                                    value={query}
+                                    onChange={(event) => setQuery(event.target.value)}
+                                    placeholder="z.B. IWDA, CSPX, Apple..."
+                                    className="h-8 text-xs"
+                                    onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                                />
+                                <Button size="sm" onClick={handleSearch} disabled={isLoading} className="h-8 text-xs">
+                                    <Search className="h-3.5 w-3.5" />
                                 </Button>
+                            </div>
+
+                            {searchResults.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 pt-1">
+                                    {searchResults.slice(0, 4).map((asset) => (
+                                        <Button
+                                            key={asset.symbol}
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-6 text-[10px] px-2"
+                                            onClick={() => addAsset(asset.symbol)}
+                                        >
+                                            <Plus className="mr-1 h-2.5 w-2.5" />
+                                            {asset.symbol}
+                                        </Button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Sparplan Parameter */}
+                        <div className="space-y-3 pt-2 border-t border-border/40">
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Startkapital (€)</Label>
+                                    <Input
+                                        type="number"
+                                        value={formData.initialCapital}
+                                        onChange={(event) => setFormData({ ...formData, initialCapital: Number(event.target.value) || 0 })}
+                                        className="h-8 text-xs"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sparplan mtl. (€)</Label>
+                                    <Input
+                                        type="number"
+                                        value={formData.monthlyContribution}
+                                        onChange={(event) => setFormData({ ...formData, monthlyContribution: Number(event.target.value) || 0 })}
+                                        className="h-8 text-xs"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Von</Label>
+                                    <Input
+                                        type="date"
+                                        value={formData.startDate}
+                                        onChange={(event) => setFormData({ ...formData, startDate: event.target.value })}
+                                        className="h-8 text-xs"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Bis</Label>
+                                    <Input
+                                        type="date"
+                                        value={formData.endDate}
+                                        onChange={(event) => setFormData({ ...formData, endDate: event.target.value })}
+                                        className="h-8 text-xs"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Asset List */}
+                        <div className="space-y-2.5 pt-2 border-t border-border/40">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Portfolio Positionen</Label>
+                                <span className={`text-xs font-bold ${Math.round(totalWeight) === 100 ? "text-emerald-500" : "text-amber-500"}`}>
+                                    {totalWeight}% {Math.round(totalWeight) === 100 ? "✓" : "(!)"}
+                                </span>
+                            </div>
+
+                            {formData.assets.map((asset, index) => (
+                                <div key={`${asset.symbol}-${index}`} className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/50 p-1.5">
+                                    <Input
+                                        value={asset.symbol}
+                                        onChange={(event) => updateAsset(index, "symbol", event.target.value.toUpperCase())}
+                                        placeholder="Ticker"
+                                        className="h-7 text-xs flex-1 uppercase font-semibold"
+                                    />
+                                    <div className="flex items-center gap-1 w-20">
+                                        <Input
+                                            type="number"
+                                            value={asset.weight}
+                                            onChange={(event) => updateAsset(index, "weight", Number(event.target.value) || 0)}
+                                            className="h-7 text-xs text-right"
+                                        />
+                                        <span className="text-[10px] text-muted-foreground">%</span>
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => removeAsset(index)}
+                                        className="h-7 w-7 text-destructive hover:text-destructive/80 shrink-0"
+                                    >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                </div>
                             ))}
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full text-xs font-semibold border-dashed"
+                                onClick={() => addAsset()}
+                            >
+                                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                                Position hinzufügen
+                            </Button>
+
+                            <Button
+                                className="w-full text-xs font-semibold mt-2"
+                                onClick={runBacktest}
+                                disabled={isLoading}
+                            >
+                                <BarChart3 className="mr-1.5 h-4 w-4" />
+                                {isLoading ? "Lade Yahoo Daten..." : "Backtest starten"}
+                            </Button>
                         </div>
                     </div>
 
-                    <div className="space-y-3 rounded-lg border p-4">
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <Label>Startkapital Euro</Label>
-                                <Input type="number" value={formData.initialCapital} onChange={(event) => setFormData({ ...formData, initialCapital: Number(event.target.value) || 0 })} />
-                            </div>
-                            <div>
-                                <Label>Sparplan mtl. Euro</Label>
-                                <Input type="number" value={formData.monthlyContribution} onChange={(event) => setFormData({ ...formData, monthlyContribution: Number(event.target.value) || 0 })} />
-                            </div>
-                            <div>
-                                <Label>Startdatum</Label>
-                                <Input type="date" value={formData.startDate} onChange={(event) => setFormData({ ...formData, startDate: event.target.value })} />
-                            </div>
-                            <div>
-                                <Label>Enddatum</Label>
-                                <Input type="date" value={formData.endDate} onChange={(event) => setFormData({ ...formData, endDate: event.target.value })} />
-                            </div>
-                        </div>
-                    </div>
+                    {/* Visualisierung-Maske (Right Column) */}
+                    <div className="md:col-span-2 space-y-4">
+                        {error && (
+                            <CalculatorBanner
+                                type="error"
+                                message={error}
+                            />
+                        )}
 
-                    <div className="space-y-3 rounded-lg border p-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="font-semibold">Portfolio</h3>
-                            <span className={totalWeight === 100 ? "text-emerald-600" : "text-orange-600"}>{totalWeight}%</span>
-                        </div>
-                        {formData.assets.map((asset, index) => (
-                            <div key={`${asset.symbol}-${index}`} className="grid grid-cols-[1fr_90px_38px] gap-2">
-                                <Input value={asset.symbol} onChange={(event) => updateAsset(index, "symbol", event.target.value.toUpperCase())} placeholder="Ticker" />
-                                <Input type="number" value={asset.weight} onChange={(event) => updateAsset(index, "weight", Number(event.target.value) || 0)} />
-                                <Button variant="ghost" size="icon" onClick={() => removeAsset(index)}>
-                                    <Trash2 className="h-4 w-4 text-red-600" />
-                                </Button>
+                        {Math.round(totalWeight) !== 100 && !error && (
+                            <CalculatorBanner
+                                type="warning"
+                                message={`Die Gewichtung summiert sich aktuell auf ${totalWeight}%. Bitte passen Sie die Anteile auf 100% an.`}
+                            />
+                        )}
+
+                        {/* Top KPI Cards */}
+                        <div className="grid sm:grid-cols-3 gap-3">
+                            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 backdrop-blur-xs">
+                                <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Endwert Portfolio</span>
+                                <h4 className="text-2xl font-extrabold text-primary mt-1">
+                                    {formatCurrency(finalPoint?.portfolio || 0)}
+                                </h4>
                             </div>
-                        ))}
-                        <Button variant="outline" className="w-full" onClick={() => addAsset()}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Position hinzufuegen
-                        </Button>
-                        <Button className="w-full" onClick={runBacktest} disabled={isLoading}>
-                            <BarChart3 className="mr-2 h-4 w-4" />
-                            {isLoading ? "Lade Daten..." : "Backtest starten"}
-                        </Button>
-                        {error && <p className="text-sm text-red-600">{error}</p>}
+
+                            <div className="rounded-xl border border-border/50 bg-card/40 p-4 backdrop-blur-xs">
+                                <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Einzahlungen</span>
+                                <h4 className="text-2xl font-bold text-foreground mt-1">
+                                    {formatCurrency(finalPoint?.contributions || 0)}
+                                </h4>
+                            </div>
+
+                            <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 p-4 backdrop-blur-xs">
+                                <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Wertzuwachs (Netto)</span>
+                                <h4 className={`text-2xl font-extrabold mt-1 ${totalReturn >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+                                    {totalReturn >= 0 ? "+" : ""}{formatCurrency(totalReturn)}
+                                </h4>
+                            </div>
+                        </div>
+
+                        {/* Chart Container */}
+                        <div className="rounded-xl border border-border/60 bg-card/60 dark:bg-card/30 p-4 sm:p-5 backdrop-blur-xs">
+                            <div className="flex justify-between items-center mb-3">
+                                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Portfolioverlauf (Historische Marktdaten)</span>
+                                <span className="text-xs text-muted-foreground">
+                                    {chartData.length > 0 ? `${chartData.length} Datenpunkte` : "Starten Sie den Backtest"}
+                                </span>
+                            </div>
+                            <ResponsiveContainer width="100%" height={380}>
+                                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="wizardPortfolioGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#0284c7" stopOpacity={0.4}/>
+                                            <stop offset="95%" stopColor="#0284c7" stopOpacity={0.02}/>
+                                        </linearGradient>
+                                        <linearGradient id="wizardContribGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#64748b" stopOpacity={0.25}/>
+                                            <stop offset="95%" stopColor="#64748b" stopOpacity={0.02}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                                    <XAxis dataKey="date" minTickGap={40} stroke="currentColor" className="text-xs opacity-60" />
+                                    <YAxis tickFormatter={(val: number) => formatCurrency(val)} width={85} stroke="currentColor" className="text-xs opacity-60" />
+                                    <Tooltip
+                                        formatter={(val) => formatCurrency(val as number)}
+                                        contentStyle={{
+                                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                            borderRadius: '12px',
+                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                            color: '#fff',
+                                            backdropFilter: 'blur(8px)'
+                                        }}
+                                    />
+                                    <Legend wrapperStyle={{ paddingTop: 10 }} />
+                                    <Area type="monotone" dataKey="contributions" name="Einzahlungen" stroke="#64748b" strokeWidth={1.5} fill="url(#wizardContribGradient)" />
+                                    <Area type="monotone" dataKey="portfolio" name="Portfolio Gesamt" stroke="#0284c7" strokeWidth={2.5} fill="url(#wizardPortfolioGradient)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <div className="space-y-4 lg:col-span-2">
-                    <div className="grid gap-4 md:grid-cols-3">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Endwert</CardTitle>
-                            </CardHeader>
-                            <CardContent className="text-3xl font-bold text-cyan-700 dark:text-cyan-300">
-                                {formatCurrency(finalPoint?.portfolio || 0)}
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Einzahlungen</CardTitle>
-                            </CardHeader>
-                            <CardContent className="text-3xl font-bold">
-                                {formatCurrency(finalPoint?.contributions || 0)}
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Gewinn</CardTitle>
-                            </CardHeader>
-                            <CardContent className={`text-3xl font-bold ${totalReturn >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                                {formatCurrency(totalReturn)}
-                            </CardContent>
-                        </Card>
-                    </div>
-                    <div className="rounded-lg border p-4">
-                        <ResponsiveContainer width="100%" height={460}>
-                            <AreaChart data={chartData}>
-                                <CartesianGrid strokeDasharray="3 3" opacity={0.25} />
-                                <XAxis dataKey="date" minTickGap={36} />
-                                <YAxis tickFormatter={(value) => formatCurrency(Number(value))} width={90} />
-                                <Tooltip formatter={(value, name) => [formatCurrency(value as number), name as string]} />
-                                <Legend />
-                                <Area type="monotone" dataKey="contributions" name="Einzahlungen" stroke="#64748b" fill="#cbd5e1" fillOpacity={0.45} />
-                                <Area type="monotone" dataKey="portfolio" name="Portfolio" stroke="#0891b2" fill="#67e8f9" fillOpacity={0.5} />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-            </CardContent>
-            <CardFooter className="bg-slate-50 p-5 text-sm text-muted-foreground dark:bg-slate-900">
-                Datenquelle: Yahoo Finance ueber Browser-Fetch. Historische Kurse koennen fehlen, verzerrt sein oder nicht alle Ausschüttungen abbilden.
+            <CardFooter className="px-6 py-4 text-xs text-muted-foreground border-t border-border/40 flex justify-between items-center bg-card/30">
+                <p>
+                    Datenquelle: Yahoo Finance über Live-Proxy. Historische Kurse sind vergangenheitsbezogen und keine Garantie für die Zukunft.
+                </p>
             </CardFooter>
         </Card>
     );

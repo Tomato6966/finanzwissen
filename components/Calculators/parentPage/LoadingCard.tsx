@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/card";
 
 export default function LoadingCard() {
-    return <Card className="w-full max-w-6xl shadow-xl rounded-lg overflow-hidden py-0">
+    return <Card className="w-full shadow-xl rounded-lg overflow-hidden py-0">
         <CardHeader className="bg-primary text-primary-foreground p-6 rounded-t-lg flex flex-row items-center justify-between">
             <div>
                 <CardTitle className="text-3xl font-bold flex items-center gap-4">

@@ -23,6 +23,7 @@ import {
   Users,
   Wallet,
   Zap,
+  ExternalLink,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -225,6 +226,47 @@ const uebungen = [
 
 const empfehlungen = [
   {
+    titel: "Thomas Brezina",
+    subtitle: "Was dein Geld sagen würde, wenn es sprechen könnte",
+    text: "Das neue Buch von Bestseller-Autor Thomas Brezina: Ein humorvoller, bildhafter und augenöffnender Perspektivenwechsel auf unsere Beziehung zum Geld. Es vermittelt grundlegende Geld-Werte, Glaubenssätze und Leichtigkeit für den finanziellen Alltag.",
+    link: "https://www.morawa.at/detail/ISBN-9783990019337/Brezina-Thomas/Was-dein-Geld-sagen-w%C3%BCrde-wenn-es-sprechen-k%C3%B6nnte",
+    linkText: "Bei Morawa ansehen",
+    badge: "Neuerscheinung",
+    bgFarbe: "bg-amber-500/5",
+    borderFarbe: "border-amber-500/30",
+  },
+  {
+    titel: "Gerd Kommer",
+    subtitle: "Souverän investieren mit Indexfonds und ETFs",
+    text: "Die wissenschaftliche Bibel der Geldanlage im deutschsprachigen Raum. Gerd Kommer zerlegt Mythen der Finanzindustrie und erklärt fundiert das Konzept des passiven Investierens mit ETFs („Weltportfolio“), Asset Allocation und Rebalancing.",
+    badge: "Klassiker & Standardwerk",
+    bgFarbe: "bg-blue-500/5",
+    borderFarbe: "border-blue-500/30",
+  },
+  {
+    titel: "Gerd Kommer",
+    subtitle: "Kaufen oder mieten? Wie Sie für sich die richtige Entscheidung treffen",
+    text: "Das Standardwerk zur Frage aller Fragen bei Immobilien. Kommer analysiert nüchtern und faktenbasiert Opportunitätskosten, Instandhaltung, Hebelrisiken und den direkten Vermögensvergleich zwischen Wohneigentum und Mieter mit ETF-Sparplan.",
+    badge: "Immobilien & Finanzen",
+    bgFarbe: "bg-indigo-500/5",
+    borderFarbe: "border-indigo-500/20",
+  },
+  {
+    titel: "Gerd Kommer",
+    subtitle: "Souverän investieren für Einsteiger",
+    text: "Die leicht verständliche, komprimierte Einsteiger-Variante seines Bestsellers. Ohne Fachchinesisch führt Kommer in wenigen klaren Schritten zum ersten eigenen ETF-Sparplan und nimmt Anleger:innen die Angst vor Aktienmärkten.",
+    badge: "Für Einsteiger",
+    bgFarbe: "bg-cyan-500/5",
+    borderFarbe: "border-cyan-500/20",
+  },
+  {
+    titel: "Morgan Housel",
+    subtitle: "Über Geld denkt man anders (The Psychology of Money)",
+    text: "Keine Formeln, nur Geschichten. Dieses Buch erklärt, warum wir uns bei Geld oft irrational verhalten – und wie wir trotzdem kluge Entscheidungen treffen. Ideal für Einsteiger, die Psychologie und Finanzen verbinden wollen.",
+    bgFarbe: "bg-amber-500/5",
+    borderFarbe: "border-amber-500/20",
+  },
+  {
     titel: "Bodo Schäfer",
     subtitle: "Der Weg zur finanziellen Freiheit",
     text: "Der Klassiker für den deutschsprachigen Raum. Über 10 Millionen verkaufte Exemplare. Bodo Schäfer zeigt konkret, wie jeder Wohlstand erreichen kann – mit Fokus auf Mindset, Sparquote und multiple Einkommensquellen.",
@@ -234,16 +276,9 @@ const empfehlungen = [
   {
     titel: "Madame Moneypenny",
     subtitle: "Wie Frauen ihre finanzielle Unabhängigkeit erreichen",
-    text: "Natasha von Siemens fokussiert auf Glaubenssätze, positives Money Mindset und konkretes Investment-Wissen speziell für Frauen. Sehr praktisch, psychologisch fundiert und ermutigend.",
+    text: "Natascha Wegelin fokussiert auf Glaubenssätze, positives Money Mindset und konkretes Investment-Wissen speziell für Frauen. Sehr praktisch, psychologisch fundiert und ermutigend.",
     bgFarbe: "bg-pink-500/5",
     borderFarbe: "border-pink-500/20",
-  },
-  {
-    titel: "Morgan Housel",
-    subtitle: "Über Geld denkt man anders (The Psychology of Money)",
-    text: "Keine Formeln, nur Geschichten. Dieses Buch erklärt, warum wir uns bei Geld oft irrational verhalten – und wie wir trotzdem kluge Entscheidungen treffen. Ideal für Einsteiger, die Psychologie und Finanzen verbinden wollen.",
-    bgFarbe: "bg-amber-500/5",
-    borderFarbe: "border-amber-500/20",
   },
   {
     titel: "Gisela Enders",
@@ -541,22 +576,43 @@ export default function MindSetPage() {
         <div className="grid gap-6 md:grid-cols-2">
           {empfehlungen.map((buch) => (
             <Card
-              key={buch.titel}
-              className={`group border-border/40 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-lg ${buch.borderFarbe}`}
+              key={`${buch.titel}-${buch.subtitle}`}
+              className={`group flex flex-col border-border/40 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:scale-[1.01] hover:-translate-y-0.5 hover:shadow-lg ${buch.borderFarbe}`}
             >
-              <CardHeader>
-                <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-card border border-border/40">
-                    <BookOpen className="h-5 w-5 text-primary" />
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-card border border-border/40">
+                      <BookOpen className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">{buch.titel}</CardTitle>
+                      <CardDescription className="italic mt-0.5">{buch.subtitle}</CardDescription>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-lg">{buch.titel}</CardTitle>
-                    <CardDescription className="italic">{buch.subtitle}</CardDescription>
-                  </div>
+                  {buch.badge && (
+                    <Badge variant="outline" className="shrink-0 text-[11px] border-primary/30 bg-primary/10 text-primary">
+                      {buch.badge}
+                    </Badge>
+                  )}
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex grow flex-col justify-between pt-0">
                 <p className="text-sm leading-6 text-muted-foreground">{buch.text}</p>
+                {buch.link && (
+                  <div className="mt-4 pt-3 border-t border-border/30">
+                    <LinkButton
+                      href={buch.link}
+                      target="_blank"
+                      variant="outline"
+                      size="sm"
+                      className="border-primary/30 bg-primary/5 hover:bg-primary/15 text-primary text-xs"
+                    >
+                      <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                      {buch.linkText || "Buch ansehen"}
+                    </LinkButton>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}

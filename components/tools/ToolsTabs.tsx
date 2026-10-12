@@ -22,7 +22,7 @@ export function ToolsTabContent({ category }: { category: ToolCategory }) {
         <TabsContent key={category.id} value={category.id} className="mt-8">
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {category.items.map((item, index: number) => (
-                    <Card key={index} className="hover:shadow-xl pt-0 cursor-cell transition-all duration-300 group overflow-hidden hover:bg-gradient-to-br hover:from-blue-500/30 hover:to-purple-500/30 rounded-lg">
+                    <Card key={index} className="hover:shadow-lg pt-0 transition-all duration-300 group overflow-hidden border border-border/60 bg-card rounded-xl">
                         <div className="relative overflow-hidden h-full w-full">
                             {item.image && item.image.endsWith(".mp4") ? (
                                 <video src={item.image} autoPlay muted loop className="w-full h-54 object-cover group-hover:scale-105 transition-transform duration-300 rounded-t-lg" />

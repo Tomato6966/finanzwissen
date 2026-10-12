@@ -1,28 +1,16 @@
 "use client";
 import { Quote } from "lucide-react";
 import Image from "next/image";
+import { useContext } from "react";
+import { PageContext } from "@/Context/PageContext";
 
-const Footer = () => (
-    <footer className="bg-background/80 backdrop-blur-sm border-t border-border/60 bottom-0 h-full w-full flex-grow">
+const Footer = () => {
+    const { isWideMode } = useContext(PageContext);
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <Image
-                src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/images/finanzwissen_community.png`}
-                alt="FinanzWissen Logo"
-                width={350}
-                height={350}
-                style={{ borderRadius: "25%", opacity: 0.1 }}
-                className="absolute top-0 mt-8 left-0 object-cover -rotate-6 hidden md:block"
-            />
-            <Image
-                src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/images/finanzwissen_community.png`}
-                alt="FinanzWissen Logo"
-                width={350}
-                height={350}
-                style={{ borderRadius: "25%", opacity: 0.1 }}
-                className="absolute top-0 mt-8 right-0 object-cover rotate-6 hidden md:block"
-            />
-            <div className="text-center">
+    return (
+        <footer className="bg-background/80 backdrop-blur-sm border-t border-border/60 bottom-0 h-full w-full flex-grow">
+            <div className={`relative mx-auto px-4 sm:px-6 lg:px-8 py-8 transition-all duration-300 ${isWideMode ? "w-full max-w-[108rem]" : "max-w-7xl"}`}>
+                <div className="text-center">
                 <div className="flex items-center space-x-2 justify-center mb-4">
                     <Image
                         className="w-8 h-8 mt-1"
@@ -58,6 +46,7 @@ const Footer = () => (
             </div>
         </div>
     </footer>
-);
+    );
+};
 
 export default Footer;

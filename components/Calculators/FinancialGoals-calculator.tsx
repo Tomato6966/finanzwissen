@@ -1,6 +1,8 @@
 "use client"
+import { CalculatorBanner } from "./CalculatorBanner";
+import { CalculatorHeader } from "./CalculatorHeader";
 
-import { AlertCircle, Calendar, Target, Trash } from "lucide-react";
+import {  AlertCircle, Calendar, Target, Trash , PiggyBank } from "lucide-react";
 import LZString from "lz-string";
 import React, { FC, useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -16,6 +18,7 @@ import { Label } from "@/components/ui/label";
 
 import { Switch } from "../ui/switch";
 import { formatCurrency, formatCurrencyPrecise, handleFormChange } from "./tools";
+import { copyShareUrlToClipboard, getShareUrl } from "@/lib/share-utils";
 
 interface Goal {
     id: number;
@@ -139,30 +142,16 @@ export const FinancialGoalsCalculator: FC<FinancialGoalsCalculatorProps> = ({
     const memoizedHandleFormChange = useCallback(handleFormChange(setGoalForm), []);
 
     // Handle share config button click
-    const handleShareConfig = () => {
+    const handleShareConfig = async () => {
         const serialized = serializeState();
-                const shareUrl = `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH || ''}/calculators?share=${serialized}`;
-        try {
-            document.execCommand('copy'); // Fallback for older browsers
-            navigator.clipboard.writeText(shareUrl).then(() => {
-                setShareMessage("Link kopiert!");
-                setTimeout(() => setShareMessage(null), 3000);
-            }).catch(() => {
-                // Fallback if writeText fails (e.g., not in secure context or permissions)
-                const textarea = document.createElement('textarea');
-                textarea.value = shareUrl;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                setShareMessage("Link kopiert! (Fallback)");
-                setTimeout(() => setShareMessage(null), 3000);
-            });
-        } catch (err) {
-            console.error('Failed to copy text: ', err);
+        const shareUrl = getShareUrl('goals', serialized);
+        const copied = await copyShareUrlToClipboard(shareUrl);
+        if (copied) {
+            setShareMessage("Link kopiert!");
+        } else {
             setShareMessage("Kopieren fehlgeschlagen!");
-            setTimeout(() => setShareMessage(null), 3000);
         }
+        setTimeout(() => setShareMessage(null), 3000);
     };
 
     // Handler for updating individual goal properties
@@ -187,221 +176,246 @@ export const FinancialGoalsCalculator: FC<FinancialGoalsCalculatorProps> = ({
         setGoals([...goals, { id: Date.now(), title: '', value: 0 }]);
     };
 
+    const validationError = useMemo(() => {
+        if (goalForm.principal < 0) return "Das Startkapital darf nicht negativ sein.";
+        if (goalForm.contribution <= 0 && goalForm.principal <= 0) return "Bitte geben Sie ein Startkapital oder eine monatliche Sparrate an.";
+        if (goalData.unreachable.length > 0) return `Hinweis: ${goalData.unreachable.length} Ziel(e) können mit der aktuellen Sparrate nicht innerhalb von 50 Jahren erreicht werden.`;
+        return null;
+    }, [goalForm, goalData.unreachable]);
+
     return (
-        <Card className="w-full max-w-6xl shadow-xl rounded-lg overflow-hidden py-0 dark:bg-card">
-            <CardHeader className="bg-primary text-primary-foreground p-6 rounded-t-lg flex flex-row items-center justify-between">
-                <div>
-                    <CardTitle className="text-3xl font-bold flex items-center gap-4">
-                        <Target /> Sparzielrechner
-                    </CardTitle>
-                    <CardDescription className="text-primary-foreground opacity-90 text-sm mt-2">
-                        Verfolgen Sie mehrere Sparziele und sehen Sie, wann Sie diese erreichen.
-                    </CardDescription>
-                </div>
-                <Button onClick={handleShareConfig} className="ml-4" variant="secondary">
-                    {shareMessage || "Share Config"}
-                </Button>
-            </CardHeader>
-            <CardContent className="grid lg:grid-cols-3 gap-8 pb-6 p-6">
-                {/* Input Controls for the Calculator */}
-                <div className="lg:col-span-1 space-y-6">
-                    <div className="space-y-4">
-                        <h4 className="font-bold text-lg">Finanzielle Eckdaten</h4>
-                        <div>
-                            <Label htmlFor="principal">Startkapital (€)</Label>
-                            <Input min={0} id="principal" name="principal" type="number" value={goalForm.principal} onChange={memoizedHandleFormChange} />
+        <Card className="w-full shadow-xl rounded-2xl overflow-hidden py-0 border-border/70 dark:bg-card/90 backdrop-blur-md">
+            <CalculatorHeader
+                title="Sparzielrechner"
+                description="Berechnen Sie, wie lange Sie sparen müssen oder welche Sparrate nötig ist, um Ihre finanziellen Ziele zu erreichen."
+                icon={PiggyBank}
+                badge="Vermögen"
+                shareMessage={shareMessage}
+                onShare={handleShareConfig}
+            />
+
+            <div className="p-6 sm:p-7 space-y-6">
+                <div className="grid md:grid-cols-3 gap-8">
+                    {/* Picker-Maske (Left Column) */}
+                    <div className="md:col-span-1 space-y-5 rounded-xl border border-border/50 bg-card/50 dark:bg-card/30 p-4 sm:p-5">
+                        <div className="border-b border-border/40 pb-3">
+                            <h3 className="text-base font-semibold text-foreground">
+                                Sparparameter
+                            </h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                Definieren Sie Ihr Budget und Ihre Sparziele.
+                            </p>
                         </div>
-                        <div>
-                            <Label htmlFor="contribution">Monatliche Sparrate (€)</Label>
-                            <Input min={0} id="contribution" name="contribution" type="number" value={goalForm.contribution} onChange={memoizedHandleFormChange} />
+
+                        <div className="space-y-4">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="principal" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Startkapital (€)</Label>
+                                <Input min={0} id="principal" name="principal" type="number" value={goalForm.principal} onChange={memoizedHandleFormChange} />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="contribution" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Monatliche Sparrate (€)</Label>
+                                <Input min={0} id="contribution" name="contribution" type="number" value={goalForm.contribution} onChange={memoizedHandleFormChange} />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="rate" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Erwartete Rendite p.a. (%)</Label>
+                                <Input min={0} id="rate" name="rate" type="number" step="0.1" value={goalForm.rate} onChange={memoizedHandleFormChange} />
+                            </div>
                         </div>
-                        <div>
-                            <Label htmlFor="rate">Erwartete Rendite p.a. (%)</Label>
-                            <Input min={0} id="rate" name="rate" type="number" value={goalForm.rate} onChange={memoizedHandleFormChange} />
+
+                        {/* Goal Management Section */}
+                        <div className="space-y-3 pt-3 border-t border-border/40">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ihre Sparziele</Label>
+                                <span className="text-xs text-primary font-bold">{goals.length} {goals.length === 1 ? 'Ziel' : 'Ziele'}</span>
+                            </div>
+
+                            <div className="space-y-2.5">
+                                {goals.map((goal, index) => (
+                                    <div key={goal.id} className="flex items-center gap-2 rounded-lg border border-border/60 bg-background/50 p-2">
+                                        <Input
+                                            value={goal.title}
+                                            onChange={(e) => handleGoalChange(index, 'title', e.target.value)}
+                                            placeholder="Titel"
+                                            className="h-8 text-xs flex-1"
+                                        />
+                                        <Input
+                                            type="number"
+                                            value={goal.value}
+                                            onChange={(e) => handleGoalChange(index, 'value', e.target.value)}
+                                            placeholder="Wert (€)"
+                                            className="h-8 text-xs w-24"
+                                        />
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => removeGoal(goal.id)}
+                                            className="h-8 w-8 text-destructive hover:text-destructive/80 shrink-0"
+                                            title="Ziel löschen"
+                                        >
+                                            <Trash size={14} />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <Button onClick={addGoal} variant="outline" size="sm" className="w-full text-xs font-semibold border-dashed">
+                                + Weiteres Ziel hinzufügen
+                            </Button>
                         </div>
                     </div>
 
-                    {/* Goal Management Section */}
-                    <div className="space-y-4 pt-4">
-                        <h4 className="font-bold text-lg">Ihre Sparziele</h4>
-                        <div className="space-y-2">
-                            {goals.map((goal, index) => (
-                                <div key={goal.id} className="flex items-center gap-2">
-                                    <Input
-                                        value={goal.title}
-                                        onChange={(e) => handleGoalChange(index, 'title', e.target.value)}
-                                        placeholder="Titel"
-                                    />
-                                    <Input
-                                        type="number"
-                                        value={goal.value}
-                                        onChange={(e) => handleGoalChange(index, 'value', e.target.value)}
-                                        placeholder="Wert (€)"
-                                    />
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => removeGoal(goal.id)}
-                                        className="text-red-500 hover:text-red-700"
-                                        title="Ziel löschen"
-                                    >
-                                        <Trash size={16} />
-                                    </Button>
-                                </div>
-                            ))}
-                        </div>
-                        <Button onClick={addGoal} className="w-full">Ziel hinzufügen</Button>
-                    </div>
-                </div>
+                    {/* Visualisierung-Maske (Right Column) */}
+                    <div className="md:col-span-2 space-y-4">
+                        {validationError && (
+                            <CalculatorBanner
+                                type={validationError.startsWith("Hinweis") ? "warning" : "error"}
+                                message={validationError}
+                            />
+                        )}
 
-                {/* Visualization and Results Section */}
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                            <h4 className="font-bold text-lg">Vermögensentwicklung</h4>
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 rounded-xl border border-border/50 bg-card/40 p-4 backdrop-blur-xs">
+                            <div>
+                                <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Fortschritt</span>
+                                <h4 className="text-xl font-bold text-foreground mt-0.5">
+                                    <span className="text-primary font-extrabold">{goalData.reached.length}</span> von {goals.length} Zielen erreicht
+                                </h4>
+                            </div>
                             <div className="flex items-center space-x-2">
-                                <Label htmlFor="goal-lines-toggle">Ziel-Linien anzeigen</Label>
                                 <Switch
                                     id="goal-lines-toggle"
                                     checked={showGoalLines}
                                     onCheckedChange={setShowGoalLines}
                                 />
+                                <Label htmlFor="goal-lines-toggle" className="text-xs cursor-pointer font-medium">Ziellinien anzeigen</Label>
                             </div>
                         </div>
-                        <ResponsiveContainer width="100%" height={500}>
-                            <AreaChart data={goalData.timeline}>
-                                <defs>
-                                    <filter id="bubble-glow" x="-50%" y="-50%" width="200%" height="200%">
-                                        <feDropShadow dx={0} dy={2} stdDeviation={4} floodColor="#15803d" floodOpacity={0.35} />
-                                    </filter>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis
-                                    dataKey="month"
-                                    tickFormatter={(val: number) => (val / 12).toFixed(1)}
-                                    unit=" J"
-                                    label={{ value: 'Zeit (Jahre)', position: 'insideBottom', offset: -5 }}
-                                />
-                                <YAxis
-                                    tickFormatter={(val: number) => formatCurrency(val)}
-                                    width={100}
-                                    label={{ value: 'Vermögen (€)', angle: -90, position: 'insideLeft', offset: 10 }}
-                                />
-                                <Tooltip
-                                    formatter={(value) => formatCurrencyPrecise(value as number)}
-                                    labelFormatter={(label) => `Monat ${label} (${(Number(label) / 12).toFixed(1)} Jahre)`}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="balance"
-                                    stroke="#0369a1"
-                                    fill="#e0f2fe"
-                                    name="Gesamtvermögen"
-                                />
-                                {showGoalLines &&
-                                    goals.map((goal) => (
-                                        <ReferenceLine
-                                            key={goal.id}
-                                            y={goal.value}
-                                            stroke="#8884d8"
-                                            strokeDasharray="5 5"
-                                            ifOverflow="extendDomain"
-                                            label={{ value: goal.title, position: 'insideTopLeft' }}
-                                        />
-                                    ))}
-                                {showGoalLines &&
-                                    goalData.reached.map((r) => (
-                                        <ReferenceLine
-                                            key={`v-line-${r.id}`}
-                                            x={r.months}
-                                            stroke="#8884d8"
-                                            strokeWidth={1}
-                                            strokeDasharray="5 5"
-                                            ifOverflow="extendDomain"
-                                            label={{
-                                                value: r.title,
-                                                position: 'top',
-                                                fill: '#dc2626',
-                                                fontWeight: 'bold',
-                                                fontSize: '12',
-                                                dy: -10,
-                                            }}
-                                        />
-                                    ))}
-                                {showGoalLines &&
-                                    goalData.reached.map((r) => {
-                                        const point = goalData.timeline[r.months];
-                                        return (
-                                            <ReferenceDot
-                                                key={`bubble-${r.id}`}
-                                                x={r.months}
-                                                y={point?.balance ?? r.value}
-                                                r={10}
-                                                fill="#22c55e"
-                                                stroke="#15803d"
-                                                strokeWidth={2.5}
-                                                shape={(props) => (
-                                                    <g>
-                                                        <circle cx={props.cx} cy={props.cy} r={18} fill="#22c55e" opacity={0.15} />
-                                                        <circle cx={props.cx} cy={props.cy} r={10} fill="#22c55e" stroke="#15803d" strokeWidth={2.5} filter="url(#bubble-glow)" />
-                                                        <circle cx={(props.cx ?? 0) - 3} cy={(props.cy ?? 0) - 3} r={3} fill="white" opacity={0.85} />
-                                                    </g>
-                                                )}
+
+                        <div className="rounded-xl border border-border/60 bg-card/60 dark:bg-card/30 p-4 sm:p-5 backdrop-blur-xs">
+                            <ResponsiveContainer width="100%" height={380}>
+                                <AreaChart data={goalData.timeline} margin={{ top: 15, right: 15, left: 0, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="goalsGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#0284c7" stopOpacity={0.4}/>
+                                            <stop offset="95%" stopColor="#0284c7" stopOpacity={0.02}/>
+                                        </linearGradient>
+                                        <filter id="bubble-glow" x="-50%" y="-50%" width="200%" height="200%">
+                                            <feDropShadow dx={0} dy={2} stdDeviation={4} floodColor="#15803d" floodOpacity={0.35} />
+                                        </filter>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                                    <XAxis
+                                        dataKey="month"
+                                        tickFormatter={(val: number) => `${(val / 12).toFixed(0)}J`}
+                                        stroke="currentColor"
+                                        className="text-xs opacity-60"
+                                    />
+                                    <YAxis
+                                        tickFormatter={(val: number) => formatCurrency(val)}
+                                        width={85}
+                                        stroke="currentColor"
+                                        className="text-xs opacity-60"
+                                    />
+                                    <Tooltip
+                                        formatter={(value) => formatCurrencyPrecise(value as number)}
+                                        labelFormatter={(label) => `Monat ${label} (${(Number(label) / 12).toFixed(1)} Jahre)`}
+                                        contentStyle={{
+                                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                            borderRadius: '12px',
+                                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                                            color: '#fff',
+                                            backdropFilter: 'blur(8px)'
+                                        }}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="balance"
+                                        stroke="#0284c7"
+                                        strokeWidth={2.5}
+                                        fill="url(#goalsGradient)"
+                                        name="Gesamtvermögen"
+                                    />
+                                    {showGoalLines &&
+                                        goals.map((goal) => (
+                                            <ReferenceLine
+                                                key={goal.id}
+                                                y={goal.value}
+                                                stroke="#8884d8"
+                                                strokeDasharray="4 4"
+                                                ifOverflow="extendDomain"
+                                                label={{ value: goal.title, position: 'insideTopLeft', fill: '#8884d8', fontSize: 11 }}
                                             />
-                                        );
-                                    })}
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
+                                        ))}
+                                    {showGoalLines &&
+                                        goalData.reached.map((r) => (
+                                            <ReferenceLine
+                                                key={`v-line-${r.id}`}
+                                                x={r.months}
+                                                stroke="#10b981"
+                                                strokeWidth={1.5}
+                                                strokeDasharray="4 4"
+                                                ifOverflow="extendDomain"
+                                            />
+                                        ))}
+                                    {showGoalLines &&
+                                        goalData.reached.map((r) => {
+                                            const point = goalData.timeline[r.months];
+                                            return (
+                                                <ReferenceDot
+                                                    key={`bubble-${r.id}`}
+                                                    x={r.months}
+                                                    y={point?.balance ?? r.value}
+                                                    r={8}
+                                                    fill="#22c55e"
+                                                    stroke="#15803d"
+                                                    strokeWidth={2}
+                                                />
+                                            );
+                                        })}
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
 
-                    {/* Reached and Unreachable Goals Section */}
-                    <div className="mt-4 space-y-4">
-                        <h4 className="font-bold text-lg">Ihre Ziele im Überblick</h4>
-                        {goalData.reached.length > 0 && (
-                            <div className="space-y-2">
-                                <h5 className="font-semibold text-green-700 flex items-center gap-2">
-                                    <Calendar size={18} /> Erreichte Ziele
-                                </h5>
-                                <ul className="list-disc pl-5 space-y-1">
-                                    {goalData.reached.map(r => (
-                                        <li key={r.id}>
-                                            <strong>{r.title}</strong> ({formatCurrency(r.value)}) wird voraussichtlich am{' '}
-                                            <strong>{r.date}</strong> erreicht.
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
+                        {/* Milestones list */}
+                        <div className="grid sm:grid-cols-2 gap-3">
+                            {goalData.reached.length > 0 && (
+                                <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 p-4 space-y-2">
+                                    <h5 className="font-semibold text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                                        <Calendar size={14} /> Erreichte Meilensteine
+                                    </h5>
+                                    <div className="space-y-1.5 text-xs">
+                                        {goalData.reached.map(r => (
+                                            <div key={r.id} className="flex justify-between items-center">
+                                                <span className="font-medium text-foreground">{r.title} ({formatCurrency(r.value)}):</span>
+                                                <span className="text-emerald-600 dark:text-emerald-400 font-bold">{r.date}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
-                        {goalData.unreachable.length > 0 && (
-                            <div className="space-y-2">
-                                <h5 className="font-semibold text-orange-700 flex items-center gap-2">
-                                    <AlertCircle size={18} /> Unerreichbare Ziele
-                                </h5>
-                                <p className="text-sm text-muted-foreground">
-                                    Mit der aktuellen Sparrate und Rendite werden die folgenden Ziele innerhalb von 50 Jahren nicht erreicht.
-                                    Passen Sie Ihre Eingaben an, um die Zeit zu verkürzen.
-                                </p>
-                                <ul className="list-disc pl-5 space-y-1">
-                                    {goalData.unreachable.map(r => (
-                                        <li key={r.id}>
-                                            <strong>{r.title}</strong> ({formatCurrency(r.value)})
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-
-                        {goalData.reached.length === 0 && goalData.unreachable.length === 0 && (
-                            <p className="text-muted-foreground">Fügen Sie Ziele hinzu, um die Ergebnisse zu sehen.</p>
-                        )}
+                            {goalData.unreachable.length > 0 && (
+                                <div className="rounded-xl border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-2">
+                                    <h5 className="font-semibold text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                                        <AlertCircle size={14} /> Unerreichbare Ziele
+                                    </h5>
+                                    <div className="space-y-1.5 text-xs">
+                                        {goalData.unreachable.map(r => (
+                                            <div key={r.id} className="flex justify-between items-center">
+                                                <span className="text-muted-foreground">{r.title}:</span>
+                                                <span className="text-amber-600 dark:text-amber-400 font-medium">&gt; 50 Jahre</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
-            </CardContent>
+            </div>
 
-            <CardFooter className="p-6 text-sm text-muted-foreground flex justify-between items-center">
+            <CardFooter className="px-6 py-4 text-xs text-muted-foreground border-t border-border/40 flex justify-between items-center bg-card/30">
                 <p>
-                    Hinweis: Dies ist ein Modell, keine Garantie. Die tatsächliche Rendite kann von der hier angegebenen Schätzung abweichen.
+                    Hinweis: Modellrechnung basierend auf einer konstanten monatlichen Sparrate und Rendite. Keine Anlageberatung.
                 </p>
             </CardFooter>
         </Card>

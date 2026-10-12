@@ -8,6 +8,8 @@ import { PropsWithChildren } from "react";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import MouseGlow from "@/components/MouseGlow";
+import ConnectedDots from "@/components/ConnectedDots";
+import PageContainer from "@/components/PageContainer";
 import PageRouter from "@/Context/PageContext";
 
 const geistSans = Geist({
@@ -81,11 +83,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground min-h-screen relative`}
       >
         <MouseGlow />
+        <ConnectedDots />
         <PageRouter>
             <Header />
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 safe-padding">
+            <PageContainer>
                 {children}
-            </main>
+            </PageContainer>
             <Footer />
         </PageRouter>
       </body>
